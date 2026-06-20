@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cosmis Animation</title>
+    <style>
+      :root {
+        --bg-void: #000001;
+        --neon-cyan: #00f0ff;
+        --neon-blue: #0066ff;
+        --neon-violet: #8a2be2;
+        --text-main: #e0f2fe;
+        --text-dim: #7dd3fc;
+        --panel-bg: rgba(4, 9, 16, 0.65);
+        --panel-border: rgba(0, 240, 255, 0.15);
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: var(--bg-void);
+        font-family:
+          "SF Pro Display",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Inter",
+          "Roboto",
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      #swarm-container {
+        width: 100%;
+        height: 100vh;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+      }
+
+      .vignette {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            circle at center,
+            transparent 15%,
+            var(--bg-void) 120%
+          ),
+          radial-gradient(
+            circle at 45% 42%,
+            rgba(0, 15, 30, 0.1),
+            transparent 60%
+          );
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      #info-panel {
+        position: absolute;
+        top: 32px;
+        left: 32px;
+        z-index: 4;
+        width: 360px;
+        color: var(--text-main);
+        border-radius: 6px;
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        box-shadow:
+          0 24px 64px rgba(0, 0, 0, 0.9),
+          inset 0 0 32px rgba(0, 100, 255, 0.05);
+        backdrop-filter: blur(20px) saturate(150%);
+        -webkit-backdrop-filter: blur(20px) saturate(150%);
+        overflow: hidden;
+        transition:
+          width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+          border-color 0.4s ease;
+      }
+
+      #info-panel.expanded {
+        width: 440px;
+        border-color: rgba(0, 240, 255, 0.4);
+        box-shadow:
+          0 32px 80px rgba(0, 0, 0, 0.95),
+          0 0 40px rgba(0, 150, 255, 0.1),
+          inset 0 0 20px rgba(0, 240, 255, 0.1);
+      }
+
+      .info-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+        position: relative;
+      }
+
+      .info-header::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 20px;
+        right: 20px;
+        height: 1px;
+        background: linear-gradient(90deg, var(--neon-blue), transparent);
+        opacity: 0.5;
+      }
+
+      .info-kicker {
+        font-size: 10px;
+        line-height: 1;
+        letter-spacing: 0.35em;
+        text-transform: uppercase;
+        color: var(--neon-cyan);
+        margin-bottom: 6px;
+        font-weight: 600;
+      }
+
+      #info-title {
+        font-size: 16px;
+        font-weight: 400;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: #ffffff;
+        text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+      }
+
+      #info-toggle {
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--panel-border);
+        border-radius: 4px;
+        background: rgba(0, 240, 255, 0.05);
+        color: var(--neon-cyan);
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        font-size: 18px;
+        font-weight: 300;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      #info-toggle:hover {
+        background: rgba(0, 240, 255, 0.15);
+        border-color: var(--neon-cyan);
+        box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
+      }
+
+      #info-body {
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition:
+          max-height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+          opacity 0.4s ease,
+          transform 0.5s ease;
+      }
+
+      #info-panel.expanded #info-body {
+        max-height: 400px;
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      #info-copy {
+        margin: 0;
+        padding: 20px;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--text-dim);
+        font-weight: 300;
+        letter-spacing: 0.02em;
+      }
+
+      .info-grid {
+        display: grid;
+        gap: 12px;
+        padding: 0 20px 24px 20px;
+      }
+
+      .info-row {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        gap: 12px;
+        align-items: baseline;
+        padding: 8px 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+        border-left: 2px solid var(--neon-blue);
+      }
+
+      .info-row span {
+        color: var(--neon-cyan);
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-size: 9px;
+        font-weight: 600;
+        opacity: 0.8;
+      }
+
+      .info-row strong {
+        color: var(--text-main);
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 1.4;
+      }
+
+      #nav-container {
+        position: absolute;
+        bottom: 40px;
+        left: 32px;
+        z-index: 4;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 10px;
+        border-radius: 6px;
+        background: var(--panel-bg);
+        backdrop-filter: blur(20px) saturate(150%);
+        -webkit-backdrop-filter: blur(20px) saturate(150%);
+        border: 1px solid var(--panel-border);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+      }
+
+      .nav-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 4px;
+        border: 1px solid var(--panel-border);
+        background: rgba(0, 0, 0, 0.4);
+        color: var(--neon-cyan);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .nav-btn svg {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.5;
+        stroke-linecap: square;
+        transition: transform 0.3s ease;
+      }
+
+      .nav-btn:hover {
+        background: rgba(0, 240, 255, 0.1);
+        border-color: var(--neon-cyan);
+        color: #fff;
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
+      }
+
+      #btn-prev:hover svg {
+        transform: translateX(-4px);
+      }
+      #btn-next:hover svg {
+        transform: translateX(4px);
+      }
+
+      .nav-btn:active {
+        transform: scale(0.95);
+      }
+
+      .nav-label {
+        text-transform: uppercase;
+        letter-spacing: 0.3em;
+        font-size: 11px;
+        color: var(--text-dim);
+        padding: 0 8px;
+        font-weight: 500;
+        user-select: none;
+      }
+
+      @media (max-width: 640px) {
+        #info-panel,
+        #info-panel.expanded {
+          top: 16px;
+          left: 16px;
+          width: calc(100vw - 32px);
+        }
+        #nav-container {
+          bottom: 24px;
+          left: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="swarm-container"></div>
+    <div class="vignette"></div>
+
+    <div id="info-panel">
+      <div class="info-header">
+        <div>
+          <div class="info-kicker">Telemetry Link</div>
+          <div id="info-title">Pulsar (Neutron Star)</div>
+        </div>
+        <button
+          id="info-toggle"
+          aria-label="Expand telemetry"
+          aria-expanded="false"
+        >
+          <span id="info-icon">+</span>
+        </button>
+      </div>
+
+      <div id="info-body">
+        <p id="info-copy"></p>
+        <div class="info-grid">
+          <div class="info-row">
+            <span>Structure</span>
+            <strong id="info-form"></strong>
+          </div>
+          <div class="info-row">
+            <span>Emissions</span>
+            <strong id="info-palette"></strong>
+          </div>
+          <div class="info-row">
+            <span>Dynamics</span>
+            <strong id="info-motion"></strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="nav-container">
+      <button id="btn-prev" class="nav-btn" aria-label="Previous Anomaly">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg>
+      </button>
+      <div class="nav-label" id="nav-indicator">TARGET 1 / 3</div>
+      <button id="btn-next" class="nav-btn" aria-label="Next Anomaly">
+        <svg viewBox="0 0 24 24"><path d="M9 19l7-7-7-7" /></svg>
+      </button>
+    </div>
+
+    <script type="module">
+      import * as THREE from "https://esm.sh/three";
+      import { OrbitControls } from "https://esm.sh/three/addons/controls/OrbitControls.js";
+      import { EffectComposer } from "https://esm.sh/three/addons/postprocessing/EffectComposer.js";
+      import { RenderPass } from "https://esm.sh/three/addons/postprocessing/RenderPass.js";
+      import { UnrealBloomPass } from "https://esm.sh/three/addons/postprocessing/UnrealBloomPass.js";
+
+      const cosmicInfo = [
+        {
+          name: "Pulsar (Neutron Star)",
+          copy: "A highly magnetized, rapidly rotating neutron star. Born from the supernova explosion of a massive star, channeling intense electromagnetic radiation through its poles.",
+          form: "Hyper-dense core, twisting toroidal magnetic filaments, extreme non-linear polar jets.",
+          palette:
+            "Blinding magenta core, deep neon violet flux lines, piercing cyan gamma emissions.",
+          motion: "Violent rotational spin with oscillating magnetic sweeping.",
+        },
+        {
+          name: "Spiral Galaxy",
+          copy: "A gravitationally bound system of stars, stellar remnants, interstellar gas, and dark matter. It slowly rotates, forming majestic, density-clustered spiral arms.",
+          form: "Dense galactic bulge, logarithmic arms with secondary branches and structural dust lanes.",
+          palette:
+            "Blazing golden core, saturated teal/cyan stellar nurseries, deep indigo dust.",
+          motion:
+            "Majestic galactic rotation with fluid local orbital shearing.",
+        },
+        {
+          name: "Singularity (Black Hole)",
+          copy: "A region of spacetime where gravity is so intense that nothing can escape. Matter falling towards it forms a superheated accretion disk affected by relativistic Doppler beaming.",
+          form: "Absolute void event horizon, warped accretion disk, 3D gravitational lensing.",
+          palette:
+            "X-ray blue/white inner horizon shifting to crimson plasma, enhanced by Doppler blueshift.",
+          motion:
+            "Extreme orbital velocity causing intense mathematical shearing and light warping.",
+        },
+      ];
+
+      let currentShape = 0;
+      let targetShape = 0;
+      let isTransitioning = false;
+      let morphProgress = 0;
+      const TOTAL_SHAPES = 3;
+
+      const infoPanel = document.getElementById("info-panel");
+      const infoToggle = document.getElementById("info-toggle");
+      const infoIcon = document.getElementById("info-icon");
+      let infoExpanded = false;
+
+      infoToggle.addEventListener("click", () => {
+        infoExpanded = !infoExpanded;
+        infoPanel.classList.toggle("expanded", infoExpanded);
+        infoToggle.setAttribute("aria-expanded", String(infoExpanded));
+        infoIcon.textContent = infoExpanded ? "−" : "+";
+      });
+
+      function updateInfo(index) {
+        const item = cosmicInfo[index];
+        document.getElementById("info-title").textContent = item.name;
+        document.getElementById("info-copy").textContent = item.copy;
+        document.getElementById("info-form").textContent = item.form;
+        document.getElementById("info-palette").textContent = item.palette;
+        document.getElementById("info-motion").textContent = item.motion;
+        document.getElementById("nav-indicator").textContent =
+          `TARGET ${index + 1} / ${TOTAL_SHAPES}`;
+      }
+
+      const container = document.getElementById("swarm-container");
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x000001, 0.0025);
+
+      const camera = new THREE.PerspectiveCamera(
+        50,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000,
+      );
+
+      function updateCameraZ() {
+        const aspect = window.innerWidth / window.innerHeight;
+        const maxShapeExtent = 55.0;
+        const fovRad = (camera.fov * Math.PI) / 180;
+        let requiredZ = maxShapeExtent / Math.tan(fovRad / 2);
+        if (aspect < 1.0) requiredZ /= aspect;
+        camera.position.set(0, requiredZ * 0.35, requiredZ);
+      }
+      updateCameraZ();
+
+      const renderer = new THREE.WebGLRenderer({
+        antialias: false,
+        powerPreference: "high-performance",
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setClearColor(0x000001);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.1;
+      container.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.03;
+      controls.enablePan = false;
+      controls.minDistance = 20;
+      controls.maxDistance = 300;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.5;
+
+      const renderScene = new RenderPass(scene, camera);
+      const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        1.6,
+        0.65,
+        0.25,
+      );
+
+      const composer = new EffectComposer(renderer);
+      composer.addPass(renderScene);
+      composer.addPass(bloomPass);
+
+      const particleCount = 135000;
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const ids = new Float32Array(particleCount);
+      const randoms = new Float32Array(particleCount * 3);
+
+      for (let i = 0; i < particleCount; i++) {
+        ids[i] = i / particleCount;
+        randoms[i * 3] = Math.random();
+        randoms[i * 3 + 1] = Math.random();
+        randoms[i * 3 + 2] = Math.random();
+      }
+
+      geometry.setAttribute(
+        "position",
+        new THREE.BufferAttribute(positions, 3),
+      );
+      geometry.setAttribute("aId", new THREE.BufferAttribute(ids, 1));
+      geometry.setAttribute("aRandom", new THREE.BufferAttribute(randoms, 3));
+
+      const vertexShader = `
+  uniform float uTime;
+  uniform float uMorphProgress;
+  uniform int uCurrentShape;
+  uniform int uTargetShape;
+
+  attribute float aId;
+  attribute vec3 aRandom;
+
+  varying vec3 vColor;
+  varying float vAlpha;
+  varying float vDepth;
+  varying float vGlowMult;
+
+  #define PI 3.14159265359
+  #define TAU 6.28318530718
+
+  float safePow(float base, float exp) {
+      return pow(max(abs(base), 0.00001), exp);
+  }
+  
+  vec3 safeNormalize(vec3 v) {
+      float len = length(v);
+      return len > 0.00001 ? v / len : vec3(0.0, 1.0, 0.0);
+  }
+
+  float cubicInOut(float t) {
+    return t < 0.5 ? 4.0 * t * t * t : 1.0 - safePow(-2.0 * t + 2.0, 3.0) / 2.0;
+  }
+
+  mat3 rotateY(float a) {
+    float s = sin(a); float c = cos(a);
+    return mat3(c, 0.0, s, 0.0, 1.0, 0.0, -s, 0.0, c);
+  }
+
+  mat3 rotateX(float a) {
+    float s = sin(a); float c = cos(a);
+    return mat3(1.0, 0.0, 0.0, 0.0, c, s, 0.0, -s, c);
+  }
+
+  vec3 getPulsarPos(float id, vec3 rnd) {
+    float t = uTime * 2.5;
+    if (rnd.x < 0.1) {
+       float u = rnd.y * TAU;
+       float v = acos(2.0 * rnd.z - 1.0);
+       float r = 2.0 + sin(u*12.0 + t)*0.15 + cos(v*8.0 - t)*0.15;
+       return vec3(r * sin(v) * cos(u), r * cos(v), r * sin(v) * sin(u));
+    } 
+    else if (rnd.x < 0.25) {
+       float isTop = (rnd.y > 0.5) ? 1.0 : -1.0;
+       float h = safePow(abs(rnd.y * 2.0 - 1.0), 3.0) * 70.0; 
+       float taper = safePow(1.0 - (h / 70.0), 2.0);
+       float r = rnd.z * 1.5 * taper; 
+       float u = id * TAU * 150.0;
+       float wobble = sin(h * 0.15 - t * 8.0) * 0.8 * taper;
+       return vec3(r * cos(u) + wobble, h * isTop, r * sin(u) + wobble);
+    } 
+    else {
+       float lines = 42.0;
+       float lineId = floor((rnd.x - 0.25) / 0.75 * lines);
+       float lineAngle = (lineId / lines) * TAU;
+       
+       float v = rnd.y * PI; 
+       float maxL = 12.0 + fract(lineId * 17.5) * 25.0; 
+       float r = maxL * safePow(sin(v), 2.0);
+       
+       float twist = sin(v * PI - t) * 0.8;
+       lineAngle += t * 2.0 + twist; 
+       
+       float noise = sin(v * 15.0 - t * 4.0) * 0.4;
+       return vec3((r + noise) * cos(lineAngle), (maxL * 0.6) * cos(v), (r + noise) * sin(lineAngle));
+    }
+  }
+
+  vec3 getGalaxyPos(float id, vec3 rnd) {
+    float t = uTime * 0.2;
+    if (rnd.x < 0.2) {
+       float u = rnd.y * TAU;
+       float v = acos(2.0 * rnd.z - 1.0);
+       float r = 5.0 * safePow(rnd.y, 2.5); 
+       return vec3(r * sin(v) * cos(u), r * cos(v) * 0.25, r * sin(v) * sin(u));
+    } 
+    else {
+       float arms = (rnd.x > 0.8) ? 4.0 : 2.0;
+       float armId = floor(fract(rnd.x * 23.0) * arms);
+       float u = rnd.y * TAU * 1.8;
+       
+       float baseR = 2.5 * exp(0.32 * u);
+       
+       float cluster = sign(rnd.z - 0.5) * safePow(abs(rnd.z - 0.5) * 2.0, 2.0);
+       float spread = cluster * baseR * 0.25;
+       
+       float clumps = sin(baseR * 3.0) * 0.5;
+       float r = baseR + spread + clumps;
+       
+       float angle = u + (armId * TAU / arms) - t;
+       angle += sin(r * 2.0 - t * 3.0) * 0.1 * cluster;
+       
+       float yThickness = exp(-r * 0.12) * 2.0; 
+       float y = cluster * yThickness + sin(angle * 4.0) * 0.3;
+       
+       return vec3(r * cos(angle), y, r * sin(angle)) * 0.85;
+    }
+  }
+
+  vec3 getBlackHolePos(float id, vec3 rnd) {
+    float t = uTime * 1.5;
+    float eventHorizon = 5.0;
+    float maxDisk = 38.0;
+    vec3 pos;
+    
+    if (rnd.x < 0.7) {
+       float u = rnd.y * TAU;
+       float r = eventHorizon + sqrt(rnd.z) * (maxDisk - eventHorizon);
+       
+       float velocity = t * (55.0 / safePow(r, 1.2)); 
+       float angle = u + velocity;
+       
+       float thicknessStr = exp(-(r - eventHorizon) * 0.25) * 3.5;
+       float clusterY = sign(rnd.x - 0.35) * safePow(abs(rnd.x - 0.35)*2.8, 2.0);
+       float y = clusterY * thicknessStr;
+       
+       y += sin(r * 5.0 - t * 4.0) * cos(angle * 8.0) * 0.4;
+       pos = vec3(r * cos(angle), y, r * sin(angle));
+    } 
+    else if (rnd.x < 0.9) {
+       float u = rnd.y * TAU;
+       float v = rnd.z * PI;
+       float r = eventHorizon * (1.0 + 0.05 * rnd.z); 
+       
+       float angle1 = u + t * 18.0;
+       float angle2 = v + t * 8.0;
+       
+       float distort = sin(angle1 * 3.0 + t) * 0.5;
+       pos = vec3(
+           (r+distort) * cos(angle1) * sin(angle2),
+           (r+distort) * cos(angle2) * 1.5,
+           (r+distort) * sin(angle1) * sin(angle2)
+       );
+    } 
+    else {
+       float u = rnd.y * TAU;
+       float h = (rnd.z - 0.5) * 2.0; 
+       float heightSq = sign(h) * safePow(abs(h), 1.5) * 25.0; 
+       float r = eventHorizon + 0.2 + safePow(abs(h), 2.0) * 8.0;
+       float angle = u + t * 12.0 - heightSq * 0.4; 
+       pos = vec3(r * cos(angle), heightSq, r * sin(angle));
+    }
+    
+    return pos * 1.35;
+  }
+
+  vec3 getPos(int shape, float id, vec3 rnd) {
+    if (shape == 0) return getPulsarPos(id, rnd);
+    if (shape == 1) return getGalaxyPos(id, rnd);
+    if (shape == 2) return getBlackHolePos(id, rnd);
+    return vec3(0.0);
+  }
+
+  vec3 getColor(int shape, float id, vec3 rnd, vec3 pos) {
+    if (shape == 0) { 
+       if (rnd.x < 0.1) return vec3(1.0, 0.2, 1.0);
+       if (rnd.x < 0.25) return vec3(0.0, 0.9, 1.0);
+       float lineId = floor((rnd.x - 0.25) / 0.75 * 42.0);
+       return mix(vec3(0.4, 0.0, 1.0), vec3(0.1, 0.5, 1.0), fract(lineId * 0.3)); 
+    }
+
+    if (shape == 1) { 
+       if (rnd.x < 0.2) {
+           return mix(vec3(1.0, 0.8, 0.2), vec3(1.0, 0.3, 0.0), rnd.y);
+       } else {
+           vec3 brightArm = mix(vec3(0.0, 1.0, 0.8), vec3(0.0, 0.5, 1.0), rnd.y);
+           vec3 darkDust = vec3(0.02, 0.0, 0.15);
+           float clusterVal = safePow(abs(rnd.z - 0.5) * 2.0, 1.5);
+           return mix(brightArm, darkDust, clusterVal);
+       }
+    }
+    
+    if (shape == 2) {
+       vec3 hot = vec3(1.0, 0.5, 0.1);   
+       vec3 mid = vec3(0.8, 0.1, 0.0);   
+       vec3 cold = vec3(0.2, 0.0, 0.1);  
+       
+       vec3 baseCol;
+       if (rnd.x > 0.7 && rnd.x < 0.9) {
+           baseCol = mix(vec3(1.0, 0.8, 0.3), hot, rnd.y);
+       } else if (rnd.x >= 0.9) {
+           baseCol = mix(hot, mid, rnd.z);
+       } else {
+           float distNorm = length(pos.xz) / 38.0;
+           if (distNorm < 0.3) baseCol = mix(hot, mid, distNorm * 3.33);
+           else baseCol = mix(mid, cold, (distNorm - 0.3) * 1.42);
+       }
+
+       float dopplerBias = clamp(pos.x / 20.0, -1.0, 1.0); 
+       vec3 blueShift = vec3(0.0, 0.4, 1.0);
+       vec3 redShift = vec3(1.0, 0.0, 0.0);
+       
+       if (dopplerBias > 0.0) {
+           baseCol = mix(baseCol, blueShift, dopplerBias * 0.8);
+           baseCol *= (1.0 + dopplerBias * 0.5);
+       } else {
+           baseCol = mix(baseCol, redShift, abs(dopplerBias) * 0.8);
+           baseCol *= (1.0 - abs(dopplerBias) * 0.5);
+       }
+       
+       return baseCol;
+    }
+    return vec3(1.0);
+  }
+
+  float getAlpha(int shape, vec3 rnd) {
+      if (shape == 0) {
+         if (rnd.x < 0.1) return 1.0;
+         if (rnd.x < 0.25) return 0.7;
+         return 0.25;
+      }
+      if (shape == 1) {
+         if (rnd.x < 0.2) return 0.8;
+         float clusterVal = safePow(abs(rnd.z - 0.5) * 2.0, 1.5);
+         return mix(0.6, 0.15, clusterVal);
+      }
+      if (shape == 2) {
+         if (rnd.x > 0.7 && rnd.x < 0.9) return 0.9;
+         if (rnd.x >= 0.9) return 0.4;
+         return 0.5;
+      }
+      return 0.5;
+  }
+
+  float getGlowMult(int shape) {
+      if (shape == 0) return 2.2;  
+      if (shape == 1) return 1.4;  
+      if (shape == 2) return 1.1;  
+      return 1.0;
+  }
+
+  void main() {
+    vec3 p1 = getPos(uCurrentShape, aId, aRandom);
+    vec3 p2 = getPos(uTargetShape, aId, aRandom);
+
+    vec3 c1 = getColor(uCurrentShape, aId, aRandom, p1);
+    vec3 c2 = getColor(uTargetShape, aId, aRandom, p2);
+
+    float a1 = getAlpha(uCurrentShape, aRandom);
+    float a2 = getAlpha(uTargetShape, aRandom);
+
+    float g1 = getGlowMult(uCurrentShape);
+    float g2 = getGlowMult(uTargetShape);
+
+    float morph = cubicInOut(uMorphProgress);
+    vGlowMult = mix(g1, g2, morph);
+    vAlpha = mix(a1, a2, morph);
+    vColor = mix(c1, c2, morph);
+
+    vec3 finalPos = mix(p1, p2, morph);
+
+    float breatheMask = sin(uMorphProgress * PI);
+    
+    float distFromCenter = length(finalPos);
+    float shearVelocity = (20.0 / (distFromCenter + 1.0)) * breatheMask;
+    
+    finalPos = rotateY(shearVelocity + breatheMask * PI * 2.0) * finalPos;
+    
+    vec3 chaosVec = safeNormalize(finalPos + vec3(sin(aId*PI), cos(aId*TAU), sin(aId*PI*1.5)));
+    finalPos += chaosVec * breatheMask * (15.0 + aRandom.y * 20.0);
+
+    float twinkle = 0.7 + 0.3 * sin(uTime * 10.0 + aId * TAU * 100.0);
+    vAlpha *= twinkle * (1.0 - breatheMask * 0.5);
+
+    vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
+    gl_Position = projectionMatrix * mvPosition;
+    vDepth = -mvPosition.z;
+
+    float baseSize = 4.0 + aRandom.x * 6.0; 
+    gl_PointSize = baseSize * (65.0 / max(vDepth, 0.1));
+  }
+`;
+
+      const fragmentShader = `
+  varying vec3 vColor;
+  varying float vAlpha;
+  varying float vDepth;
+  varying float vGlowMult;
+
+  void main() {
+    vec2 uv = gl_PointCoord.xy - vec2(0.5);
+    float dist = length(uv);
+
+    if (dist > 0.5) discard;
+
+    float core = exp(-dist * 14.0);
+    float halo = exp(-dist * 4.0);
+    
+    vec3 col = vColor * vGlowMult;
+    
+    col = mix(col, vec3(1.0), core * 0.6); 
+
+    float depthFade = smoothstep(250.0, 15.0, vDepth);
+    float finalAlpha = vAlpha * (halo * 0.5 + core) * depthFade;
+
+    gl_FragColor = vec4(col, finalAlpha);
+  }
+`;
+
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: { value: 0 },
+          uMorphProgress: { value: 0.0 },
+          uCurrentShape: { value: 0 },
+          uTargetShape: { value: 0 },
+        },
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+
+      const particles = new THREE.Points(geometry, material);
+      scene.add(particles);
+
+      const btnPrev = document.getElementById("btn-prev");
+      const btnNext = document.getElementById("btn-next");
+
+      function triggerMorph(direction) {
+        if (!isTransitioning) {
+          targetShape =
+            (currentShape + direction + TOTAL_SHAPES) % TOTAL_SHAPES;
+          isTransitioning = true;
+          morphProgress = 0;
+          updateInfo(targetShape);
+        }
+      }
+
+      btnPrev.addEventListener("click", () => triggerMorph(-1));
+      btnNext.addEventListener("click", () => triggerMorph(1));
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        updateCameraZ();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        composer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      updateInfo(currentShape);
+
+      const clock = new THREE.Clock();
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        const delta = clock.getDelta();
+        const elapsedTime = clock.getElapsedTime();
+
+        controls.update();
+
+        if (isTransitioning) {
+          morphProgress += delta * 0.45;
+
+          if (morphProgress >= 1) {
+            morphProgress = 0;
+            currentShape = targetShape;
+            isTransitioning = false;
+          }
+        }
+
+        material.uniforms.uTime.value = elapsedTime;
+        material.uniforms.uMorphProgress.value = morphProgress;
+        material.uniforms.uCurrentShape.value = currentShape;
+        material.uniforms.uTargetShape.value = targetShape;
+
+        composer.render();
+      }
+
+      animate();
+    </script>
+  </body>
+</html>
