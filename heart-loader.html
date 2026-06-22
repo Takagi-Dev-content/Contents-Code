@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Heart Loader</title>
+    <style>
+      body {
+        background-color: #fdfdfd;
+        font-size: 64px;
+      }
+
+      main {
+        position: absolute;
+        content: "";
+        left: 50%;
+        top: 50%;
+        transform: translate(-100%, -240%);
+      }
+
+      heart {
+        animation: heart 2.5s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+        top: 50%;
+        content: "";
+        left: 50%;
+        position: absolute;
+      }
+      .heartL {
+        animation: heartL 2.5s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+        width: 1em;
+        height: 1em;
+        border: 1px solid #3fc1f2;
+        background-color: #3fc1f2;
+        content: "";
+        position: absolute;
+        display: block;
+        border-radius: 100%;
+        transform: translate(-29px, -28px);
+      }
+
+      .heartR {
+        animation: heartR 2.5s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+        width: 1em;
+        height: 1em;
+        border: 1px solid #3fc1f2;
+        background-color: #3fc1f2;
+        content: "";
+        position: absolute;
+        display: block;
+        transform: translate(29px, -28px);
+        border-radius: 100%;
+      }
+
+      .square {
+        animation: square 2.5s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+        width: 1em;
+        height: 1em;
+        border: 1px solid #3fc1f2;
+        background-color: #3fc1f2;
+        transform: scale(1) rotate(-45deg);
+        position: relative;
+        display: block;
+        content: "";
+      }
+
+      shadow {
+        animation: shadow 2.5s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+        top: 100px;
+        left: 50%;
+        content: "";
+        position: relative;
+        display: block;
+        bottom: -0.5em;
+        width: 1em;
+        height: 0.25em;
+        border-radius: 50%;
+        background-color: #d7d7d7;
+        border: 1px solid #d7d7d7;
+      }
+
+      @keyframes square {
+        50% {
+          border-radius: 100%;
+          transform: scale(0.5) rotate(-45deg);
+        }
+        100% {
+          transform: scale(1) rotate(-45deg);
+        }
+      }
+      @keyframes heart {
+        50% {
+          transform: rotate(360deg);
+        }
+        100% {
+          transform: rotate(720deg);
+        }
+      }
+      @keyframes heartL {
+        60% {
+          transform: scale(0.4);
+        }
+      }
+      @keyframes heartR {
+        40% {
+          transform: scale(0.4);
+        }
+      }
+      @keyframes shadow {
+        50% {
+          transform: scale(0.5);
+          border-color: #e4e4e4;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <heart>
+        <span class="heartL"></span>
+        <span class="heartR"></span>
+        <span class="square"></span>
+      </heart>
+      <shadow></shadow>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <style>
+      html, body {
+        overflow: hidden;
+        background: black;
+      }
+      canvas {
+        background: radial-gradient(#2A2A2A, #111);
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      class Vec2 {
+        constructor(x = 0, y = 0) {
+          this.x = x;
+          this.y = y;
+        }
+
+        clone() {
+          return new Vec2(this.x, this.y);
+        }
+
+        rotateDeg(deg) {
+          const rad = (deg * Math.PI) / 180;
+          const cos = Math.cos(rad);
+          const sin = Math.sin(rad);
+          const x = this.x * cos - this.y * sin;
+          const y = this.x * sin + this.y * cos;
+          this.x = x;
+          this.y = y;
+          return this;
+        }
+
+        scale(s) {
+          this.x *= s;
+          this.y *= s;
+          return this;
+        }
+      }
+
+      // ─── Particle ────────────────────────────────────────────────────────────────
+
+      class Particle {
+        constructor({ x, y, targetHx, targetHy, hue }) {
+          this.x = x;
+          this.y = y;
+          this.xLast = x;
+          this.yLast = y;
+          this.xSpeed = 0;
+          this.ySpeed = 0;
+          this.targetHx = targetHx;
+          this.targetHy = targetHy;
+          this.hue = hue;
+          this.age = 0;
+        }
+      }
+
+      // ─── Hexocet ─────────────────────────────────────────────────────────────────
+
+      class Hexocet {
+        // Configuration
+        static defaults = {
+          birthPeriod: 1,
+          hexSize: 20,
+          targetBounceChance: 0.02,
+          springStiffness: 0.01,
+          viscosity: 0.8,
+          particleOpacity: 0.7,
+          fade: true,
+          fadeLayerOpacity: 0.04,
+          maxSteps: 60_000,
+        };
+
+        constructor(options = {}) {
+          this.config = { ...Hexocet.defaults, ...options };
+          this.particles = [];
+          this.stepCount = 0;
+
+          this._setupCanvas();
+          this._bindEvents();
+          this._startLoop();
+        }
+
+        // ── Setup ─────────────────────────────────────────────────────────────────
+
+        _setupCanvas() {
+          this.canvas = document.createElement('canvas');
+          this.canvas.id = 'hexocet';
+          this.canvas.width = window.innerWidth;
+          this.canvas.height = window.innerHeight;
+          document.body.appendChild(this.canvas);
+
+          this.ctx = this.canvas.getContext('2d');
+          this.canvasBase = Math.min(this.canvas.width, this.canvas.height);
+          this.xC = this.canvas.width / 2;
+          this.yC = this.canvas.height / 2;
+        }
+
+        _bindEvents() {
+          this.canvas.addEventListener('mousemove', ({ pageX, pageY }) => {
+            this.birth(pageX, pageY);
+          });
+
+          window.addEventListener('resize', () => {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+            this.canvasBase = Math.min(this.canvas.width, this.canvas.height);
+            this.xC = this.canvas.width / 2;
+            this.yC = this.canvas.height / 2;
+          });
+        }
+
+        _startLoop() {
+          const frame = () => {
+            this._update();
+            requestAnimationFrame(frame);
+          };
+          frame();
+        }
+
+        // ── Coordinate helpers ───────────────────────────────────────────────────
+
+        hexToXY(Hx, Hy) {
+          const isSumEven = (parseInt(Hx) + parseInt(Hy)) % 2 === 0 ? 1 : 0;
+          const xPrime = Hx;
+          const yPrime = (1 / Math.sqrt(3)) * (3 * Hy + 1 + isSumEven);
+
+          const v = new Vec2(xPrime * this.config.hexSize, yPrime * this.config.hexSize);
+          v.rotateDeg(30);
+          return { x: v.x, y: v.y };
+        }
+
+        xyToHex(x, y) {
+          const v = new Vec2(x / this.config.hexSize, y / this.config.hexSize);
+          v.rotateDeg(-30);
+          return {
+            Hx: Math.floor(v.x),
+            Hy: Math.floor((Math.sqrt(3) * v.y) / 3),
+          };
+        }
+
+        // ── Core loop ────────────────────────────────────────────────────────────
+
+        _update() {
+          this.stepCount++;
+
+          const { birthPeriod, maxSteps } = this.config;
+          if (this.stepCount % birthPeriod === 0 && this.stepCount < maxSteps) {
+            this.birth();
+          }
+
+          this._move();
+          this._draw();
+        }
+
+        // ── Particle lifecycle ───────────────────────────────────────────────────
+
+        birth(xBirth, yBirth) {
+          const hex = this.xyToHex(xBirth ?? this.xC, yBirth ?? this.yC);
+
+          // Spread around the target cell
+          hex.Hx += Math.floor(1 * (-0.5 + Math.random()));
+          hex.Hy += Math.floor(1 * (-0.5 + Math.random()));
+
+          const { x, y } = this.hexToXY(hex.Hx, hex.Hy);
+          const hue = 190 + 15 * Math.sin(this.stepCount / 50);
+
+          this.particles.push(
+            new Particle({ x, y, targetHx: hex.Hx, targetHy: hex.Hy, hue })
+          );
+        }
+
+        _move() {
+          const { targetBounceChance, springStiffness, viscosity, canvasBase } = {
+            ...this.config,
+            canvasBase: this.canvasBase,
+          };
+
+          for (const p of this.particles) {
+            p.age++;
+            p.xLast = p.x;
+            p.yLast = p.y;
+
+            // Randomly hop to a neighbouring hex vertex
+            if (Math.random() < targetBounceChance) {
+              if (Math.random() > 0.33) {
+                p.targetHx += Math.random() > 0.5 ? 1 : -1;
+              } else {
+                p.targetHy += (p.targetHx + p.targetHy) % 2 === 0 ? 1 : -1;
+              }
+            }
+
+            // Spring toward current target
+            const target = this.hexToXY(p.targetHx, p.targetHy);
+            const accX = -springStiffness * (p.x - target.x) - viscosity * p.xSpeed;
+            const accY = -springStiffness * (p.y - target.y) - viscosity * p.ySpeed;
+
+            p.xSpeed += accX;
+            p.ySpeed += accY;
+
+            // Scale movement by canvas size so patterns are zoom-independent
+            p.x += 0.01 * p.xSpeed * this.canvasBase;
+            p.y += 0.01 * p.ySpeed * this.canvasBase;
+          }
+        }
+
+        _draw() {
+          const { ctx, canvas } = this;
+          const { fade, fadeLayerOpacity, particleOpacity } = this.config;
+
+          // Fade trail
+          if (fade) {
+            ctx.rect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = `rgba(0, 0, 0, ${fadeLayerOpacity})`;
+            ctx.fill();
+          }
+
+          ctx.lineWidth = 2;
+          ctx.lineCap = 'round';
+
+          for (const p of this.particles) {
+            ctx.strokeStyle = `hsla(${p.hue}, 90%, 55%, ${particleOpacity})`;
+            ctx.beginPath();
+            ctx.moveTo(p.xLast, p.yLast);
+            ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+          }
+        }
+
+        // ── Debug helper ─────────────────────────────────────────────────────────
+
+        testGrid(range = 100) {
+          const { ctx } = this;
+          ctx.lineWidth = 5;
+          ctx.lineCap = 'round';
+
+          for (let i = -range; i < range; i++) {
+            for (let j = -range; j < range; j++) {
+              ctx.strokeStyle = `hsla(${20 * j}, 50%, 100%, 0.5)`;
+              ctx.beginPath();
+              const { x, y } = this.hexToXY(i, j);
+              ctx.moveTo(x, y);
+              ctx.lineTo(x, y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      // ─── Bootstrap ───────────────────────────────────────────────────────────────
+
+      document.addEventListener('DOMContentLoaded', () => {
+        new Hexocet();
+      });
+    </script>
+  </body>
+</html>

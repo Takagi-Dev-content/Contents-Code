@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+      body {
+        background-color: #f4ede3;
+        padding-top: 0px;
+      }
+
+      @-webkit-keyframes hearts-animation {
+        0% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      @keyframes hearts-animation {
+        0% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      .hearts {
+        position: relative;
+      }
+      .hearts .heart {
+        position: absolute;
+        width: 26px;
+      }
+      .hearts .heart:before, .hearts .heart:after {
+        content: "";
+        width: 15px;
+        height: 25px;
+        display: block;
+        position: absolute;
+        background-color: #dd203e;
+        border-radius: 50% 50% 0 0;
+        top: 0;
+      }
+      .hearts .heart:before {
+        transform: rotate(-45deg);
+        transform-origin: left bottom;
+        left: 0;
+      }
+      .hearts .heart:after {
+        transform: rotate(45deg);
+        transform-origin: right bottom;
+        right: 25px;
+      }
+      .hearts .heart-1 {
+        top: 30px;
+        left: 50px;
+        -webkit-animation: hearts-animation 0.8s linear 0s infinite alternate;
+                animation: hearts-animation 0.8s linear 0s infinite alternate;
+      }
+      .hearts .heart-2 {
+        top: -40px;
+        right: 0;
+        -webkit-animation: hearts-animation 0.8s linear 0.4s infinite alternate;
+                animation: hearts-animation 0.8s linear 0.4s infinite alternate;
+      }
+      .hearts .heart-3 {
+        top: -80px;
+        left: 100px;
+        -webkit-animation: hearts-animation 0.8s linear 0.8s infinite alternate;
+                animation: hearts-animation 0.8s linear 0.8s infinite alternate;
+      }
+      .hearts .heart-4 {
+        top: 40px;
+        right: 30px;
+        -webkit-animation: hearts-animation 0.8s linear 1.2s infinite alternate;
+                animation: hearts-animation 0.8s linear 1.2s infinite alternate;
+      }
+      .hearts .heart-5 {
+        top: -60px;
+        right: 70px;
+        -webkit-animation: hearts-animation 0.8s linear 1.6s infinite alternate;
+                animation: hearts-animation 0.8s linear 1.6s infinite alternate;
+      }
+      .hearts .heart-6 {
+        top: -20px;
+        left: 10px;
+        -webkit-animation: hearts-animation 0.8s linear 2s infinite alternate;
+                animation: hearts-animation 0.8s linear 2s infinite alternate;
+      }
+
+      .bear-container {
+        width: 305px;
+        margin: 200px auto 0px auto;
+      }
+
+      .bear {
+        margin-top: 44px;
+      }
+      .bear .bear-head {
+        width: 109px;
+        height: 100px;
+        margin: auto;
+        position: relative;
+      }
+      .bear .bear-head .bear-head-shadow {
+        width: 109px;
+        height: 100%;
+        background-color: #ac664d;
+        border-radius: 50%;
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 2;
+      }
+      .bear .bear-head .bear-head-main {
+        width: 101px;
+        height: 97%;
+        background-color: #c47d5f;
+        border-radius: 50%;
+        position: absolute;
+        top: 2px;
+        left: 0px;
+        z-index: 3;
+      }
+      .bear .bear-head .nose-and-mouth {
+        width: 67px;
+        height: 45px;
+        background-color: #facc9b;
+        border-radius: 45%;
+        position: absolute;
+        bottom: -3px;
+        left: 0;
+        right: 0;
+        margin: auto;
+        z-index: 6;
+      }
+      .bear .bear-head .nose-and-mouth .nose {
+        position: absolute;
+        width: 0;
+        height: 0;
+        border: 14px solid transparent;
+        border-top: 13px solid #470800;
+        left: 0px;
+        right: 0;
+        margin: auto;
+        top: 6px;
+      }
+      .bear .bear-head .nose-and-mouth .nose:after {
+        content: "";
+        display: block;
+        width: 1px;
+        height: 17px;
+        background-color: #470800;
+        position: absolute;
+        top: -1px;
+        left: -1px;
+      }
+      .bear .bear-head .nose-and-mouth .mouth {
+        width: 45px;
+        height: 35px;
+        background-color: transparent;
+        border-bottom: 1px solid #470800;
+        border-radius: 50%;
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: auto;
+        top: 0px;
+      }
+      .bear .bear-head .eyes {
+        z-index: 4;
+        position: absolute;
+        top: 53px;
+        left: 0;
+        right: 0;
+        width: 50px;
+        margin: auto;
+      }
+      .bear .bear-head .eyes .eye {
+        width: 10px;
+        height: 10px;
+        background-color: #66190f;
+        border-radius: 50%;
+        position: absolute;
+        top: 0;
+      }
+      .bear .bear-head .eyes .eye.left-eye {
+        left: 0;
+      }
+      .bear .bear-head .eyes .eye.right-eye {
+        right: 0;
+      }
+      .bear .bear-head .ears {
+        width: 120px;
+        z-index: 1;
+        position: absolute;
+        top: 0;
+        left: -6px;
+        height: 40px;
+      }
+      .bear .bear-head .ears .ear {
+        background-color: #ba6d51;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        position: absolute;
+      }
+      .bear .bear-head .ears .ear.left-ear {
+        left: 0;
+      }
+      .bear .bear-head .ears .ear.left-ear .ear-inner {
+        left: 8px;
+      }
+      .bear .bear-head .ears .ear.right-ear {
+        right: 0;
+      }
+      .bear .bear-head .ears .ear.right-ear .ear-inner {
+        right: 8px;
+      }
+      .bear .bear-head .ears .ear .ear-inner {
+        background-color: #fed09f;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        top: 8px;
+        position: absolute;
+      }
+      .bear .bear-body {
+        position: relative;
+        z-index: 1;
+        width: 140px;
+        margin: auto;
+      }
+      .bear .bear-body .bear-main {
+        width: 100%;
+        height: 140px;
+        background-color: #a2644d;
+        border-radius: 30px 50% 50% 50%;
+        transform: rotate(45deg);
+        position: absolute;
+        top: -5px;
+      }
+      .bear .bear-body .bear-main .bear-shadow {
+        width: 90%;
+        height: 95%;
+        background-color: #b56f56;
+        border-radius: 30px 50% 50% 50%;
+        position: absolute;
+        top: 5px;
+        left: -5px;
+      }
+      .bear .bear-body .bear-inner {
+        height: 136px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+      }
+      .bear .bear-body .tie {
+        width: 83px;
+        position: absolute;
+        left: -3px;
+        right: 0;
+        top: -4px;
+        margin: auto;
+      }
+      .bear .bear-body .tie-center {
+        width: 17px;
+        height: 17px;
+        background-color: #e71b3c;
+        border-radius: 50%;
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: auto;
+      }
+      .bear .bear-body .tie-side {
+        width: 30px;
+        height: 30px;
+        background-color: #e71b3c;
+        position: absolute;
+      }
+      .bear .bear-body .tie-side-left {
+        left: 0px;
+        border-radius: 50% 50% 0 50%;
+        transform: rotate(-67deg);
+      }
+      .bear .bear-body .tie-side-right {
+        right: 0px;
+        border-radius: 0% 50% 50% 50%;
+        transform: rotate(-21deg);
+      }
+      .bear .bear-body .paws {
+        position: absolute;
+        width: 178px;
+        left: -21px;
+        bottom: 54px;
+      }
+      .bear .bear-body .paws .paw {
+        width: 85px;
+        height: 45px;
+        background-color: #c67f61;
+        position: absolute;
+        border-radius: 50%;
+        box-shadow: 0px 0px 2px 0px rgba(0, 0, 0, 0.2);
+      }
+      .bear .bear-body .paws .paw-left {
+        left: 0;
+        transform: rotate(45deg);
+      }
+      .bear .bear-body .paws .paw-right {
+        right: 0;
+        transform: rotate(-45deg);
+      }
+      .bear .bear-body .paws .paw-inner {
+        width: 80%;
+        height: 80%;
+        background-color: #fecb9e;
+        border-radius: 50%;
+        position: absolute;
+        top: 4px;
+        left: 9px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bear-container">
+      <div class="hearts">
+        <div class="heart heart-1"></div>
+        <div class="heart heart-2"></div>
+        <div class="heart heart-3"></div>
+        <div class="heart heart-4"></div>
+        <div class="heart heart-5"></div>
+        <div class="heart heart-6"></div>
+      </div>
+      <div class="bear">
+        <div class="bear-head">
+          <div class="ears">
+            <div class="ear left-ear">
+              <div class="ear-inner"></div>
+            </div>
+            <div class="ear right-ear">
+              <div class="ear-inner"></div>
+            </div>
+          </div>
+          <div class="eyes">
+            <div class="eye left-eye"></div>
+            <div class="eye right-eye"></div>
+          </div>
+          <div class="nose-and-mouth">
+            <div class="nose"></div>
+            <div class="mouth"></div>
+          </div>
+          <div class="bear-head-main"></div>
+          <div class="bear-head-shadow"></div>
+        </div>
+        <div class="bear-body">
+          <div class="bear-main">
+            <div class="bear-shadow"></div>
+          </div>
+          <div class="bear-inner">
+            <div class="tie">
+              <div class="tie-center"></div>
+              <div class="tie-side tie-side-left"></div>
+              <div class="tie-side tie-side-right"></div>
+            </div>
+            <div class="paws">
+              <div class="paw paw-left">
+                <div class="paw-inner paw-left-inner"></div>
+              </div>
+              <div class="paw paw-right">
+                <div class="paw-inner paw-right-inner"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

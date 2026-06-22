@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Lobster);
+
+      html, body {
+          margin: 0px;
+          padding: 0px;
+          overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="world"></canvas>
+
+
+    <script>
+      class Vector {
+        constructor(x = 0, y = 0) {
+          this.x = x;
+          this.y = y;
+        }
+
+        static add(v1, v2) {
+          return new Vector(v1.x + v2.x, v1.y + v2.y);
+        }
+
+        static subtract(v1, v2) {
+          return new Vector(v1.x - v2.x, v1.y - v2.y);
+        }
+
+        add(vector) {
+          this.x += vector.x;
+          this.y += vector.y;
+          return this;
+        }
+
+        subtract(vector) {
+          this.x -= vector.x;
+          this.y -= vector.y;
+          return this;
+        }
+
+        multiply(number) {
+          this.x *= number;
+          this.y *= number;
+          return this;
+        }
+
+        divide(n) {
+          this.x /= n;
+          this.y /= n;
+          return this;
+        }
+
+        magnitude() {
+          return Math.sqrt(this.x * this.x + this.y * this.y);
+        }
+
+        normalize() {
+          const m = this.magnitude();
+          if (m !== 0) {
+            this.divide(m);
+          }
+          return this;
+        }
+
+        limit(max) {
+          if (this.magnitude() > max) {
+            this.normalize();
+            this.multiply(max);
+          }
+          return this;
+        }
+      }
+
+      // Particle class
+      class Particle {
+        constructor() {
+          this.position = new Vector();
+          this.velocity = new Vector();
+          this.force = new Vector();
+          this.radius = 3;
+        }
+
+        addForce(vector) {
+          this.force.x += vector.x;
+          this.force.y += vector.y;
+        }
+
+        reset() {
+          this.force.x = 0;
+          this.force.y = 0;
+        }
+
+        addRandomness() {
+          this.position.x += -1 + Math.random() * 2;
+          this.position.y += -1 + Math.random() * 2;
+        }
+
+        update(ctx) {
+          this.velocity.add(this.force);
+          this.velocity.limit(15);
+          this.position.add(this.velocity);
+
+          this.addRandomness();
+          this.reset();
+
+          // Boundary collision
+          if (this.position.x + this.radius * 0.5 >= window.innerWidth) {
+            this.velocity.x *= -1;
+          }
+          if (this.position.y + this.radius * 0.5 >= window.innerHeight) {
+            this.velocity.y *= -1;
+          }
+          if (this.position.x + this.radius * 0.5 <= 0) {
+            this.velocity.x *= -1;
+          }
+          if (this.position.y + this.radius * 0.5 <= 0) {
+            this.velocity.y *= -1;
+          }
+
+          // Draw particle
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(
+            this.position.x,
+            this.position.y,
+            this.radius,
+            0,
+            Math.PI * 2,
+            true
+          );
+          ctx.closePath();
+          ctx.stroke();
+          ctx.fill();
+        }
+      }
+
+      // Application
+      class Application {
+        constructor() {
+          this.TOTAL_PARTICLES = 200;
+          this.WINDOW_WIDTH = 0;
+          this.WINDOW_HEIGHT = 0;
+
+          this.canvas = null;
+          this.context = null;
+          this.mouse = new Vector();
+          this.particles = [];
+          this.acceleration = new Vector(-1, 1);
+        }
+
+        init() {
+          this.canvas = document.getElementById('world');
+          this.context = this.canvas.getContext('2d');
+
+          if (this.context) {
+            this.resize();
+            this.mouse.x = this.WINDOW_WIDTH * 0.5;
+            this.mouse.y = this.WINDOW_HEIGHT * 0.5;
+
+            this.createParticles();
+            this.addEventListeners();
+            this.draw();
+          }
+        }
+
+        createParticles() {
+          for (let i = this.TOTAL_PARTICLES; i >= 0; i--) {
+            const particle = new Particle();
+            particle.position.x = Math.floor(Math.random() * this.WINDOW_WIDTH);
+            particle.position.y = Math.floor(Math.random() * this.WINDOW_HEIGHT);
+            this.particles.push(particle);
+          }
+        }
+
+        addEventListeners() {
+          window.addEventListener('resize', () => this.resize());
+          window.addEventListener('mousemove', (event) => this.onMouseMove(event));
+        }
+
+        onMouseMove(event) {
+          this.mouse.x = event.clientX;
+          this.mouse.y = event.clientY;
+        }
+
+        draw = () => {
+          this.context.fillStyle = 'rgba(0,0,0,0.2)';
+          this.context.fillRect(0, 0, this.WINDOW_WIDTH, this.WINDOW_HEIGHT);
+
+          for (let i = this.TOTAL_PARTICLES; i >= 0; i--) {
+            this.acceleration = Vector.subtract(this.mouse, this.particles[i].position);
+            this.acceleration.normalize();
+            this.particles[i].addForce(this.acceleration);
+            this.particles[i].update(this.context);
+          }
+
+          requestAnimationFrame(this.draw);
+        };
+
+        resize = () => {
+          this.canvas.width = this.WINDOW_WIDTH = window.innerWidth;
+          this.canvas.height = this.WINDOW_HEIGHT = window.innerHeight;
+        };
+      }
+
+      const app = new Application();
+      app.init();
+    </script>
+  </body>
+</html>

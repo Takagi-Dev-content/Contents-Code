@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interactive Ghost Login Form</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css?family=Roboto|K2D");
+
+      body {
+        /* Frankenstein Green?
+        --light-main-color: #293532;
+        --dark-main-color: #57ad68;
+        --darker-main-color: #227744;
+        */
+        --light-main-color: rgba(235, 97, 35, 0.4) /*#221925*/;
+        --dark-main-color: #ee7c11;
+        --darker-main-color: #bf6d1c;
+        display: grid;
+        place-items: center;
+        background: var(--light-main-color);
+        font-size: 16px;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 100vh;
+        font-family: K2D, Roboto, Arial, Verdana, sans-serif;
+      }
+
+      form .ghost {
+        margin: auto auto;
+        display: block;
+      }
+      form {
+        display: inline-block;
+        background: #f5f5f5;
+        padding: 1.5rem;
+        width: 400px;
+        margin: 3rem auto;
+        border: 3px solid var(--dark-main-color);
+        box-sizing: border-box;
+        border-radius: 4px;
+      }
+      fieldset input {
+        display: block;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        background: transparent;
+        border: 0;
+        padding: 1rem;
+        font-size: 1.1rem;
+        position: relative;
+        z-index: 3;
+        outline-color: var(--dark-main-color);
+      }
+
+      fieldset {
+        border: 0;
+        padding: 0;
+        margin: 1.2rem 0 0 0;
+      }
+
+      legend {
+        margin: 0;
+        padding: 0;
+        color: var(--darker-main-color);
+      }
+
+      fieldset > div {
+        border: 3px solid var(--dark-main-color);
+        border-radius: 3px;
+        position: relative;
+        margin-top: 0.5rem;
+        background: white;
+      }
+
+      fieldset#submit-field > div {
+        border-color: var(--darker-main-color);
+        background: var(--darker-main-color);
+      }
+
+      fieldset .placeholder {
+        position: absolute;
+        top: 50%;
+        left: 1rem;
+        -webkit-transform: translate(0, -50%);
+        transform: translate(0, -50%);
+        z-index: 5;
+        font-size: 1.1rem;
+        transition: all 0.25s;
+        color: #666;
+        pointer-events: none;
+      }
+
+      fieldset .placeholder.active {
+        font-size: 0.6rem;
+        color: #999;
+        margin-top: -0.8rem;
+      }
+
+      fieldset.with-placeholder input {
+        padding: 1.3rem 1rem 0.7rem 1rem;
+      }
+
+      fieldset input[type="submit"] {
+        border: 0;
+        color: white;
+        cursor: pointer;
+        font-family: Roboto, K2D, Arial, Verdana, Sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <form>
+      <svg
+        class="ghost"
+        width="180px"
+        height="180px"
+        viewBox="0 0 200 200"
+        aria-labelledby="svg-title svg-desc"
+      >
+        <title id="svg-title">Floating Ghost</title>
+        <desc id="svg-desc">
+          A smiling ghost that floats ups and down while looking at the user
+          interactions.
+        </desc>
+        <style type="text/css">
+          @keyframes float {
+            from {
+              transform: translate(0, 0px);
+            }
+            to {
+              transform: translate(0, 8px);
+            }
+          }
+          @keyframes float-arm {
+            from {
+              transform: translate(-1px, 0px);
+            }
+            to {
+              transform: translate(1px, 4px);
+            }
+          }
+          #ghost-body {
+            animation: float 2s linear alternate infinite;
+          }
+          .ghost-arm {
+            animation: float-arm 3s linear alternate infinite;
+          }
+          .pupil,
+          #mouth,
+          .ghost-arm {
+            transition: all 0.25s;
+          }
+        </style>
+        <g
+          id="ghost-body"
+          fill="white"
+          fill="#fff"
+          stroke="#999"
+          stroke-width="3"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M 54,181 C 44,131 13,11 99,11 185,12 164,110 150,182 146,195 139,185 137,177 134,170 126,169 124,179 120,192 114,190 109,179 105,167 98,166 94,179 92,185 85,193 79,179 74,170 68,168 66,179 62,193 56,191 54,181 Z"
+          />
+          <path
+            id="eye-right"
+            class="eye"
+            fill="#ffffee"
+            d="M 69,71 C 69,64 73,54 84,55 96,56 100,62 100,70 100,79 89,83 84,83 78,83 69,80 69,71 Z"
+          />
+          <path
+            id="eye-left"
+            class="eye"
+            fill="#ffffee"
+            d="M 105,73 C 104,66 108,57 120,57 130,57 134,65 134,71 134,80 125,85 119,85 114,85 105,82 105,73 Z"
+          />
+          <circle
+            id="pupil-right"
+            class="pupil"
+            cx="84"
+            cy="69"
+            r="3"
+            fill="rgba(0,0,0,0.25)"
+          />
+          <circle
+            id="pupil-left"
+            class="pupil"
+            cx="120"
+            cy="71"
+            r="3"
+            fill="rgba(0,0,0,0.25)"
+          />
+          <path
+            id="mouth"
+            d="M 75,115 C 79,120 91,126 101,125 110,125 126,118 127,114 125,117 117,125 101,125 85,126 79,117 75,115 Z"
+            fill="#aa4040"
+            stroke="#600"
+          />
+          <path
+            id="ghost-arm-right"
+            class="ghost-arm"
+            d="M 45,89 C 25,92 9,108 11,124 13,141 27,115 48,119"
+          />
+          <path
+            id="ghost-arm-left"
+            class="ghost-arm"
+            d="M 155,88 C 191,90 194,114 192,125 191,137 172,109 155,116"
+            data-hover="M 155,88 C 145,68 105,51 103,62 102,74 123,117 155,116"
+            style="animation-delay: -1s"
+          />
+        </g>
+      </svg>
+      <fieldset id="email-field" class="with-placeholder">
+        <legend>Email</legend>
+        <div>
+          <input
+            type="email"
+            name="email"
+            id="email"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            required
+          />
+          <div class="placeholder">username@example.com</div>
+        </div>
+      </fieldset>
+      <fieldset id="password-field">
+        <legend>Password</legend>
+        <div>
+          <input
+            type="password"
+            name="password"
+            id="password"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            required
+          />
+        </div>
+      </fieldset>
+      <fieldset id="submit-field">
+        <legend></legend>
+        <div>
+          <input type="submit" name="submit" id="submit" value="Login" />
+        </div>
+      </fieldset>
+    </form>
+
+    <script>
+      // generic: inputs with placeholder will have some animation to minimize the placeholder
+      document
+        .querySelectorAll("fieldset.with-placeholder input")
+        .forEach(function (el, idx) {
+          el.addEventListener("focus", function () {
+            this.parentNode
+              .querySelector(".placeholder")
+              .classList.add("active");
+          });
+          el.addEventListener("blur", function () {
+            if (this.value == "") {
+              this.parentNode
+                .querySelector(".placeholder")
+                .classList.remove("active");
+            }
+          });
+        });
+
+      function updateMouthEyes() {
+        if (email.value.length > 0) {
+          if (
+            email.value.indexOf("@") > 0 &&
+            email.value.indexOf("@") < email.value.length - 1
+          ) {
+            document
+              .querySelector("#mouth")
+              .setAttribute(
+                "d",
+                "M 75,115 C 79,110 92,117 102,117 111,117 123,111 127,114 131,117 123,136 102,136 81,137 73,121 75,115 Z",
+              );
+          } else {
+            document
+              .querySelector("#mouth")
+              .setAttribute(
+                "d",
+                "M 75,115 C 79,110 92,119 101,119 110,119 123,111 127,114 131,117 118,131 102,132 87,132 73,121 75,115 Z",
+              );
+          }
+        } else {
+          document
+            .querySelector("#mouth")
+            .setAttribute(
+              "d",
+              "M 75,115 C 79,120 91,126 101,125 110,125 126,118 127,114 125,117 117,125 101,125 85,126 79,117 75,115 Z",
+            );
+        }
+
+        let pupilRight = document.querySelector("#pupil-right");
+        let pupilLeft = document.querySelector("#pupil-left");
+        let movePos =
+          email.value.length > 30 ? 13.33 : email.value.length / 2.25;
+        pupilRight.setAttribute("cy", 75);
+        pupilLeft.setAttribute("cy", 76);
+        pupilRight.setAttribute("cx", 78 + movePos);
+        pupilLeft.setAttribute("cx", 113 + movePos);
+      }
+
+      let email = document.querySelector("#email");
+      email.addEventListener("focus", updateMouthEyes);
+      email.addEventListener("input", updateMouthEyes);
+      email.addEventListener("blur", function () {
+        let pupilRight = document.querySelector("#pupil-right");
+        let pupilLeft = document.querySelector("#pupil-left");
+        pupilRight.setAttribute("cx", 84);
+        pupilRight.setAttribute("cy", 69);
+        pupilLeft.setAttribute("cx", 120);
+        pupilLeft.setAttribute("cy", 71);
+      });
+
+      // password animation: move arms to cover eyes on focus,
+      // and return to original position on blur
+      let password = document.querySelector("#password");
+      password.addEventListener("focus", function () {
+        document
+          .querySelector("#ghost-arm-left")
+          .setAttribute(
+            "d",
+            "M 155,88 C 145,68 105,51 103,62 102,74 123,117 155,116",
+          );
+        document
+          .querySelector("#ghost-arm-right")
+          .setAttribute(
+            "d",
+            "M 45,89 C 54,64 103,48 106,64 108,80 65,121 48,119",
+          );
+      });
+      password.addEventListener("blur", function () {
+        document
+          .querySelector("#ghost-arm-left")
+          .setAttribute(
+            "d",
+            "M 155,88 C 191,90 194,114 192,125 191,137 172,109 155,116",
+          );
+        document
+          .querySelector("#ghost-arm-right")
+          .setAttribute(
+            "d",
+            "M 45,89 C 25,92 9,108 11,124 13,141 27,115 48,119",
+          );
+      });
+    </script>
+  </body>
+</html>

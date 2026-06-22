@@ -1,0 +1,1073 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Geometric Morphing</title>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Quantum Sacred Geometry - High Energy Shader Engine</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      :root {
+        --color-bg: #020005;
+        --color-cyan: #00ffff;
+        --color-magenta: #ff007f;
+        --color-gold: #ffaa00;
+        --color-primary: #ff007f;
+        --font-mono: "Space Mono", "Courier New", monospace;
+        --active-cyan-rgb: 0, 255, 255;
+        --active-magenta-rgb: 255, 0, 127;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      body,
+      html {
+        width: 100%;
+        height: 100%;
+        background-color: var(--color-bg);
+        font-family: var(--font-mono);
+        overflow: hidden;
+      }
+
+
+      #webgl-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      .liquid-glass {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.05) 0%,
+          rgba(var(--active-magenta-rgb), 0.08) 40%,
+          rgba(var(--active-cyan-rgb), 0.16) 100%
+        );
+        backdrop-filter: blur(28px) saturate(220%);
+        -webkit-backdrop-filter: blur(28px) saturate(220%);
+        border: 1px solid rgba(var(--active-cyan-rgb), 0.35);
+        box-shadow:
+          0 20px 50px -15px rgba(0, 0, 0, 0.95),
+          0 0 30px -5px rgba(var(--active-cyan-rgb), 0.35),
+          inset 0 1px 1px 0 rgba(255, 255, 255, 0.3),
+          inset 0 -1px 8px 0 rgba(var(--active-magenta-rgb), 0.2);
+        transition:
+          border-color 0.4s ease,
+          box-shadow 0.4s ease;
+
+          margin-bottom: 50px;
+      }
+
+      .select-btn {
+        background: rgba(10, 2, 18, 0.65);
+        border: 1px solid rgba(var(--active-cyan-rgb), 0.25);
+        color: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(8px);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .select-btn:hover {
+        background: rgba(10, 2, 18, 0.85);
+        border-color: rgba(var(--active-cyan-rgb), 0.65);
+        color: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 0 12px rgba(var(--active-cyan-rgb), 0.25);
+      }
+
+      .select-btn.active {
+        border-color: rgba(var(--active-cyan-rgb), 1) !important;
+        background-color: rgba(var(--active-magenta-rgb), 0.25) !important;
+        color: #ffffff !important;
+        font-weight: 700;
+        text-shadow: 0 0 8px rgba(var(--active-cyan-rgb), 0.85);
+        box-shadow:
+          0 0 16px rgba(var(--active-cyan-rgb), 0.35),
+          inset 0 1px 2px rgba(255, 255, 255, 0.2),
+          inset 0 0 8px rgba(var(--active-magenta-rgb), 0.3) !important;
+      }
+    </style>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="webgl-container"></div>
+    <div
+      class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 md:p-6"
+    >
+      <header class="w-full flex flex-row justify-between items-start gap-4">
+        <div
+          class="pointer-events-auto liquid-glass rounded-lg px-3 py-2 flex items-center gap-2.5 text-white max-w-[210px] shadow-lg"
+        >
+          <span
+            class="text-sm animate-pulse text-pink-500 drop-shadow-[0_0_8px_rgba(255,0,127,0.8)]"
+            >🌌</span
+          >
+          <div class="font-mono leading-none">
+            <h1 class="text-[9px] font-bold tracking-widest text-cyan-400">
+              QUANTUM ENGINE
+            </h1>
+            <span
+              id="matrixResonance"
+              class="text-[7.5px] text-amber-400 block mt-0.5"
+              >1.6180 Hz</span
+            >
+          </div>
+        </div>
+
+        <div
+          class="pointer-events-auto liquid-glass rounded-lg px-3 py-1.5 flex flex-col gap-0.5 text-[8px] font-mono text-white min-w-[130px] shadow-lg"
+        >
+          <div class="flex justify-between border-l border-cyan-500/30 pl-2">
+            <span class="text-white/35">GEOM:</span>
+            <span id="valGeomName" class="text-cyan-400 font-bold"
+              >Grand Torus</span
+            >
+          </div>
+          <div class="flex justify-between border-l border-cyan-500/30 pl-2">
+            <span class="text-white/35">STABILITY:</span>
+            <span id="systemStability" class="text-cyan-400 font-bold"
+              >100.00%</span
+            >
+          </div>
+          <div class="flex justify-between border-l border-cyan-500/30 pl-2">
+            <span class="text-white/35">FPS:</span>
+            <span id="valFPS" class="text-amber-400 font-bold">0.0</span>
+          </div>
+        </div>
+      </header>
+
+      <footer class="w-full flex justify-center items-center pb-2 md:pb-4 px-1">
+        <div
+          class="pointer-events-auto w-full max-w-sm liquid-glass rounded-xl p-2.5 flex flex-col gap-2 relative overflow-hidden shadow-2xl"
+        >
+          <div
+            class="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-30 transform -skew-x-12 translate-x-1/4"
+          ></div>
+
+          <div id="matrixSelector" class="grid grid-cols-4 gap-1.5 z-10">
+            <button
+              class="select-btn active font-mono text-[8.5px] tracking-wider uppercase py-1.5 px-0.5 rounded-lg"
+              data-shape="0"
+            >
+              Torus
+            </button>
+            <button
+              class="select-btn font-mono text-[8.5px] tracking-wider uppercase py-1.5 px-0.5 rounded-lg"
+              data-shape="1"
+            >
+              Cube
+            </button>
+            <button
+              class="select-btn font-mono text-[8.5px] tracking-wider uppercase py-1.5 px-0.5 rounded-lg"
+              data-shape="2"
+            >
+              Star
+            </button>
+            <button
+              class="select-btn font-mono text-[8.5px] tracking-wider uppercase py-1.5 px-0.5 rounded-lg"
+              data-shape="3"
+            >
+              Cage
+            </button>
+          </div>
+
+          <div
+            class="flex items-center justify-between text-[7px] text-white/40 uppercase font-mono tracking-wider z-10 px-0.5"
+          >
+            <span>Phase Coherence</span>
+            <span id="txtPhasePercent" class="text-cyan-400 font-bold"
+              >100%</span
+            >
+          </div>
+
+          <div
+            class="absolute bottom-0 left-0 right-0 h-[2px] bg-white/5 overflow-hidden"
+          >
+            <div
+              id="morphProgressBar"
+              class="h-full w-full transition-all duration-150 ease-linear bg-cyan-400 shadow-[0_-2px_12px_rgba(0,255,255,1)]"
+            ></div>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+      import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+      import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+      import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+      import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+
+      const container = document.getElementById("webgl-container");
+      const systemStabilityEl = document.getElementById("systemStability");
+
+      const config = {
+        activeShape: 0,
+        waveSpeed: 1.2,
+        coreScale: 1.25,
+        ditherAmount: 0.012,
+        glowStrength: 0.45,
+        autoRotate: false,
+        nodesCount: 373,
+        beamsCount: 756,
+      };
+
+      let morphEnergy = 0.0;
+      let currentBloomMultiplier = 1.0;
+      let currentScaleFactor = 1.0;
+
+      let lastTime = performance.now();
+      let frameCount = 0;
+
+      const N_POINTS = 120;
+      const STRANDS = 3;
+      const R_BASE = 3.0;
+      const r_base = 1.0;
+
+      const latticePositions = [];
+      for (let s = 0; s < STRANDS; s++) {
+        latticePositions[s] = [];
+        for (let i = 0; i < N_POINTS; i++) {
+          latticePositions[s].push(new THREE.Vector3());
+        }
+      }
+
+      const coreVertices = [];
+      const baseCuboctahedron = [
+        new THREE.Vector3(1, 1, 0),
+        new THREE.Vector3(1, -1, 0),
+        new THREE.Vector3(-1, 1, 0),
+        new THREE.Vector3(-1, -1, 0),
+        new THREE.Vector3(1, 0, 1),
+        new THREE.Vector3(1, 0, -1),
+        new THREE.Vector3(-1, 0, 1),
+        new THREE.Vector3(-1, 0, -1),
+        new THREE.Vector3(0, 1, 1),
+        new THREE.Vector3(0, 1, -1),
+        new THREE.Vector3(0, -1, 1),
+        new THREE.Vector3(0, -1, -1),
+      ];
+      baseCuboctahedron.forEach(() => {
+        coreVertices.push(new THREE.Vector3());
+      });
+      const centerPoint = new THREE.Vector3(0, 0, 0);
+
+      const coreEdges = [];
+      const distSqMin = 1.9;
+      const distSqMax = 2.1;
+      for (let i = 0; i < baseCuboctahedron.length; i++) {
+        for (let j = i + 1; j < baseCuboctahedron.length; j++) {
+          const dSq = baseCuboctahedron[i].distanceToSquared(
+            baseCuboctahedron[j],
+          );
+          if (dSq > distSqMin && dSq < distSqMax) {
+            coreEdges.push([i, j]);
+          }
+        }
+      }
+
+      const CustomVertexShader = `
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vViewPosition;
+    varying vec3 vWorldPosition;
+
+    void main() {
+      vUv = uv;
+      vec4 localNormal = instanceMatrix * vec4(normal, 0.0);
+      vNormal = normalize(normalMatrix * localNormal.xyz);
+
+      vec4 localPosition = instanceMatrix * vec4(position, 1.0);
+      vec4 mvPosition = modelViewMatrix * localPosition;
+      vViewPosition = -mvPosition.xyz;
+
+      vec4 worldPosition = modelMatrix * localPosition;
+      vWorldPosition = worldPosition.xyz;
+
+      gl_Position = projectionMatrix * mvPosition;
+    }
+  `;
+
+      const TubeFragmentShader = `
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vViewPosition;
+    varying vec3 vWorldPosition;
+
+    uniform float uTime;
+    uniform float uSpeed;
+    uniform vec3 uColorCyan;
+    uniform vec3 uColorMagenta;
+    uniform vec3 uColorGold;
+    uniform vec3 uColorWhite;
+
+    void main() {
+      vec3 normal = normalize(vNormal);
+      vec3 viewDir = normalize(vViewPosition + vec3(0.0, 0.0, 0.0001));
+
+      float fresnel = pow(clamp(1.0 - abs(dot(viewDir, normal)), 0.0, 1.0), 3.0);
+
+      float speedFactor = uTime * uSpeed * 4.0;
+      float wave1 = sin(vUv.y * 18.0 - speedFactor);
+      float wave2 = cos(vUv.y * 36.0 + speedFactor * 0.8);
+      float wave3 = sin(vUv.y * 90.0 - speedFactor * 1.5) * 0.4;
+      float energyFlux = smoothstep(0.2, 0.8, (wave1 * wave2 + wave3) * 0.5 + 0.5);
+
+      float wireX = sin(vUv.x * 3.14159265 * 4.0);
+      float dWireX = max(fwidth(wireX), 0.0001);
+      float lineX = smoothstep(dWireX * 1.5, 0.0, abs(wireX));
+
+      float wireY = sin(vUv.y * 3.14159265 * 30.0);
+      float dWireY = max(fwidth(wireY), 0.0001);
+      float lineY = smoothstep(dWireY * 1.5, 0.0, abs(wireY));
+
+      float grid = max(lineX, lineY);
+
+      vec3 surfaceColor = mix(uColorMagenta * 0.2, uColorCyan, fresnel);
+      vec3 activeFilament = mix(surfaceColor, uColorMagenta * 1.8, energyFlux);
+      vec3 finalColor = mix(activeFilament, uColorGold * 1.5, grid * 0.45);
+
+      float burst = smoothstep(0.96, 1.0, sin(vUv.y * 6.0 - speedFactor * 1.8));
+      finalColor = mix(finalColor, uColorWhite, burst * 0.85);
+
+      float alpha = mix(0.12 + fresnel * 0.65, 1.0, (grid * 0.75) + (energyFlux * 0.35));
+      gl_FragColor = vec4(clamp(finalColor, vec3(0.0), vec3(8.0)), clamp(alpha, 0.0, 1.0));
+    }
+  `;
+
+      const NodeFragmentShader = `
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vViewPosition;
+    varying vec3 vWorldPosition;
+
+    uniform float uTime;
+    uniform float uSpeed;
+    uniform vec3 uColorCyan;
+    uniform vec3 uColorMagenta;
+    uniform vec3 uColorGold;
+    uniform vec3 uColorWhite;
+
+    void main() {
+      vec3 normal = normalize(vNormal);
+      vec3 viewDir = normalize(vViewPosition + vec3(0.0, 0.0, 0.0001));
+
+      float fresnel = pow(clamp(1.0 - abs(dot(viewDir, normal)), 0.0, 1.0), 2.5);
+
+      float speedFactor = uTime * uSpeed * 3.2;
+      float distFromCenter = length(vUv - vec2(0.5));
+      float thermalWave = sin(distFromCenter * 28.0 - speedFactor) * 0.5 + 0.5;
+
+      float stormNoise = sin(vUv.x * 24.0 + speedFactor) * cos(vUv.y * 24.0 - speedFactor);
+      float activeSolar = smoothstep(0.3, 0.9, stormNoise * thermalWave);
+
+      vec3 basePlasma = mix(uColorMagenta, uColorCyan, fresnel);
+      vec3 solarLatticeColor = mix(basePlasma, uColorGold * 1.8, activeSolar);
+
+      float centralReactor = smoothstep(0.28, 0.0, distFromCenter);
+      vec3 finalColor = mix(solarLatticeColor, uColorWhite, centralReactor * 0.95);
+
+      float heartbeat = sin(uTime * 6.5) * 0.5 + 0.5;
+      finalColor += uColorGold * (fresnel * heartbeat * 0.4);
+
+      float alpha = mix(0.3 + fresnel * 0.7, 1.0, activeSolar * 0.5 + centralReactor * 0.5);
+      gl_FragColor = vec4(clamp(finalColor, vec3(0.0), vec3(8.0)), clamp(alpha, 0.0, 1.0));
+    }
+  `;
+
+      const DitheringShader = {
+        name: "DitheringShader",
+        uniforms: {
+          tDiffuse: { value: null },
+          uTime: { value: 0 },
+          uNoiseAmount: { value: 0.012 },
+          uVignetteDarkness: { value: 1.1 },
+          uVignetteOffset: { value: 1.1 },
+        },
+        vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+        fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float uTime;
+      uniform float uNoiseAmount;
+      uniform float uVignetteDarkness;
+      uniform float uVignetteOffset;
+      varying vec2 vUv;
+
+      float random(vec2 coords) {
+        return fract(sin(dot(coords, vec2(12.9898, 78.233))) * 43758.5453);
+      }
+
+      void main() {
+        vec4 texel = texture2D(tDiffuse, vUv);
+
+        float noise = (random(vUv + sin(uTime)) - 0.5) * uNoiseAmount;
+        vec3 color = texel.rgb + vec3(noise);
+
+        vec2 uv = vUv - 0.5;
+        float dist = length(uv);
+        float vignette = smoothstep(uVignetteOffset, uVignetteOffset - 0.55, dist);
+        color = mix(color, color * vignette, uVignetteDarkness);
+
+        gl_FragColor = vec4(clamp(color, 0.0, 1.0), texel.a);
+      }
+    `,
+      };
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2("#020005", 0.025);
+
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        100,
+      );
+      camera.position.set(0, 0, 9.5);
+
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: false,
+        powerPreference: "high-performance",
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor("#020005", 1.0);
+
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+      container.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.minDistance = 3.0;
+      controls.maxDistance = 25.0;
+      controls.target.set(0, 0, 0);
+
+      const palettes = [
+        {
+          cyan: new THREE.Color("#00ffff"),
+          magenta: new THREE.Color("#ff007f"),
+          gold: new THREE.Color("#ffaa00"),
+          white: new THREE.Color("#ffffff"),
+        },
+        {
+          cyan: new THREE.Color("#00ff66"),
+          magenta: new THREE.Color("#0055ff"),
+          gold: new THREE.Color("#a800ff"),
+          white: new THREE.Color("#ffffff"),
+        },
+        {
+          cyan: new THREE.Color("#ff3c00"),
+          magenta: new THREE.Color("#ffcc00"),
+          gold: new THREE.Color("#ff0055"),
+          white: new THREE.Color("#ffffdd"),
+        },
+        {
+          cyan: new THREE.Color("#00aaff"),
+          magenta: new THREE.Color("#00ffff"),
+          gold: new THREE.Color("#9d4edd"),
+          white: new THREE.Color("#e0f2fe"),
+        },
+      ];
+
+      const activePalette = {
+        cyan: palettes[0].cyan.clone(),
+        magenta: palettes[0].magenta.clone(),
+        gold: palettes[0].gold.clone(),
+        white: palettes[0].white.clone(),
+      };
+
+      const nodeMaterial = new THREE.ShaderMaterial({
+        vertexShader: CustomVertexShader,
+        fragmentShader: NodeFragmentShader,
+        uniforms: {
+          uTime: { value: 0 },
+          uSpeed: { value: config.waveSpeed },
+          uColorCyan: { value: activePalette.cyan },
+          uColorMagenta: { value: activePalette.magenta },
+          uColorGold: { value: activePalette.gold },
+          uColorWhite: { value: activePalette.white },
+        },
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+
+      const beamMaterial = new THREE.ShaderMaterial({
+        vertexShader: CustomVertexShader,
+        fragmentShader: TubeFragmentShader,
+        uniforms: {
+          uTime: { value: 0 },
+          uSpeed: { value: config.waveSpeed },
+          uColorCyan: { value: activePalette.cyan },
+          uColorMagenta: { value: activePalette.magenta },
+          uColorGold: { value: activePalette.gold },
+          uColorWhite: { value: activePalette.white },
+        },
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+
+      const sphereGeometry = new THREE.SphereGeometry(1, 16, 16);
+      const cylinderGeometry = new THREE.CylinderGeometry(1, 1, 1, 8, 1, false);
+
+      const nodeMesh = new THREE.InstancedMesh(
+        sphereGeometry,
+        nodeMaterial,
+        config.nodesCount,
+      );
+      nodeMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      scene.add(nodeMesh);
+
+      const beamMesh = new THREE.InstancedMesh(
+        cylinderGeometry,
+        beamMaterial,
+        config.beamsCount,
+      );
+      beamMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      scene.add(beamMesh);
+
+      const tempMatrix = new THREE.Matrix4();
+      const tempObject = new THREE.Object3D();
+      const scratchDir = new THREE.Vector3();
+      const upVector = new THREE.Vector3(0, 1, 0);
+
+      const idealTargetVector = new THREE.Vector3();
+
+      function getCylinderMatrix(vA, vB, radius, targetMatrix) {
+        scratchDir.subVectors(vB, vA);
+        const length = scratchDir.length();
+
+        if (length < 0.0001) {
+          tempObject.position.copy(vA);
+          tempObject.scale.set(0, 0, 0);
+          tempObject.updateMatrix();
+          targetMatrix.copy(tempObject.matrix);
+          return;
+        }
+
+        scratchDir.normalize();
+        tempObject.position.addVectors(vA, vB).multiplyScalar(0.5);
+        tempObject.quaternion.setFromUnitVectors(upVector, scratchDir);
+        tempObject.scale.set(radius, length, radius);
+        tempObject.updateMatrix();
+
+        targetMatrix.copy(tempObject.matrix);
+      }
+
+      function computeTargetCoordinate(shapeIndex, s, i, time, targetVector) {
+        const alpha = (s * Math.PI * 2) / STRANDS;
+        const phi = (i / N_POINTS) * Math.PI * 2;
+
+        if (shapeIndex === 0) {
+          const p = 3,
+            q = 7;
+          const delta_r =
+            Math.sin(5.0 * phi - time * config.waveSpeed) *
+            Math.cos(3.0 * phi + time * config.waveSpeed) *
+            0.15;
+          const r_current = r_base + delta_r;
+
+          const x =
+            (R_BASE + r_current * Math.cos(q * phi + alpha)) *
+            Math.cos(p * phi);
+          const y =
+            (R_BASE + r_current * Math.cos(q * phi + alpha)) *
+            Math.sin(p * phi);
+          const z = r_current * Math.sin(q * phi + alpha);
+
+          targetVector.set(x, y, z);
+        } else if (shapeIndex === 1) {
+          const scaleFactor = [3.3, 2.2, 1.1][s];
+          const edgeIdx = Math.floor(i / 10);
+          const lerpFactor = (i % 10) / 9.0;
+
+          const cubeVerts = [
+            new THREE.Vector3(-1, -1, -1),
+            new THREE.Vector3(1, -1, -1),
+            new THREE.Vector3(1, 1, -1),
+            new THREE.Vector3(-1, 1, -1),
+            new THREE.Vector3(-1, -1, 1),
+            new THREE.Vector3(1, -1, 1),
+            new THREE.Vector3(1, 1, 1),
+            new THREE.Vector3(-1, 1, 1),
+          ];
+
+          const cubeEdges = [
+            [0, 1],
+            [1, 2],
+            [2, 3],
+            [3, 0],
+            [4, 5],
+            [5, 6],
+            [6, 7],
+            [7, 4],
+            [0, 4],
+            [1, 5],
+            [2, 6],
+            [3, 7],
+          ];
+
+          const edge = cubeEdges[edgeIdx % 12];
+          targetVector.lerpVectors(
+            cubeVerts[edge[0]],
+            cubeVerts[edge[1]],
+            lerpFactor,
+          );
+          targetVector.multiplyScalar(scaleFactor);
+
+          const pulse = 1.0 + Math.sin(time * 2.0 + i * 0.1) * 0.02;
+          targetVector.multiplyScalar(pulse);
+        } else if (shapeIndex === 2) {
+          if (s === 0) {
+            const verts = [
+              new THREE.Vector3(1, 1, 1),
+              new THREE.Vector3(1, -1, -1),
+              new THREE.Vector3(-1, 1, -1),
+              new THREE.Vector3(-1, -1, 1),
+            ];
+            const edges = [
+              [0, 1],
+              [0, 2],
+              [0, 3],
+              [1, 2],
+              [1, 3],
+              [2, 3],
+            ];
+            const edgeIdx = Math.floor(i / 20) % 6;
+            const lerpFactor = (i % 20) / 19.0;
+            targetVector
+              .lerpVectors(
+                verts[edges[edgeIdx][0]],
+                verts[edges[edgeIdx][1]],
+                lerpFactor,
+              )
+              .multiplyScalar(2.6);
+          } else if (s === 1) {
+            const verts = [
+              new THREE.Vector3(-1, -1, -1),
+              new THREE.Vector3(-1, 1, 1),
+              new THREE.Vector3(1, -1, 1),
+              new THREE.Vector3(1, 1, -1),
+            ];
+            const edges = [
+              [0, 1],
+              [0, 2],
+              [0, 3],
+              [1, 2],
+              [1, 3],
+              [2, 3],
+            ];
+            const edgeIdx = Math.floor(i / 20) % 6;
+            const lerpFactor = (i % 20) / 19.0;
+            targetVector
+              .lerpVectors(
+                verts[edges[edgeIdx][0]],
+                verts[edges[edgeIdx][1]],
+                lerpFactor,
+              )
+              .multiplyScalar(2.6);
+          } else {
+            const verts = [
+              new THREE.Vector3(1, 0, 0),
+              new THREE.Vector3(-1, 0, 0),
+              new THREE.Vector3(0, 1, 0),
+              new THREE.Vector3(0, -1, 0),
+              new THREE.Vector3(0, 0, 1),
+              new THREE.Vector3(0, 0, -1),
+            ];
+            const edges = [
+              [0, 2],
+              [2, 1],
+              [1, 3],
+              [3, 0],
+              [0, 4],
+              [1, 4],
+              [2, 4],
+              [3, 4],
+              [0, 5],
+              [1, 5],
+              [2, 5],
+              [3, 5],
+            ];
+            const edgeIdx = Math.floor(i / 10) % 12;
+            const lerpFactor = (i % 10) / 9.0;
+            targetVector
+              .lerpVectors(
+                verts[edges[edgeIdx][0]],
+                verts[edges[edgeIdx][1]],
+                lerpFactor,
+              )
+              .multiplyScalar(1.6);
+          }
+        } else {
+          const index = s * N_POINTS + i;
+          const totalPoints = STRANDS * N_POINTS;
+
+          const y = 1.0 - (index / (totalPoints - 1.0)) * 2.0;
+          const radiusAtY = Math.sqrt(Math.max(0.0, 1.0 - y * y));
+          const goldenRatio = (1.0 + Math.sqrt(5.0)) / 2.0;
+          const theta = 2.0 * Math.PI * goldenRatio * index;
+
+          const x = Math.cos(theta) * radiusAtY;
+          const z = Math.sin(theta) * radiusAtY;
+
+          const baseRad = 2.6 + Math.sin(time * 1.5 + index * 0.05) * 0.1;
+          targetVector.set(x, y, z).multiplyScalar(baseRad);
+        }
+      }
+
+      function initializeLatticeCoordinates() {
+        for (let s = 0; s < STRANDS; s++) {
+          for (let i = 0; i < N_POINTS; i++) {
+            computeTargetCoordinate(0, s, i, 0, latticePositions[s][i]);
+          }
+        }
+        const pulseScalar = config.coreScale;
+        for (let i = 0; i < baseCuboctahedron.length; i++) {
+          coreVertices[i]
+            .copy(baseCuboctahedron[i])
+            .multiplyScalar(pulseScalar);
+        }
+      }
+      initializeLatticeCoordinates();
+
+      function computePositionsAndMorph(time, activeShapeIndex) {
+        let totalDeviation = 0;
+        let count = 0;
+
+        const morphShockwave = Math.sin(time * 25.0) * morphEnergy * 0.15;
+
+        for (let s = 0; s < STRANDS; s++) {
+          for (let i = 0; i < N_POINTS; i++) {
+            computeTargetCoordinate(
+              activeShapeIndex,
+              s,
+              i,
+              time,
+              idealTargetVector,
+            );
+
+            if (morphEnergy > 0.001) {
+              const direction = idealTargetVector.clone().normalize();
+              idealTargetVector.addScaledVector(direction, morphShockwave);
+            }
+
+            totalDeviation +=
+              latticePositions[s][i].distanceTo(idealTargetVector);
+            count++;
+
+            latticePositions[s][i].lerp(idealTargetVector, 0.06);
+          }
+        }
+
+        const coreScaleTarget = [1.25, 0.75, 1.05, 0.6][activeShapeIndex];
+        const lerpedBaseScale = THREE.MathUtils.lerp(
+          config.coreScale,
+          coreScaleTarget,
+          0.06,
+        );
+        config.coreScale = lerpedBaseScale;
+
+        const pulseScalar = lerpedBaseScale + Math.sin(time * 2.5) * 0.08;
+        for (let i = 0; i < baseCuboctahedron.length; i++) {
+          idealTargetVector
+            .copy(baseCuboctahedron[i])
+            .multiplyScalar(pulseScalar);
+          coreVertices[i].lerp(idealTargetVector, 0.06);
+        }
+
+        const avgDeviation = totalDeviation / count;
+        const coherence = Math.max(100.0 - avgDeviation * 45.0, 0.0);
+        return coherence;
+      }
+
+      function updateLatticeSystem(time, activeShapeIndex) {
+        const coherence = computePositionsAndMorph(time, activeShapeIndex);
+
+        let nodeIdx = 0;
+        for (let s = 0; s < STRANDS; s++) {
+          for (let i = 0; i < N_POINTS; i++) {
+            tempObject.position.copy(latticePositions[s][i]);
+
+            const scaleMult = 1.0 + morphEnergy * 0.45;
+            const baseNodeScale = 0.065 * currentScaleFactor;
+            tempObject.scale.setScalar(baseNodeScale * scaleMult);
+            tempObject.updateMatrix();
+            nodeMesh.setMatrixAt(nodeIdx++, tempObject.matrix);
+          }
+        }
+
+        const coreNodeScaleFactor = [1.0, 0.8, 0.65, 0.5][activeShapeIndex];
+        for (let i = 0; i < coreVertices.length; i++) {
+          tempObject.position.copy(coreVertices[i]);
+          tempObject.scale.setScalar(0.115 * coreNodeScaleFactor);
+          tempObject.updateMatrix();
+          nodeMesh.setMatrixAt(nodeIdx++, tempObject.matrix);
+        }
+
+        tempObject.position.copy(centerPoint);
+        const centerPulse =
+          (0.2 + Math.sin(time * 5.0) * 0.05) * coreNodeScaleFactor;
+        tempObject.scale.setScalar(centerPulse);
+        tempObject.updateMatrix();
+        nodeMesh.setMatrixAt(nodeIdx++, tempObject.matrix);
+
+        nodeMesh.instanceMatrix.needsUpdate = true;
+
+        let beamIdx = 0;
+        const primaryBeamRadius = 0.015 * currentScaleFactor;
+
+        for (let s = 0; s < STRANDS; s++) {
+          for (let i = 0; i < N_POINTS; i++) {
+            const pA = latticePositions[s][i];
+            const pB = latticePositions[s][(i + 1) % N_POINTS];
+            getCylinderMatrix(pA, pB, primaryBeamRadius, tempMatrix);
+            beamMesh.setMatrixAt(beamIdx++, tempMatrix);
+          }
+        }
+
+        for (let i = 0; i < N_POINTS; i++) {
+          for (let s = 0; s < STRANDS; s++) {
+            const sNext = (s + 1) % STRANDS;
+            const pA = latticePositions[s][i];
+            const pB = latticePositions[sNext][i];
+            getCylinderMatrix(pA, pB, primaryBeamRadius * 0.65, tempMatrix);
+            beamMesh.setMatrixAt(beamIdx++, tempMatrix);
+          }
+        }
+
+        for (let e = 0; e < coreEdges.length; e++) {
+          const edge = coreEdges[e];
+          const pA = coreVertices[edge[0]];
+          const pB = coreVertices[edge[1]];
+          getCylinderMatrix(pA, pB, primaryBeamRadius * 1.6, tempMatrix);
+          beamMesh.setMatrixAt(beamIdx++, tempMatrix);
+        }
+
+        for (let i = 0; i < coreVertices.length; i++) {
+          const pA = coreVertices[i];
+          const pB = centerPoint;
+          getCylinderMatrix(pA, pB, primaryBeamRadius * 0.8, tempMatrix);
+          beamMesh.setMatrixAt(beamIdx++, tempMatrix);
+        }
+
+        beamMesh.instanceMatrix.needsUpdate = true;
+
+        return coherence;
+      }
+
+      const composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, camera));
+
+      const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        config.glowStrength,
+        0.35,
+        0.82,
+      );
+      composer.addPass(bloomPass);
+
+      const ditherPass = new ShaderPass(DitheringShader);
+      ditherPass.uniforms.uNoiseAmount.value = config.ditherAmount;
+      composer.addPass(ditherPass);
+
+      const outputPass = new OutputPass();
+      composer.addPass(outputPass);
+
+      const selectButtons = document.querySelectorAll("#matrixSelector button");
+      const valGeomNameEl = document.getElementById("valGeomName");
+      const matrixResonanceEl = document.getElementById("matrixResonance");
+
+      const valFPSEl = document.getElementById("valFPS");
+      const morphProgressBar = document.getElementById("morphProgressBar");
+      const txtPhasePercent = document.getElementById("txtPhasePercent");
+
+      const geometryNames = [
+        "Grand Torus",
+        "Cubic Frame",
+        "Merkabah Star",
+        "Cosmos Cage",
+      ];
+
+      selectButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          selectButtons.forEach((btn) => btn.classList.remove("active"));
+          button.classList.add("active");
+
+          const shapeIdx = parseInt(button.getAttribute("data-shape"));
+          config.activeShape = shapeIdx;
+          valGeomNameEl.textContent = geometryNames[shapeIdx];
+
+          morphEnergy = 1.0;
+        });
+      });
+
+      function handleResize() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        camera.aspect = width / height;
+
+        if (width < 768) {
+          camera.position.z = 11.5;
+        } else {
+          camera.position.z = 9.5;
+        }
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(width, height);
+        composer.setSize(width, height);
+      }
+      window.addEventListener("resize", handleResize);
+      handleResize();
+
+      const clock = new THREE.Clock();
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        const time = clock.getElapsedTime();
+
+        scene.rotation.y = 0;
+        scene.rotation.x = 0;
+
+        const targetPalette = palettes[config.activeShape];
+        activePalette.cyan.lerp(targetPalette.cyan, 0.06);
+        activePalette.magenta.lerp(targetPalette.magenta, 0.06);
+        activePalette.gold.lerp(targetPalette.gold, 0.06);
+        activePalette.white.lerp(targetPalette.white, 0.06);
+
+        const r_cyan = Math.round(activePalette.cyan.r * 255);
+        const g_cyan = Math.round(activePalette.cyan.g * 255);
+        const b_cyan = Math.round(activePalette.cyan.b * 255);
+
+        const r_magenta = Math.round(activePalette.magenta.r * 255);
+        const g_magenta = Math.round(activePalette.magenta.g * 255);
+        const b_magenta = Math.round(activePalette.magenta.b * 255);
+
+        document.documentElement.style.setProperty(
+          "--active-cyan-rgb",
+          `${r_cyan}, ${g_cyan}, ${b_cyan}`,
+        );
+        document.documentElement.style.setProperty(
+          "--active-magenta-rgb",
+          `${r_magenta}, ${g_magenta}, ${b_magenta}`,
+        );
+
+        morphEnergy += (0.0 - morphEnergy) * 0.05;
+
+        const targetBloomMultiplier = [1.0, 0.78, 0.42, 0.32][
+          config.activeShape
+        ];
+        currentBloomMultiplier = THREE.MathUtils.lerp(
+          currentBloomMultiplier,
+          targetBloomMultiplier,
+          0.06,
+        );
+
+        const targetScaleFactor = [1.0, 0.8, 0.55, 0.45][config.activeShape];
+        currentScaleFactor = THREE.MathUtils.lerp(
+          currentScaleFactor,
+          targetScaleFactor,
+          0.06,
+        );
+
+        bloomPass.strength =
+          config.glowStrength * currentBloomMultiplier + morphEnergy * 1.0;
+        ditherPass.uniforms.uNoiseAmount.value =
+          config.ditherAmount + morphEnergy * 0.04;
+
+        nodeMaterial.uniforms.uTime.value = time;
+        beamMaterial.uniforms.uTime.value = time;
+        ditherPass.uniforms.uTime.value = time;
+
+        const coherence = updateLatticeSystem(time, config.activeShape);
+
+        controls.update();
+        composer.render();
+
+        const now = performance.now();
+        frameCount++;
+
+        if (now - lastTime >= 500) {
+          const fps = (frameCount * 1000) / (now - lastTime);
+          valFPSEl.textContent = fps.toFixed(1);
+          frameCount = 0;
+          lastTime = now;
+        }
+
+        systemStabilityEl.textContent = `${coherence.toFixed(2)}%`;
+        if (coherence > 99.0) {
+          systemStabilityEl.style.color = "var(--color-cyan)";
+        } else {
+          systemStabilityEl.style.color = "var(--color-magenta)";
+        }
+
+        const progressPercent = Math.max(
+          0,
+          Math.min(100, Math.round((coherence / 100.0) * 100.0)),
+        );
+        morphProgressBar.style.width = `${progressPercent}%`;
+        txtPhasePercent.textContent = `${progressPercent}%`;
+
+        morphProgressBar.style.backgroundColor = `rgb(${r_cyan}, ${g_cyan}, ${b_cyan})`;
+
+        const shapeMultiplier = [1.0, 1.35, 1.82, 2.25][config.activeShape];
+        const resonance = (
+          3 *
+          7 *
+          0.077 *
+          (1 + config.waveSpeed * 0.12) *
+          shapeMultiplier
+        ).toFixed(4);
+        matrixResonanceEl.textContent = `${resonance} Hz`;
+      }
+
+      window.onload = function () {
+        animate();
+      };
+    </script>
+  </body>
+</html>

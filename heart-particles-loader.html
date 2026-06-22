@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      * {
+        particle-sizing: border-particle;
+      }
+
+      *:before,
+      *:after {
+        particle-sizing: border-particle;
+      }
+
+      .heart {
+        display: table;
+        margin: 50px auto;
+        position: relative;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        background-image: radial-gradient(#960000 0%, #780000 100%);
+        padding-top: 150px;
+        overflow: hidden;
+      }
+
+      .particle {
+        width: 25px;
+        height: 25px;
+        float: left;
+        background: white;
+        margin: 0 2px 2px 0;
+        opacity: 0;
+        border-radius: 2px;
+        transform: translate(0, 0);
+      }
+
+      .clear {
+        clear: left;
+      }
+
+      .white {
+        background: none !important;
+      }
+
+      .particle:not(.white) {
+        transition: all 0.3s ease;
+        -webkit-animation: animation 4s infinite;
+        animation: animation 4s infinite;
+      }
+
+      .particle:not(.white):hover {
+        transform: scale(1.1, 1.1);
+        background: #be0000;
+      }
+
+      @-webkit-keyframes animation {
+        0% {
+          opacity: 0;
+          transform: translate(0, -300px);
+        }
+        30% {
+          opacity: 1;
+          transform: translate(0, 0);
+        }
+        70% {
+          opacity: 1;
+          transform: translate(0, 0);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(0, 300px);
+        }
+      }
+
+      @keyframes animation {
+        0% {
+          opacity: 0;
+          transform: translate(0, -300px);
+        }
+        30% {
+          opacity: 1;
+          transform: translate(0, 0);
+        }
+        70% {
+          opacity: 1;
+          transform: translate(0, 0);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(0, 300px);
+        }
+      }
+      .delay-1 {
+        -webkit-animation-delay: 0.5s !important;
+        animation-delay: 0.5s !important;
+      }
+
+      .delay-2 {
+        -webkit-animation-delay: 0.6s !important;
+        animation-delay: 0.6s !important;
+      }
+
+      .delay-3 {
+        -webkit-animation-delay: 0.7s !important;
+        animation-delay: 0.7s !important;
+      }
+
+      .delay-4 {
+        -webkit-animation-delay: 0.8s !important;
+        animation-delay: 0.8s !important;
+      }
+
+      .delay-5 {
+        -webkit-animation-delay: 0.9s !important;
+        animation-delay: 0.9s !important;
+      }
+
+      .delay-6 {
+        -webkit-animation-delay: 1s !important;
+        animation-delay: 1s !important;
+      }
+
+      .delay-7 {
+        -webkit-animation-delay: 1.1s !important;
+        animation-delay: 1.1s !important;
+      }
+
+      .delay-8 {
+        -webkit-animation-delay: 1.2s !important;
+        animation-delay: 1.2s !important;
+      }
+
+      .delay-9 {
+        -webkit-animation-delay: 1.3s !important;
+        animation-delay: 1.3s !important;
+      }
+
+      .delay-10 {
+        -webkit-animation-delay: 1.4s !important;
+        animation-delay: 1.4s !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="heart">
+      <div class="particle white"></div>
+      <div class="particle delay-10"></div>
+      <div class="particle delay-6"></div>
+      <div class="particle white"></div>
+      <div class="particle white"></div>
+      <div class="particle white"></div>
+      <div class="particle delay-1"></div>
+      <div class="particle delay-3"></div>
+      <div class="particle white"></div>
+      <div class="particle clear delay-1"></div>
+      <div class="particle delay-2"></div>
+      <div class="particle delay-3"></div>
+      <div class="particle delay-4"></div>
+      <div class="particle white"></div>
+      <div class="particle delay-5"></div>
+      <div class="particle delay-6"></div>
+      <div class="particle delay-7"></div>
+      <div class="particle delay-8"></div>
+      <div class="particle clear delay-10"></div>
+      <div class="particle delay-5"></div>
+      <div class="particle delay-3"></div>
+      <div class="particle delay-7"></div>
+      <div class="particle delay-1"></div>
+      <div class="particle delay-9"></div>
+      <div class="particle delay-2"></div>
+      <div class="particle delay-4"></div>
+      <div class="particle delay-8"></div>
+      <div class="particle clear delay-6"></div>
+      <div class="particle delay-4"></div>
+      <div class="particle delay-5"></div>
+      <div class="particle delay-6"></div>
+      <div class="particle delay-1"></div>
+      <div class="particle delay-9"></div>
+      <div class="particle delay-10"></div>
+      <div class="particle delay-3"></div>
+      <div class="particle delay-2"></div>
+      <div class="particle clear white"></div>
+      <div class="particle delay-10"></div>
+      <div class="particle delay-9"></div>
+      <div class="particle delay-8"></div>
+      <div class="particle delay-2"></div>
+      <div class="particle delay-3"></div>
+      <div class="particle delay-5"></div>
+      <div class="particle delay-1"></div>
+      <div class="particle white"></div>
+      <div class="particle clear white"></div>
+      <div class="particle white"></div>
+      <div class="particle delay-4"></div>
+      <div class="particle delay-6"></div>
+      <div class="particle delay-1"></div>
+      <div class="particle delay-3"></div>
+      <div class="particle delay-2"></div>
+      <div class="particle white"></div>
+      <div class="particle white"></div>
+      <div class="particle clear white"></div>
+      <div class="particle white"></div>
+      <div class="particle white"></div>
+      <div class="particle delay-7"></div>
+      <div class="particle delay-6"></div>
+      <div class="particle delay-3"></div>
+      <div class="particle white"></div>
+      <div class="particle white"></div>
+      <div class="particle white"></div>
+      <div class="particle clear white"></div>
+      <div class="particle white"></div>
+      <div class="particle white"></div>
+      <div class="particle white"></div>
+      <div class="particle delay-5"></div>
+      <div class="particle white"></div>
+      <div class="particle white"></div>
+      <div class="particle white"></div>
+      <div class="particle white"></div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,3600 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        padding: 0;
+        margin: 0 auto;
+        box-sizing: border-box;
+      }
+
+      body {
+        background-color: #001;
+        color: #fff;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        perspective: 1000px;
+        overflow: hidden;
+      }
+      body * {
+        transform-style: preserve-3d;
+      }
+
+      @-webkit-keyframes sceneRotate {
+        to {
+          rotate: y 1turn;
+        }
+      }
+      @keyframes sceneRotate {
+        to {
+          rotate: y 1turn;
+        }
+      }
+      .scene * {
+        position: absolute;
+      }
+
+      .floor {
+        inset: -100em;
+        background-color: green;
+        transform: rotateX(-90deg) translateZ(15em);
+        background-image:
+          radial-gradient(closest-side, transparent, #001),
+          radial-gradient(closest-side, #000, transparent 15em),
+          repeating-linear-gradient(#fff2 0, transparent, #fff2 2em),
+          repeating-linear-gradient(90deg, #fff2 0, transparent, #fff2 2em);
+      }
+
+      .scene {
+        position: relative;
+        -webkit-animation: sceneRotate 120s infinite linear;
+        animation: sceneRotate 120s infinite linear;
+      }
+      .snowglobe {
+        cursor: pointer;
+        -webkit-animation: var(--animation, snowglobe) 12s;
+        animation: var(--animation, snowglobe) 12s;
+      }
+      .tree .trunk {
+        inset: -7em -1em;
+        transform: translateY(4em);
+        background-color: brown;
+        border-radius: 50%/90% 90% 3% 3%;
+        animation: sceneRotate 120s infinite linear reverse;
+      }
+
+      @-webkit-keyframes snowglobe {
+        0%,
+        100% {
+          pointer-events: none;
+        }
+      }
+      @keyframes snowglobe {
+        0%,
+        100% {
+          pointer-events: none;
+        }
+      }
+      .snowglobe:active {
+        --animation: none;
+      }
+
+      .text {
+        top: -20em;
+        animation: sceneRotate 120s infinite linear reverse;
+      }
+      .text i {
+        font-size: 3em;
+        width: -webkit-max-content;
+        width: -moz-max-content;
+        width: max-content;
+        translate: -50%;
+        -webkit-animation: var(--animation, text) 12s ease-in-out;
+        animation: var(--animation, text) 12s ease-in-out;
+      }
+      @-webkit-keyframes text {
+        0%,
+        95% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+      @keyframes text {
+        0%,
+        95% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      .base {
+        transform: translateY(11em);
+      }
+      .base i {
+        inset: -10em -2.7em;
+        background-color: maroon;
+        background-image: radial-gradient(circle, transparent, 90%, #0007);
+        transform: rotateX(-90deg) rotate(var(--angle, 0));
+      }
+      .base i:nth-child(1) {
+        --angle: 0deg;
+      }
+      .base i:nth-child(2) {
+        --angle: 30deg;
+      }
+      .base i:nth-child(3) {
+        --angle: 60deg;
+      }
+      .base i:nth-child(4) {
+        --angle: 90deg;
+      }
+      .base i:nth-child(5) {
+        --angle: 120deg;
+      }
+      .base i:nth-child(6) {
+        --angle: 150deg;
+      }
+      .base i::before,
+      .base i::after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 4em;
+        box-shadow: 0 0 1em #0007 inset;
+        background-color: inherit;
+        transform-origin: top;
+        transform: rotateX(90deg);
+      }
+      .base i::after {
+        top: 100%;
+      }
+
+      .glass {
+        inset: -15em;
+        background-image: radial-gradient(
+          farthest-side at 50% 60%,
+          transparent,
+          95%,
+          #fff5
+        );
+        border-radius: 50%;
+        animation: sceneRotate 120s infinite linear reverse;
+      }
+      .glass::after {
+        content: "";
+        position: absolute;
+        inset: 2em;
+        border-radius: 50%;
+        background-image: radial-gradient(
+          circle at 50% 60%,
+          transparent 65%,
+          #ff7a 85%
+        );
+        filter: blur(1em);
+        -webkit-animation: lightblur 120s infinite ease-in-out;
+        animation: lightblur 120s infinite ease-in-out;
+      }
+      @-webkit-keyframes lightblur {
+        0%,
+        100% {
+          rotate: -45deg;
+        }
+        50% {
+          rotate: 45deg;
+        }
+      }
+      @keyframes lightblur {
+        0%,
+        100% {
+          rotate: -45deg;
+        }
+        50% {
+          rotate: 45deg;
+        }
+      }
+
+      .tree .leafs i {
+        top: var(--top, 0);
+        width: 8em;
+        aspect-ratio: 1;
+        background-image: radial-gradient(circle at top left, #000, green);
+        border-radius: 0 0 100% 0;
+        transform-origin: top left;
+        transform: rotateY(var(--ry)) rotateX(45deg) rotateZ(45deg)
+          scale(var(--scale, 1));
+      }
+      .tree .leafs i:nth-child(1) {
+        --top: -5em;
+        --ry: 78deg;
+        --scale: 0.25;
+      }
+      .tree .leafs i:nth-child(2) {
+        --top: -4.8em;
+        --ry: 146deg;
+        --scale: 0.2633333333;
+      }
+      .tree .leafs i:nth-child(3) {
+        --top: -4.6em;
+        --ry: 236deg;
+        --scale: 0.2766666667;
+      }
+      .tree .leafs i:nth-child(4) {
+        --top: -4.4em;
+        --ry: 336deg;
+        --scale: 0.29;
+      }
+      .tree .leafs i:nth-child(5) {
+        --top: -4.2em;
+        --ry: 439deg;
+        --scale: 0.3033333333;
+      }
+      .tree .leafs i:nth-child(6) {
+        --top: -4em;
+        --ry: 517deg;
+        --scale: 0.3166666667;
+      }
+      .tree .leafs i:nth-child(7) {
+        --top: -3.8em;
+        --ry: 634deg;
+        --scale: 0.33;
+      }
+      .tree .leafs i:nth-child(8) {
+        --top: -3.6em;
+        --ry: 731deg;
+        --scale: 0.3433333333;
+      }
+      .tree .leafs i:nth-child(9) {
+        --top: -3.4em;
+        --ry: 797deg;
+        --scale: 0.3566666667;
+      }
+      .tree .leafs i:nth-child(10) {
+        --top: -3.2em;
+        --ry: 864deg;
+        --scale: 0.37;
+      }
+      .tree .leafs i:nth-child(11) {
+        --top: -3em;
+        --ry: 958deg;
+        --scale: 0.3833333333;
+      }
+      .tree .leafs i:nth-child(12) {
+        --top: -2.8em;
+        --ry: 1022deg;
+        --scale: 0.3966666667;
+      }
+      .tree .leafs i:nth-child(13) {
+        --top: -2.6em;
+        --ry: 1133deg;
+        --scale: 0.41;
+      }
+      .tree .leafs i:nth-child(14) {
+        --top: -2.4em;
+        --ry: 1206deg;
+        --scale: 0.4233333333;
+      }
+      .tree .leafs i:nth-child(15) {
+        --top: -2.2em;
+        --ry: 1320deg;
+        --scale: 0.4366666667;
+      }
+      .tree .leafs i:nth-child(16) {
+        --top: -2em;
+        --ry: 1419deg;
+        --scale: 0.45;
+      }
+      .tree .leafs i:nth-child(17) {
+        --top: -1.8em;
+        --ry: 1498deg;
+        --scale: 0.4633333333;
+      }
+      .tree .leafs i:nth-child(18) {
+        --top: -1.6em;
+        --ry: 1596deg;
+        --scale: 0.4766666667;
+      }
+      .tree .leafs i:nth-child(19) {
+        --top: -1.4em;
+        --ry: 1692deg;
+        --scale: 0.49;
+      }
+      .tree .leafs i:nth-child(20) {
+        --top: -1.2em;
+        --ry: 1781deg;
+        --scale: 0.5033333333;
+      }
+      .tree .leafs i:nth-child(21) {
+        --top: -1em;
+        --ry: 1880deg;
+        --scale: 0.5166666667;
+      }
+      .tree .leafs i:nth-child(22) {
+        --top: -0.8em;
+        --ry: 1966deg;
+        --scale: 0.53;
+      }
+      .tree .leafs i:nth-child(23) {
+        --top: -0.6em;
+        --ry: 2072deg;
+        --scale: 0.5433333333;
+      }
+      .tree .leafs i:nth-child(24) {
+        --top: -0.4em;
+        --ry: 2145deg;
+        --scale: 0.5566666667;
+      }
+      .tree .leafs i:nth-child(25) {
+        --top: -0.2em;
+        --ry: 2253deg;
+        --scale: 0.57;
+      }
+      .tree .leafs i:nth-child(26) {
+        --top: 0em;
+        --ry: 2328deg;
+        --scale: 0.5833333333;
+      }
+      .tree .leafs i:nth-child(27) {
+        --top: 0.2em;
+        --ry: 2407deg;
+        --scale: 0.5966666667;
+      }
+      .tree .leafs i:nth-child(28) {
+        --top: 0.4em;
+        --ry: 2494deg;
+        --scale: 0.61;
+      }
+      .tree .leafs i:nth-child(29) {
+        --top: 0.6em;
+        --ry: 2562deg;
+        --scale: 0.6233333333;
+      }
+      .tree .leafs i:nth-child(30) {
+        --top: 0.8em;
+        --ry: 2639deg;
+        --scale: 0.6366666667;
+      }
+      .tree .leafs i:nth-child(31) {
+        --top: 1em;
+        --ry: 2752deg;
+        --scale: 0.65;
+      }
+      .tree .leafs i:nth-child(32) {
+        --top: 1.2em;
+        --ry: 2819deg;
+        --scale: 0.6633333333;
+      }
+      .tree .leafs i:nth-child(33) {
+        --top: 1.4em;
+        --ry: 2916deg;
+        --scale: 0.6766666667;
+      }
+      .tree .leafs i:nth-child(34) {
+        --top: 1.6em;
+        --ry: 3027deg;
+        --scale: 0.69;
+      }
+      .tree .leafs i:nth-child(35) {
+        --top: 1.8em;
+        --ry: 3112deg;
+        --scale: 0.7033333333;
+      }
+      .tree .leafs i:nth-child(36) {
+        --top: 2em;
+        --ry: 3185deg;
+        --scale: 0.7166666667;
+      }
+      .tree .leafs i:nth-child(37) {
+        --top: 2.2em;
+        --ry: 3285deg;
+        --scale: 0.73;
+      }
+      .tree .leafs i:nth-child(38) {
+        --top: 2.4em;
+        --ry: 3400deg;
+        --scale: 0.7433333333;
+      }
+      .tree .leafs i:nth-child(39) {
+        --top: 2.6em;
+        --ry: 3509deg;
+        --scale: 0.7566666667;
+      }
+      .tree .leafs i:nth-child(40) {
+        --top: 2.8em;
+        --ry: 3570deg;
+        --scale: 0.77;
+      }
+      .tree .leafs i:nth-child(41) {
+        --top: 3em;
+        --ry: 3683deg;
+        --scale: 0.7833333333;
+      }
+      .tree .leafs i:nth-child(42) {
+        --top: 3.2em;
+        --ry: 3776deg;
+        --scale: 0.7966666667;
+      }
+      .tree .leafs i:nth-child(43) {
+        --top: 3.4em;
+        --ry: 3879deg;
+        --scale: 0.81;
+      }
+      .tree .leafs i:nth-child(44) {
+        --top: 3.6em;
+        --ry: 3985deg;
+        --scale: 0.8233333333;
+      }
+      .tree .leafs i:nth-child(45) {
+        --top: 3.8em;
+        --ry: 4055deg;
+        --scale: 0.8366666667;
+      }
+      .tree .leafs i:nth-child(46) {
+        --top: 4em;
+        --ry: 4123deg;
+        --scale: 0.85;
+      }
+      .tree .leafs i:nth-child(47) {
+        --top: 4.2em;
+        --ry: 4196deg;
+        --scale: 0.8633333333;
+      }
+      .tree .leafs i:nth-child(48) {
+        --top: 4.4em;
+        --ry: 4289deg;
+        --scale: 0.8766666667;
+      }
+      .tree .lights i {
+        inset: -0.4em;
+        background-color: hsl(var(--hue), 100%, 50%);
+        background-image: radial-gradient(circle at top, transparent, #0007);
+        box-shadow: 0 0 0.5em #fff7;
+        transform: translatey(var(--ty)) rotateY(var(--ry, 0))
+          translateZ(var(--tz, 5em));
+        border-radius: 50%;
+        animation: lightRotate 120s infinite linear reverse;
+      }
+      @-webkit-keyframes lightRotate {
+        from {
+          transform: translatey(var(--ty)) rotateY(var(--ry, 0))
+            translateZ(var(--tz, 5em)) rotateY(calc(0deg - var(--ry)));
+        }
+        to {
+          transform: translatey(var(--ty)) rotateY(var(--ry, 0))
+            translateZ(var(--tz, 5em)) rotateY(calc(360deg - var(--ry)));
+        }
+      }
+      @keyframes lightRotate {
+        from {
+          transform: translatey(var(--ty)) rotateY(var(--ry, 0))
+            translateZ(var(--tz, 5em)) rotateY(calc(0deg - var(--ry)));
+        }
+        to {
+          transform: translatey(var(--ty)) rotateY(var(--ry, 0))
+            translateZ(var(--tz, 5em)) rotateY(calc(360deg - var(--ry)));
+        }
+      }
+      .tree .lights i:nth-child(1) {
+        --ty: -4em;
+        --tz: 1em;
+        --ry: 106deg;
+        --hue: 266;
+      }
+      .tree .lights i:nth-child(2) {
+        --ty: -3.75em;
+        --tz: 1.09em;
+        --ry: 190deg;
+        --hue: 54;
+      }
+      .tree .lights i:nth-child(3) {
+        --ty: -3.5em;
+        --tz: 1.18em;
+        --ry: 309deg;
+        --hue: 309;
+      }
+      .tree .lights i:nth-child(4) {
+        --ty: -3.25em;
+        --tz: 1.27em;
+        --ry: 421deg;
+        --hue: 329;
+      }
+      .tree .lights i:nth-child(5) {
+        --ty: -3em;
+        --tz: 1.36em;
+        --ry: 483deg;
+        --hue: 74;
+      }
+      .tree .lights i:nth-child(6) {
+        --ty: -2.75em;
+        --tz: 1.45em;
+        --ry: 547deg;
+        --hue: 94;
+      }
+      .tree .lights i:nth-child(7) {
+        --ty: -2.5em;
+        --tz: 1.54em;
+        --ry: 629deg;
+        --hue: 33;
+      }
+      .tree .lights i:nth-child(8) {
+        --ty: -2.25em;
+        --tz: 1.63em;
+        --ry: 719deg;
+        --hue: 58;
+      }
+      .tree .lights i:nth-child(9) {
+        --ty: -2em;
+        --tz: 1.72em;
+        --ry: 784deg;
+        --hue: 314;
+      }
+      .tree .lights i:nth-child(10) {
+        --ty: -1.75em;
+        --tz: 1.81em;
+        --ry: 882deg;
+        --hue: 340;
+      }
+      .tree .lights i:nth-child(11) {
+        --ty: -1.5em;
+        --tz: 1.9em;
+        --ry: 995deg;
+        --hue: 72;
+      }
+      .tree .lights i:nth-child(12) {
+        --ty: -1.25em;
+        --tz: 1.99em;
+        --ry: 1108deg;
+        --hue: 328;
+      }
+      .tree .lights i:nth-child(13) {
+        --ty: -1em;
+        --tz: 2.08em;
+        --ry: 1195deg;
+        --hue: 68;
+      }
+      .tree .lights i:nth-child(14) {
+        --ty: -0.75em;
+        --tz: 2.17em;
+        --ry: 1302deg;
+        --hue: 85;
+      }
+      .tree .lights i:nth-child(15) {
+        --ty: -0.5em;
+        --tz: 2.26em;
+        --ry: 1393deg;
+        --hue: 151;
+      }
+      .tree .lights i:nth-child(16) {
+        --ty: -0.25em;
+        --tz: 2.35em;
+        --ry: 1501deg;
+        --hue: 190;
+      }
+      .tree .lights i:nth-child(17) {
+        --ty: 0em;
+        --tz: 2.44em;
+        --ry: 1578deg;
+        --hue: 45;
+      }
+      .tree .lights i:nth-child(18) {
+        --ty: 0.25em;
+        --tz: 2.53em;
+        --ry: 1673deg;
+        --hue: 153;
+      }
+      .tree .lights i:nth-child(19) {
+        --ty: 0.5em;
+        --tz: 2.62em;
+        --ry: 1756deg;
+        --hue: 325;
+      }
+      .tree .lights i:nth-child(20) {
+        --ty: 0.75em;
+        --tz: 2.71em;
+        --ry: 1830deg;
+        --hue: 299;
+      }
+      .tree .lights i:nth-child(21) {
+        --ty: 1em;
+        --tz: 2.8em;
+        --ry: 1945deg;
+        --hue: 84;
+      }
+      .tree .lights i:nth-child(22) {
+        --ty: 1.25em;
+        --tz: 2.89em;
+        --ry: 2015deg;
+        --hue: 182;
+      }
+      .tree .lights i:nth-child(23) {
+        --ty: 1.5em;
+        --tz: 2.98em;
+        --ry: 2109deg;
+        --hue: 336;
+      }
+      .tree .lights i:nth-child(24) {
+        --ty: 1.75em;
+        --tz: 3.07em;
+        --ry: 2218deg;
+        --hue: 21;
+      }
+      .tree .lights i:nth-child(25) {
+        --ty: 2em;
+        --tz: 3.16em;
+        --ry: 2292deg;
+        --hue: 238;
+      }
+      .tree .lights i:nth-child(26) {
+        --ty: 2.25em;
+        --tz: 3.25em;
+        --ry: 2406deg;
+        --hue: 61;
+      }
+      .tree .lights i:nth-child(27) {
+        --ty: 2.5em;
+        --tz: 3.34em;
+        --ry: 2509deg;
+        --hue: 28;
+      }
+      .tree .lights i:nth-child(28) {
+        --ty: 2.75em;
+        --tz: 3.43em;
+        --ry: 2595deg;
+        --hue: 156;
+      }
+      .tree .lights i:nth-child(29) {
+        --ty: 3em;
+        --tz: 3.52em;
+        --ry: 2672deg;
+        --hue: 310;
+      }
+      .tree .lights i:nth-child(30) {
+        --ty: 3.25em;
+        --tz: 3.61em;
+        --ry: 2749deg;
+        --hue: 327;
+      }
+      .tree .lights i:nth-child(31) {
+        --ty: 3.5em;
+        --tz: 3.7em;
+        --ry: 2827deg;
+        --hue: 160;
+      }
+      .tree .lights i:nth-child(32) {
+        --ty: 3.75em;
+        --tz: 3.79em;
+        --ry: 2942deg;
+        --hue: 155;
+      }
+      .tree .lights i:nth-child(33) {
+        --ty: 4em;
+        --tz: 3.88em;
+        --ry: 3038deg;
+        --hue: 51;
+      }
+      .tree .lights i:nth-child(34) {
+        --ty: 4.25em;
+        --tz: 3.97em;
+        --ry: 3126deg;
+        --hue: 210;
+      }
+      .tree .lights i:nth-child(35) {
+        --ty: 4.5em;
+        --tz: 4.06em;
+        --ry: 3246deg;
+        --hue: 270;
+      }
+      .tree .lights i:nth-child(36) {
+        --ty: 4.75em;
+        --tz: 4.15em;
+        --ry: 3311deg;
+        --hue: 129;
+      }
+      .tree .lights i:nth-child(37) {
+        --ty: 5em;
+        --tz: 4.24em;
+        --ry: 3401deg;
+        --hue: 63;
+      }
+      .tree .lights i:nth-child(38) {
+        --ty: 5.25em;
+        --tz: 4.33em;
+        --ry: 3475deg;
+        --hue: 19;
+      }
+      .tree .lights i:nth-child(39) {
+        --ty: 5.5em;
+        --tz: 4.42em;
+        --ry: 3541deg;
+        --hue: 305;
+      }
+      .tree .lights i:nth-child(40) {
+        --ty: 5.75em;
+        --tz: 4.51em;
+        --ry: 3642deg;
+        --hue: 132;
+      }
+      .tree .lights i:nth-child(41) {
+        --ty: 6em;
+        --tz: 4.6em;
+        --ry: 3756deg;
+        --hue: 331;
+      }
+      .tree .lights i:nth-child(42) {
+        --ty: 6.25em;
+        --tz: 4.69em;
+        --ry: 3862deg;
+        --hue: 249;
+      }
+      .tree .lights i:nth-child(43) {
+        --ty: 6.5em;
+        --tz: 4.78em;
+        --ry: 3949deg;
+        --hue: 262;
+      }
+      .tree .lights i:nth-child(44) {
+        --ty: 6.75em;
+        --tz: 4.87em;
+        --ry: 4022deg;
+        --hue: 250;
+      }
+      .tree .lights i:nth-child(45) {
+        --ty: 7em;
+        --tz: 4.96em;
+        --ry: 4115deg;
+        --hue: 338;
+      }
+      .tree .lights i:nth-child(46) {
+        --ty: 7.25em;
+        --tz: 5.05em;
+        --ry: 4205deg;
+        --hue: 229;
+      }
+      .tree .lights i:nth-child(47) {
+        --ty: 7.5em;
+        --tz: 5.14em;
+        --ry: 4320deg;
+        --hue: 192;
+      }
+      .tree .lights i:nth-child(48) {
+        --ty: 7.75em;
+        --tz: 5.23em;
+        --ry: 4403deg;
+        --hue: 302;
+      }
+
+      .flakes {
+        transform: translateY(11em) rotateX(-90deg);
+        -webkit-animation: var(--animation, flakes) 12s ease-in-out;
+        animation: var(--animation, flakes) 12s ease-in-out;
+      }
+      @-webkit-keyframes flakes {
+        0%,
+        100% {
+          transform: translateY(11em) rotateX(-90deg);
+        }
+        25%,
+        50% {
+          transform: translateY(0em) rotateX(-90deg);
+        }
+      }
+      @keyframes flakes {
+        0%,
+        100% {
+          transform: translateY(11em) rotateX(-90deg);
+        }
+        25%,
+        50% {
+          transform: translateY(0em) rotateX(-90deg);
+        }
+      }
+      .flakes i {
+        inset: -0.35em;
+        background-color: hsl(55, 100%, var(--light, 100%));
+        rotate: var(--rotate1);
+        transform: translateX(var(--tx1));
+        -webkit-animation:
+          var(--animation, flakeRotate) 12s ease-in-out,
+          var(--animation, flakeTransform) 12s ease-in-out;
+        animation:
+          var(--animation, flakeRotate) 12s ease-in-out,
+          var(--animation, flakeTransform) 12s ease-in-out;
+      }
+      @-webkit-keyframes flakeTransform {
+        0% {
+          transform: rotateY(0deg) translateX(var(--tx1))
+            rotate3d(1, 1, 1, 0deg);
+        }
+        25% {
+          transform: rotateY(var(--ry)) translateX(var(--tx2))
+            rotate3d(1, 1, 1, calc(var(--r3d) * 0.25));
+          -webkit-animation-timing-function: linear;
+          animation-timing-function: linear;
+        }
+        50% {
+          transform: rotateY(var(--ry)) translateX(var(--tx2))
+            rotate3d(1, 1, 1, calc(var(--r3d) * 0.5));
+        }
+        100% {
+          transform: rotateY(0deg) translateX(var(--tx1))
+            rotate3d(1, 1, 1, var(--r3d));
+        }
+      }
+      @keyframes flakeTransform {
+        0% {
+          transform: rotateY(0deg) translateX(var(--tx1))
+            rotate3d(1, 1, 1, 0deg);
+        }
+        25% {
+          transform: rotateY(var(--ry)) translateX(var(--tx2))
+            rotate3d(1, 1, 1, calc(var(--r3d) * 0.25));
+          -webkit-animation-timing-function: linear;
+          animation-timing-function: linear;
+        }
+        50% {
+          transform: rotateY(var(--ry)) translateX(var(--tx2))
+            rotate3d(1, 1, 1, calc(var(--r3d) * 0.5));
+        }
+        100% {
+          transform: rotateY(0deg) translateX(var(--tx1))
+            rotate3d(1, 1, 1, var(--r3d));
+        }
+      }
+      @-webkit-keyframes flakeRotate {
+        from {
+          rotate: var(--rotate1);
+        }
+        to {
+          rotate: var(--rotate2);
+        }
+      }
+      @keyframes flakeRotate {
+        from {
+          rotate: var(--rotate1);
+        }
+        to {
+          rotate: var(--rotate2);
+        }
+      }
+      .flakes i:nth-child(1) {
+        --rotate1: 353deg;
+        --rotate2: 2153deg;
+        --tx1: 3.4em;
+        --tx2: 11.2em;
+        --light: 72%;
+        --ry: -30deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(2) {
+        --rotate1: 34deg;
+        --rotate2: 1834deg;
+        --tx1: 4.4em;
+        --tx2: 10.42em;
+        --light: 94%;
+        --ry: 4deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(3) {
+        --rotate1: 322deg;
+        --rotate2: 2122deg;
+        --tx1: 4.85em;
+        --tx2: 10.54em;
+        --light: 94%;
+        --ry: 33deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(4) {
+        --rotate1: 157deg;
+        --rotate2: 1957deg;
+        --tx1: 5.15em;
+        --tx2: 8.5em;
+        --light: 99%;
+        --ry: 63deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(5) {
+        --rotate1: 91deg;
+        --rotate2: 1891deg;
+        --tx1: 4.95em;
+        --tx2: 7.42em;
+        --light: 79%;
+        --ry: -41deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(6) {
+        --rotate1: 62deg;
+        --rotate2: 1862deg;
+        --tx1: 3.95em;
+        --tx2: 10.9em;
+        --light: 72%;
+        --ry: 6deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(7) {
+        --rotate1: 148deg;
+        --rotate2: 1948deg;
+        --tx1: 6.9em;
+        --tx2: 8.14em;
+        --light: 90%;
+        --ry: -4deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(8) {
+        --rotate1: 190deg;
+        --rotate2: 1990deg;
+        --tx1: 3.3em;
+        --tx2: 8.86em;
+        --light: 85%;
+        --ry: 48deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(9) {
+        --rotate1: 133deg;
+        --rotate2: 1933deg;
+        --tx1: 6.9em;
+        --tx2: 12.88em;
+        --light: 95%;
+        --ry: -43deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(10) {
+        --rotate1: 357deg;
+        --rotate2: 2157deg;
+        --tx1: 7.4em;
+        --tx2: 10.9em;
+        --light: 85%;
+        --ry: 18deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(11) {
+        --rotate1: 91deg;
+        --rotate2: 1891deg;
+        --tx1: 3.6em;
+        --tx2: 10.06em;
+        --light: 96%;
+        --ry: 38deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(12) {
+        --rotate1: 3deg;
+        --rotate2: 1803deg;
+        --tx1: 6.05em;
+        --tx2: 10.6em;
+        --light: 88%;
+        --ry: 13deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(13) {
+        --rotate1: 316deg;
+        --rotate2: 2116deg;
+        --tx1: 7.65em;
+        --tx2: 8.14em;
+        --light: 78%;
+        --ry: -42deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(14) {
+        --rotate1: 168deg;
+        --rotate2: 1968deg;
+        --tx1: 3.3em;
+        --tx2: 9.04em;
+        --light: 89%;
+        --ry: 58deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(15) {
+        --rotate1: 285deg;
+        --rotate2: 2085deg;
+        --tx1: 3.6em;
+        --tx2: 10.96em;
+        --light: 78%;
+        --ry: 71deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(16) {
+        --rotate1: 230deg;
+        --rotate2: 2030deg;
+        --tx1: 3.7em;
+        --tx2: 10.72em;
+        --light: 86%;
+        --ry: 28deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(17) {
+        --rotate1: 288deg;
+        --rotate2: 2088deg;
+        --tx1: 3.65em;
+        --tx2: 12.82em;
+        --light: 72%;
+        --ry: 45deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(18) {
+        --rotate1: 333deg;
+        --rotate2: 2133deg;
+        --tx1: 4.15em;
+        --tx2: 10.06em;
+        --light: 100%;
+        --ry: -8deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(19) {
+        --rotate1: 149deg;
+        --rotate2: 1949deg;
+        --tx1: 4.75em;
+        --tx2: 12.88em;
+        --light: 82%;
+        --ry: -32deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(20) {
+        --rotate1: 34deg;
+        --rotate2: 1834deg;
+        --tx1: 3.6em;
+        --tx2: 12.82em;
+        --light: 92%;
+        --ry: 68deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(21) {
+        --rotate1: 113deg;
+        --rotate2: 1913deg;
+        --tx1: 3.45em;
+        --tx2: 7.6em;
+        --light: 72%;
+        --ry: 73deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(22) {
+        --rotate1: 117deg;
+        --rotate2: 1917deg;
+        --tx1: 6.55em;
+        --tx2: 7.12em;
+        --light: 88%;
+        --ry: 63deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(23) {
+        --rotate1: 346deg;
+        --rotate2: 2146deg;
+        --tx1: 6.85em;
+        --tx2: 10.3em;
+        --light: 89%;
+        --ry: -22deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(24) {
+        --rotate1: 139deg;
+        --rotate2: 1939deg;
+        --tx1: 3.8em;
+        --tx2: 11.14em;
+        --light: 96%;
+        --ry: 5deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(25) {
+        --rotate1: 145deg;
+        --rotate2: 1945deg;
+        --tx1: 4.4em;
+        --tx2: 12.04em;
+        --light: 93%;
+        --ry: 33deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(26) {
+        --rotate1: 158deg;
+        --rotate2: 1958deg;
+        --tx1: 5.2em;
+        --tx2: 11.38em;
+        --light: 99%;
+        --ry: -17deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(27) {
+        --rotate1: 353deg;
+        --rotate2: 2153deg;
+        --tx1: 6.25em;
+        --tx2: 8.02em;
+        --light: 71%;
+        --ry: 3deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(28) {
+        --rotate1: 18deg;
+        --rotate2: 1818deg;
+        --tx1: 6.6em;
+        --tx2: 12.82em;
+        --light: 71%;
+        --ry: 43deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(29) {
+        --rotate1: 260deg;
+        --rotate2: 2060deg;
+        --tx1: 4.9em;
+        --tx2: 10.48em;
+        --light: 91%;
+        --ry: 10deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(30) {
+        --rotate1: 39deg;
+        --rotate2: 1839deg;
+        --tx1: 7.8em;
+        --tx2: 11.2em;
+        --light: 98%;
+        --ry: 58deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(31) {
+        --rotate1: 29deg;
+        --rotate2: 1829deg;
+        --tx1: 4.65em;
+        --tx2: 10.66em;
+        --light: 86%;
+        --ry: -12deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(32) {
+        --rotate1: 8deg;
+        --rotate2: 1808deg;
+        --tx1: 7.15em;
+        --tx2: 12.1em;
+        --light: 91%;
+        --ry: -24deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(33) {
+        --rotate1: 310deg;
+        --rotate2: 2110deg;
+        --tx1: 5.05em;
+        --tx2: 13em;
+        --light: 71%;
+        --ry: 24deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(34) {
+        --rotate1: 266deg;
+        --rotate2: 2066deg;
+        --tx1: 6.45em;
+        --tx2: 11.86em;
+        --light: 84%;
+        --ry: 60deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(35) {
+        --rotate1: 331deg;
+        --rotate2: 2131deg;
+        --tx1: 7.7em;
+        --tx2: 9.04em;
+        --light: 96%;
+        --ry: -20deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(36) {
+        --rotate1: 318deg;
+        --rotate2: 2118deg;
+        --tx1: 4.3em;
+        --tx2: 11.08em;
+        --light: 96%;
+        --ry: -6deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(37) {
+        --rotate1: 150deg;
+        --rotate2: 1950deg;
+        --tx1: 3.65em;
+        --tx2: 8.92em;
+        --light: 80%;
+        --ry: -24deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(38) {
+        --rotate1: 148deg;
+        --rotate2: 1948deg;
+        --tx1: 4.6em;
+        --tx2: 12.1em;
+        --light: 76%;
+        --ry: 63deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(39) {
+        --rotate1: 294deg;
+        --rotate2: 2094deg;
+        --tx1: 5.45em;
+        --tx2: 11.92em;
+        --light: 85%;
+        --ry: 6deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(40) {
+        --rotate1: 252deg;
+        --rotate2: 2052deg;
+        --tx1: 6.5em;
+        --tx2: 11.14em;
+        --light: 83%;
+        --ry: 65deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(41) {
+        --rotate1: 277deg;
+        --rotate2: 2077deg;
+        --tx1: 6.05em;
+        --tx2: 7.54em;
+        --light: 72%;
+        --ry: 16deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(42) {
+        --rotate1: 337deg;
+        --rotate2: 2137deg;
+        --tx1: 5.05em;
+        --tx2: 10.54em;
+        --light: 82%;
+        --ry: -9deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(43) {
+        --rotate1: 217deg;
+        --rotate2: 2017deg;
+        --tx1: 6.75em;
+        --tx2: 7.12em;
+        --light: 87%;
+        --ry: 49deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(44) {
+        --rotate1: 237deg;
+        --rotate2: 2037deg;
+        --tx1: 3.35em;
+        --tx2: 12.16em;
+        --light: 81%;
+        --ry: -37deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(45) {
+        --rotate1: 188deg;
+        --rotate2: 1988deg;
+        --tx1: 5.6em;
+        --tx2: 11.32em;
+        --light: 94%;
+        --ry: -34deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(46) {
+        --rotate1: 114deg;
+        --rotate2: 1914deg;
+        --tx1: 8em;
+        --tx2: 10.18em;
+        --light: 78%;
+        --ry: -19deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(47) {
+        --rotate1: 75deg;
+        --rotate2: 1875deg;
+        --tx1: 4.05em;
+        --tx2: 11.98em;
+        --light: 98%;
+        --ry: -12deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(48) {
+        --rotate1: 23deg;
+        --rotate2: 1823deg;
+        --tx1: 5.3em;
+        --tx2: 11.14em;
+        --light: 100%;
+        --ry: 41deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(49) {
+        --rotate1: 109deg;
+        --rotate2: 1909deg;
+        --tx1: 7.3em;
+        --tx2: 7.66em;
+        --light: 98%;
+        --ry: 55deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(50) {
+        --rotate1: 59deg;
+        --rotate2: 1859deg;
+        --tx1: 5.45em;
+        --tx2: 12.16em;
+        --light: 96%;
+        --ry: -16deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(51) {
+        --rotate1: 223deg;
+        --rotate2: 2023deg;
+        --tx1: 6.95em;
+        --tx2: 10.6em;
+        --light: 80%;
+        --ry: 9deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(52) {
+        --rotate1: 73deg;
+        --rotate2: 1873deg;
+        --tx1: 5.6em;
+        --tx2: 11.98em;
+        --light: 98%;
+        --ry: 22deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(53) {
+        --rotate1: 7deg;
+        --rotate2: 1807deg;
+        --tx1: 4.2em;
+        --tx2: 9.7em;
+        --light: 93%;
+        --ry: 75deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(54) {
+        --rotate1: 211deg;
+        --rotate2: 2011deg;
+        --tx1: 7.2em;
+        --tx2: 9.34em;
+        --light: 73%;
+        --ry: 75deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(55) {
+        --rotate1: 75deg;
+        --rotate2: 1875deg;
+        --tx1: 4.7em;
+        --tx2: 9.64em;
+        --light: 83%;
+        --ry: 36deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(56) {
+        --rotate1: 234deg;
+        --rotate2: 2034deg;
+        --tx1: 4.65em;
+        --tx2: 8.44em;
+        --light: 74%;
+        --ry: 67deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(57) {
+        --rotate1: 226deg;
+        --rotate2: 2026deg;
+        --tx1: 7.2em;
+        --tx2: 9.88em;
+        --light: 86%;
+        --ry: 15deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(58) {
+        --rotate1: 82deg;
+        --rotate2: 1882deg;
+        --tx1: 7.9em;
+        --tx2: 10.42em;
+        --light: 84%;
+        --ry: -10deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(59) {
+        --rotate1: 53deg;
+        --rotate2: 1853deg;
+        --tx1: 4.5em;
+        --tx2: 8.44em;
+        --light: 95%;
+        --ry: 53deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(60) {
+        --rotate1: 151deg;
+        --rotate2: 1951deg;
+        --tx1: 5.15em;
+        --tx2: 9.64em;
+        --light: 74%;
+        --ry: 13deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(61) {
+        --rotate1: 184deg;
+        --rotate2: 1984deg;
+        --tx1: 5.9em;
+        --tx2: 8.62em;
+        --light: 91%;
+        --ry: 20deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(62) {
+        --rotate1: 255deg;
+        --rotate2: 2055deg;
+        --tx1: 6em;
+        --tx2: 11.44em;
+        --light: 73%;
+        --ry: 39deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(63) {
+        --rotate1: 146deg;
+        --rotate2: 1946deg;
+        --tx1: 7em;
+        --tx2: 11.86em;
+        --light: 86%;
+        --ry: 69deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(64) {
+        --rotate1: 221deg;
+        --rotate2: 2021deg;
+        --tx1: 7.95em;
+        --tx2: 9.88em;
+        --light: 99%;
+        --ry: 75deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(65) {
+        --rotate1: 177deg;
+        --rotate2: 1977deg;
+        --tx1: 5.75em;
+        --tx2: 11.5em;
+        --light: 74%;
+        --ry: 45deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(66) {
+        --rotate1: 294deg;
+        --rotate2: 2094deg;
+        --tx1: 6.8em;
+        --tx2: 12.46em;
+        --light: 97%;
+        --ry: -19deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(67) {
+        --rotate1: 51deg;
+        --rotate2: 1851deg;
+        --tx1: 6.05em;
+        --tx2: 10.78em;
+        --light: 91%;
+        --ry: 67deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(68) {
+        --rotate1: 288deg;
+        --rotate2: 2088deg;
+        --tx1: 3.85em;
+        --tx2: 9.88em;
+        --light: 71%;
+        --ry: 11deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(69) {
+        --rotate1: 202deg;
+        --rotate2: 2002deg;
+        --tx1: 7.9em;
+        --tx2: 7.06em;
+        --light: 77%;
+        --ry: 25deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(70) {
+        --rotate1: 206deg;
+        --rotate2: 2006deg;
+        --tx1: 4.4em;
+        --tx2: 8.44em;
+        --light: 82%;
+        --ry: -23deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(71) {
+        --rotate1: 135deg;
+        --rotate2: 1935deg;
+        --tx1: 5.15em;
+        --tx2: 9.16em;
+        --light: 86%;
+        --ry: 57deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(72) {
+        --rotate1: 313deg;
+        --rotate2: 2113deg;
+        --tx1: 6.75em;
+        --tx2: 7.78em;
+        --light: 90%;
+        --ry: 57deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(73) {
+        --rotate1: 16deg;
+        --rotate2: 1816deg;
+        --tx1: 4.2em;
+        --tx2: 12.4em;
+        --light: 83%;
+        --ry: -42deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(74) {
+        --rotate1: 88deg;
+        --rotate2: 1888deg;
+        --tx1: 7.55em;
+        --tx2: 9.28em;
+        --light: 77%;
+        --ry: -40deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(75) {
+        --rotate1: 339deg;
+        --rotate2: 2139deg;
+        --tx1: 6.05em;
+        --tx2: 11.14em;
+        --light: 87%;
+        --ry: -32deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(76) {
+        --rotate1: 159deg;
+        --rotate2: 1959deg;
+        --tx1: 3.4em;
+        --tx2: 9.94em;
+        --light: 76%;
+        --ry: 23deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(77) {
+        --rotate1: 59deg;
+        --rotate2: 1859deg;
+        --tx1: 3.85em;
+        --tx2: 8.26em;
+        --light: 77%;
+        --ry: 13deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(78) {
+        --rotate1: 293deg;
+        --rotate2: 2093deg;
+        --tx1: 4.05em;
+        --tx2: 9.34em;
+        --light: 92%;
+        --ry: 68deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(79) {
+        --rotate1: 301deg;
+        --rotate2: 2101deg;
+        --tx1: 5.9em;
+        --tx2: 10.54em;
+        --light: 77%;
+        --ry: -28deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(80) {
+        --rotate1: 125deg;
+        --rotate2: 1925deg;
+        --tx1: 5.15em;
+        --tx2: 8.86em;
+        --light: 88%;
+        --ry: -38deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(81) {
+        --rotate1: 128deg;
+        --rotate2: 1928deg;
+        --tx1: 7.95em;
+        --tx2: 8.62em;
+        --light: 72%;
+        --ry: 27deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(82) {
+        --rotate1: 269deg;
+        --rotate2: 2069deg;
+        --tx1: 6.85em;
+        --tx2: 10.12em;
+        --light: 87%;
+        --ry: 54deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(83) {
+        --rotate1: 41deg;
+        --rotate2: 1841deg;
+        --tx1: 5.4em;
+        --tx2: 7.66em;
+        --light: 71%;
+        --ry: -42deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(84) {
+        --rotate1: 209deg;
+        --rotate2: 2009deg;
+        --tx1: 8em;
+        --tx2: 11.8em;
+        --light: 89%;
+        --ry: -13deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(85) {
+        --rotate1: 19deg;
+        --rotate2: 1819deg;
+        --tx1: 6.2em;
+        --tx2: 8.2em;
+        --light: 85%;
+        --ry: 2deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(86) {
+        --rotate1: 53deg;
+        --rotate2: 1853deg;
+        --tx1: 3.6em;
+        --tx2: 7.18em;
+        --light: 98%;
+        --ry: 4deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(87) {
+        --rotate1: 291deg;
+        --rotate2: 2091deg;
+        --tx1: 6.6em;
+        --tx2: 10.36em;
+        --light: 79%;
+        --ry: 28deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(88) {
+        --rotate1: 105deg;
+        --rotate2: 1905deg;
+        --tx1: 7.4em;
+        --tx2: 11.62em;
+        --light: 91%;
+        --ry: -1deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(89) {
+        --rotate1: 131deg;
+        --rotate2: 1931deg;
+        --tx1: 3.65em;
+        --tx2: 9.94em;
+        --light: 100%;
+        --ry: -38deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(90) {
+        --rotate1: 228deg;
+        --rotate2: 2028deg;
+        --tx1: 3.45em;
+        --tx2: 12.64em;
+        --light: 80%;
+        --ry: -19deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(91) {
+        --rotate1: 37deg;
+        --rotate2: 1837deg;
+        --tx1: 6.8em;
+        --tx2: 7.06em;
+        --light: 94%;
+        --ry: 2deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(92) {
+        --rotate1: 296deg;
+        --rotate2: 2096deg;
+        --tx1: 6.85em;
+        --tx2: 8.74em;
+        --light: 78%;
+        --ry: 9deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(93) {
+        --rotate1: 195deg;
+        --rotate2: 1995deg;
+        --tx1: 3.6em;
+        --tx2: 11.8em;
+        --light: 77%;
+        --ry: 62deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(94) {
+        --rotate1: 299deg;
+        --rotate2: 2099deg;
+        --tx1: 3.1em;
+        --tx2: 10.12em;
+        --light: 100%;
+        --ry: 2deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(95) {
+        --rotate1: 121deg;
+        --rotate2: 1921deg;
+        --tx1: 5em;
+        --tx2: 7.06em;
+        --light: 94%;
+        --ry: 59deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(96) {
+        --rotate1: 211deg;
+        --rotate2: 2011deg;
+        --tx1: 4.9em;
+        --tx2: 11.86em;
+        --light: 99%;
+        --ry: -31deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(97) {
+        --rotate1: 65deg;
+        --rotate2: 1865deg;
+        --tx1: 5.2em;
+        --tx2: 8.68em;
+        --light: 85%;
+        --ry: 13deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(98) {
+        --rotate1: 244deg;
+        --rotate2: 2044deg;
+        --tx1: 7.05em;
+        --tx2: 10.9em;
+        --light: 86%;
+        --ry: 31deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(99) {
+        --rotate1: 306deg;
+        --rotate2: 2106deg;
+        --tx1: 7.85em;
+        --tx2: 10.12em;
+        --light: 85%;
+        --ry: -41deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(100) {
+        --rotate1: 190deg;
+        --rotate2: 1990deg;
+        --tx1: 6.8em;
+        --tx2: 8.08em;
+        --light: 99%;
+        --ry: 13deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(101) {
+        --rotate1: 125deg;
+        --rotate2: 1925deg;
+        --tx1: 6.9em;
+        --tx2: 7.9em;
+        --light: 75%;
+        --ry: 12deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(102) {
+        --rotate1: 299deg;
+        --rotate2: 2099deg;
+        --tx1: 5.3em;
+        --tx2: 11.62em;
+        --light: 81%;
+        --ry: -18deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(103) {
+        --rotate1: 224deg;
+        --rotate2: 2024deg;
+        --tx1: 7.3em;
+        --tx2: 11.86em;
+        --light: 97%;
+        --ry: 25deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(104) {
+        --rotate1: 258deg;
+        --rotate2: 2058deg;
+        --tx1: 4.85em;
+        --tx2: 8.74em;
+        --light: 98%;
+        --ry: -31deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(105) {
+        --rotate1: 84deg;
+        --rotate2: 1884deg;
+        --tx1: 4.2em;
+        --tx2: 8.14em;
+        --light: 72%;
+        --ry: 48deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(106) {
+        --rotate1: 29deg;
+        --rotate2: 1829deg;
+        --tx1: 3.85em;
+        --tx2: 8.08em;
+        --light: 75%;
+        --ry: 24deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(107) {
+        --rotate1: 274deg;
+        --rotate2: 2074deg;
+        --tx1: 6.1em;
+        --tx2: 10.12em;
+        --light: 88%;
+        --ry: -4deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(108) {
+        --rotate1: 182deg;
+        --rotate2: 1982deg;
+        --tx1: 3.25em;
+        --tx2: 13em;
+        --light: 78%;
+        --ry: -10deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(109) {
+        --rotate1: 65deg;
+        --rotate2: 1865deg;
+        --tx1: 5.2em;
+        --tx2: 9.22em;
+        --light: 76%;
+        --ry: 33deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(110) {
+        --rotate1: 282deg;
+        --rotate2: 2082deg;
+        --tx1: 5.8em;
+        --tx2: 7.18em;
+        --light: 72%;
+        --ry: 21deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(111) {
+        --rotate1: 124deg;
+        --rotate2: 1924deg;
+        --tx1: 4.3em;
+        --tx2: 8.08em;
+        --light: 74%;
+        --ry: 12deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(112) {
+        --rotate1: 150deg;
+        --rotate2: 1950deg;
+        --tx1: 6.15em;
+        --tx2: 9.76em;
+        --light: 91%;
+        --ry: -28deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(113) {
+        --rotate1: 286deg;
+        --rotate2: 2086deg;
+        --tx1: 4.35em;
+        --tx2: 11.56em;
+        --light: 73%;
+        --ry: 25deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(114) {
+        --rotate1: 301deg;
+        --rotate2: 2101deg;
+        --tx1: 4.85em;
+        --tx2: 8.74em;
+        --light: 98%;
+        --ry: 45deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(115) {
+        --rotate1: 259deg;
+        --rotate2: 2059deg;
+        --tx1: 6.1em;
+        --tx2: 10.42em;
+        --light: 75%;
+        --ry: -33deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(116) {
+        --rotate1: 133deg;
+        --rotate2: 1933deg;
+        --tx1: 6.4em;
+        --tx2: 8.14em;
+        --light: 91%;
+        --ry: -24deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(117) {
+        --rotate1: 162deg;
+        --rotate2: 1962deg;
+        --tx1: 6em;
+        --tx2: 11.74em;
+        --light: 83%;
+        --ry: 7deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(118) {
+        --rotate1: 350deg;
+        --rotate2: 2150deg;
+        --tx1: 4.55em;
+        --tx2: 7.3em;
+        --light: 72%;
+        --ry: 14deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(119) {
+        --rotate1: 169deg;
+        --rotate2: 1969deg;
+        --tx1: 3.65em;
+        --tx2: 12.82em;
+        --light: 74%;
+        --ry: 4deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(120) {
+        --rotate1: 168deg;
+        --rotate2: 1968deg;
+        --tx1: 7.7em;
+        --tx2: 10.84em;
+        --light: 94%;
+        --ry: 36deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(121) {
+        --rotate1: 319deg;
+        --rotate2: 2119deg;
+        --tx1: 4.1em;
+        --tx2: 10.66em;
+        --light: 84%;
+        --ry: -31deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(122) {
+        --rotate1: 14deg;
+        --rotate2: 1814deg;
+        --tx1: 3.9em;
+        --tx2: 12.1em;
+        --light: 97%;
+        --ry: 74deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(123) {
+        --rotate1: 126deg;
+        --rotate2: 1926deg;
+        --tx1: 7.35em;
+        --tx2: 7.18em;
+        --light: 81%;
+        --ry: 49deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(124) {
+        --rotate1: 253deg;
+        --rotate2: 2053deg;
+        --tx1: 4.85em;
+        --tx2: 11.38em;
+        --light: 92%;
+        --ry: 49deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(125) {
+        --rotate1: 303deg;
+        --rotate2: 2103deg;
+        --tx1: 3.95em;
+        --tx2: 10.96em;
+        --light: 81%;
+        --ry: 53deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(126) {
+        --rotate1: 24deg;
+        --rotate2: 1824deg;
+        --tx1: 6.35em;
+        --tx2: 7.72em;
+        --light: 98%;
+        --ry: 10deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(127) {
+        --rotate1: 157deg;
+        --rotate2: 1957deg;
+        --tx1: 7.7em;
+        --tx2: 7.12em;
+        --light: 89%;
+        --ry: 8deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(128) {
+        --rotate1: 188deg;
+        --rotate2: 1988deg;
+        --tx1: 6.2em;
+        --tx2: 11.8em;
+        --light: 86%;
+        --ry: 63deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(129) {
+        --rotate1: 205deg;
+        --rotate2: 2005deg;
+        --tx1: 7.6em;
+        --tx2: 10.54em;
+        --light: 88%;
+        --ry: 32deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(130) {
+        --rotate1: 207deg;
+        --rotate2: 2007deg;
+        --tx1: 4.85em;
+        --tx2: 12.58em;
+        --light: 76%;
+        --ry: 44deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(131) {
+        --rotate1: 287deg;
+        --rotate2: 2087deg;
+        --tx1: 5em;
+        --tx2: 9.52em;
+        --light: 78%;
+        --ry: 4deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(132) {
+        --rotate1: 99deg;
+        --rotate2: 1899deg;
+        --tx1: 5.95em;
+        --tx2: 10.6em;
+        --light: 80%;
+        --ry: 18deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(133) {
+        --rotate1: 314deg;
+        --rotate2: 2114deg;
+        --tx1: 6.7em;
+        --tx2: 7.3em;
+        --light: 87%;
+        --ry: 58deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(134) {
+        --rotate1: 258deg;
+        --rotate2: 2058deg;
+        --tx1: 7.95em;
+        --tx2: 12.34em;
+        --light: 73%;
+        --ry: 35deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(135) {
+        --rotate1: 345deg;
+        --rotate2: 2145deg;
+        --tx1: 3.3em;
+        --tx2: 12.1em;
+        --light: 94%;
+        --ry: -29deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(136) {
+        --rotate1: 199deg;
+        --rotate2: 1999deg;
+        --tx1: 7.6em;
+        --tx2: 10.18em;
+        --light: 94%;
+        --ry: 13deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(137) {
+        --rotate1: 324deg;
+        --rotate2: 2124deg;
+        --tx1: 5.1em;
+        --tx2: 11.92em;
+        --light: 90%;
+        --ry: 16deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(138) {
+        --rotate1: 238deg;
+        --rotate2: 2038deg;
+        --tx1: 3.8em;
+        --tx2: 12.76em;
+        --light: 100%;
+        --ry: 21deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(139) {
+        --rotate1: 320deg;
+        --rotate2: 2120deg;
+        --tx1: 5.1em;
+        --tx2: 8.56em;
+        --light: 97%;
+        --ry: 13deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(140) {
+        --rotate1: 341deg;
+        --rotate2: 2141deg;
+        --tx1: 7.9em;
+        --tx2: 10.06em;
+        --light: 95%;
+        --ry: -43deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(141) {
+        --rotate1: 291deg;
+        --rotate2: 2091deg;
+        --tx1: 7.55em;
+        --tx2: 9.28em;
+        --light: 92%;
+        --ry: 70deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(142) {
+        --rotate1: 187deg;
+        --rotate2: 1987deg;
+        --tx1: 4.6em;
+        --tx2: 8.2em;
+        --light: 98%;
+        --ry: -41deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(143) {
+        --rotate1: 94deg;
+        --rotate2: 1894deg;
+        --tx1: 4.05em;
+        --tx2: 8.56em;
+        --light: 98%;
+        --ry: 28deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(144) {
+        --rotate1: 114deg;
+        --rotate2: 1914deg;
+        --tx1: 5.75em;
+        --tx2: 8.08em;
+        --light: 71%;
+        --ry: 60deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(145) {
+        --rotate1: 188deg;
+        --rotate2: 1988deg;
+        --tx1: 5.1em;
+        --tx2: 12.04em;
+        --light: 76%;
+        --ry: 26deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(146) {
+        --rotate1: 344deg;
+        --rotate2: 2144deg;
+        --tx1: 3.65em;
+        --tx2: 9.04em;
+        --light: 87%;
+        --ry: 52deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(147) {
+        --rotate1: 244deg;
+        --rotate2: 2044deg;
+        --tx1: 7.4em;
+        --tx2: 7.36em;
+        --light: 93%;
+        --ry: -34deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(148) {
+        --rotate1: 22deg;
+        --rotate2: 1822deg;
+        --tx1: 5.55em;
+        --tx2: 8.5em;
+        --light: 93%;
+        --ry: 19deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(149) {
+        --rotate1: 229deg;
+        --rotate2: 2029deg;
+        --tx1: 7.2em;
+        --tx2: 9.52em;
+        --light: 90%;
+        --ry: 28deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(150) {
+        --rotate1: 179deg;
+        --rotate2: 1979deg;
+        --tx1: 3.4em;
+        --tx2: 10.18em;
+        --light: 79%;
+        --ry: 52deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(151) {
+        --rotate1: 209deg;
+        --rotate2: 2009deg;
+        --tx1: 4.55em;
+        --tx2: 12.88em;
+        --light: 73%;
+        --ry: -27deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(152) {
+        --rotate1: 135deg;
+        --rotate2: 1935deg;
+        --tx1: 5.85em;
+        --tx2: 11.8em;
+        --light: 76%;
+        --ry: 10deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(153) {
+        --rotate1: 241deg;
+        --rotate2: 2041deg;
+        --tx1: 5.5em;
+        --tx2: 10.9em;
+        --light: 74%;
+        --ry: 54deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(154) {
+        --rotate1: 151deg;
+        --rotate2: 1951deg;
+        --tx1: 5.95em;
+        --tx2: 9.28em;
+        --light: 90%;
+        --ry: -15deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(155) {
+        --rotate1: 231deg;
+        --rotate2: 2031deg;
+        --tx1: 6.6em;
+        --tx2: 8.26em;
+        --light: 96%;
+        --ry: 67deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(156) {
+        --rotate1: 4deg;
+        --rotate2: 1804deg;
+        --tx1: 4.7em;
+        --tx2: 8.98em;
+        --light: 72%;
+        --ry: -10deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(157) {
+        --rotate1: 338deg;
+        --rotate2: 2138deg;
+        --tx1: 6.55em;
+        --tx2: 12.64em;
+        --light: 72%;
+        --ry: -27deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(158) {
+        --rotate1: 280deg;
+        --rotate2: 2080deg;
+        --tx1: 5.9em;
+        --tx2: 7.78em;
+        --light: 78%;
+        --ry: -34deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(159) {
+        --rotate1: 150deg;
+        --rotate2: 1950deg;
+        --tx1: 4.85em;
+        --tx2: 8.8em;
+        --light: 97%;
+        --ry: 48deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(160) {
+        --rotate1: 233deg;
+        --rotate2: 2033deg;
+        --tx1: 5.2em;
+        --tx2: 11.14em;
+        --light: 75%;
+        --ry: -4deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(161) {
+        --rotate1: 295deg;
+        --rotate2: 2095deg;
+        --tx1: 4.45em;
+        --tx2: 9.22em;
+        --light: 95%;
+        --ry: -1deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(162) {
+        --rotate1: 287deg;
+        --rotate2: 2087deg;
+        --tx1: 7.15em;
+        --tx2: 7.9em;
+        --light: 97%;
+        --ry: 65deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(163) {
+        --rotate1: 264deg;
+        --rotate2: 2064deg;
+        --tx1: 6.75em;
+        --tx2: 9.94em;
+        --light: 97%;
+        --ry: -1deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(164) {
+        --rotate1: 96deg;
+        --rotate2: 1896deg;
+        --tx1: 4.8em;
+        --tx2: 9.34em;
+        --light: 84%;
+        --ry: -43deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(165) {
+        --rotate1: 264deg;
+        --rotate2: 2064deg;
+        --tx1: 5.45em;
+        --tx2: 7.06em;
+        --light: 79%;
+        --ry: 27deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(166) {
+        --rotate1: 106deg;
+        --rotate2: 1906deg;
+        --tx1: 5.1em;
+        --tx2: 8.92em;
+        --light: 83%;
+        --ry: 27deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(167) {
+        --rotate1: 315deg;
+        --rotate2: 2115deg;
+        --tx1: 6.55em;
+        --tx2: 10.24em;
+        --light: 78%;
+        --ry: -18deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(168) {
+        --rotate1: 268deg;
+        --rotate2: 2068deg;
+        --tx1: 6.15em;
+        --tx2: 10.54em;
+        --light: 79%;
+        --ry: -15deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(169) {
+        --rotate1: 237deg;
+        --rotate2: 2037deg;
+        --tx1: 3.45em;
+        --tx2: 12.22em;
+        --light: 90%;
+        --ry: 46deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(170) {
+        --rotate1: 130deg;
+        --rotate2: 1930deg;
+        --tx1: 6.9em;
+        --tx2: 12.1em;
+        --light: 85%;
+        --ry: 5deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(171) {
+        --rotate1: 314deg;
+        --rotate2: 2114deg;
+        --tx1: 6.6em;
+        --tx2: 7.66em;
+        --light: 80%;
+        --ry: -36deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(172) {
+        --rotate1: 297deg;
+        --rotate2: 2097deg;
+        --tx1: 7.15em;
+        --tx2: 11.08em;
+        --light: 97%;
+        --ry: 27deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(173) {
+        --rotate1: 308deg;
+        --rotate2: 2108deg;
+        --tx1: 3.5em;
+        --tx2: 10.24em;
+        --light: 91%;
+        --ry: -42deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(174) {
+        --rotate1: 152deg;
+        --rotate2: 1952deg;
+        --tx1: 7.2em;
+        --tx2: 10.12em;
+        --light: 91%;
+        --ry: 28deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(175) {
+        --rotate1: 314deg;
+        --rotate2: 2114deg;
+        --tx1: 5.4em;
+        --tx2: 10.3em;
+        --light: 72%;
+        --ry: 1deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(176) {
+        --rotate1: 218deg;
+        --rotate2: 2018deg;
+        --tx1: 7.25em;
+        --tx2: 8.32em;
+        --light: 75%;
+        --ry: 73deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(177) {
+        --rotate1: 246deg;
+        --rotate2: 2046deg;
+        --tx1: 4.3em;
+        --tx2: 9.22em;
+        --light: 91%;
+        --ry: -29deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(178) {
+        --rotate1: 308deg;
+        --rotate2: 2108deg;
+        --tx1: 3.4em;
+        --tx2: 7.96em;
+        --light: 93%;
+        --ry: 13deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(179) {
+        --rotate1: 2deg;
+        --rotate2: 1802deg;
+        --tx1: 3.15em;
+        --tx2: 9.46em;
+        --light: 93%;
+        --ry: -10deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(180) {
+        --rotate1: 97deg;
+        --rotate2: 1897deg;
+        --tx1: 6.25em;
+        --tx2: 9.7em;
+        --light: 75%;
+        --ry: -1deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(181) {
+        --rotate1: 296deg;
+        --rotate2: 2096deg;
+        --tx1: 5.55em;
+        --tx2: 12.52em;
+        --light: 81%;
+        --ry: -8deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(182) {
+        --rotate1: 198deg;
+        --rotate2: 1998deg;
+        --tx1: 6.2em;
+        --tx2: 12.1em;
+        --light: 91%;
+        --ry: 53deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(183) {
+        --rotate1: 198deg;
+        --rotate2: 1998deg;
+        --tx1: 5.55em;
+        --tx2: 12.04em;
+        --light: 79%;
+        --ry: 58deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(184) {
+        --rotate1: 219deg;
+        --rotate2: 2019deg;
+        --tx1: 7.1em;
+        --tx2: 12.94em;
+        --light: 75%;
+        --ry: 9deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(185) {
+        --rotate1: 348deg;
+        --rotate2: 2148deg;
+        --tx1: 5.8em;
+        --tx2: 7.9em;
+        --light: 76%;
+        --ry: 37deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(186) {
+        --rotate1: 302deg;
+        --rotate2: 2102deg;
+        --tx1: 4.65em;
+        --tx2: 10.48em;
+        --light: 92%;
+        --ry: 2deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(187) {
+        --rotate1: 148deg;
+        --rotate2: 1948deg;
+        --tx1: 4.3em;
+        --tx2: 8.2em;
+        --light: 79%;
+        --ry: 54deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(188) {
+        --rotate1: 53deg;
+        --rotate2: 1853deg;
+        --tx1: 7.45em;
+        --tx2: 8.02em;
+        --light: 75%;
+        --ry: -32deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(189) {
+        --rotate1: 129deg;
+        --rotate2: 1929deg;
+        --tx1: 3.2em;
+        --tx2: 7.84em;
+        --light: 81%;
+        --ry: -16deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(190) {
+        --rotate1: 220deg;
+        --rotate2: 2020deg;
+        --tx1: 4.75em;
+        --tx2: 8.38em;
+        --light: 97%;
+        --ry: 41deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(191) {
+        --rotate1: 86deg;
+        --rotate2: 1886deg;
+        --tx1: 5.75em;
+        --tx2: 11.8em;
+        --light: 96%;
+        --ry: 67deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(192) {
+        --rotate1: 41deg;
+        --rotate2: 1841deg;
+        --tx1: 5.9em;
+        --tx2: 7.78em;
+        --light: 93%;
+        --ry: 3deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(193) {
+        --rotate1: 8deg;
+        --rotate2: 1808deg;
+        --tx1: 6.8em;
+        --tx2: 8.44em;
+        --light: 96%;
+        --ry: 65deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(194) {
+        --rotate1: 115deg;
+        --rotate2: 1915deg;
+        --tx1: 3.8em;
+        --tx2: 8.14em;
+        --light: 74%;
+        --ry: 31deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(195) {
+        --rotate1: 53deg;
+        --rotate2: 1853deg;
+        --tx1: 5.05em;
+        --tx2: 9.28em;
+        --light: 80%;
+        --ry: 31deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(196) {
+        --rotate1: 80deg;
+        --rotate2: 1880deg;
+        --tx1: 5.5em;
+        --tx2: 8.26em;
+        --light: 72%;
+        --ry: -14deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(197) {
+        --rotate1: 292deg;
+        --rotate2: 2092deg;
+        --tx1: 3.75em;
+        --tx2: 11.62em;
+        --light: 87%;
+        --ry: 38deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(198) {
+        --rotate1: 232deg;
+        --rotate2: 2032deg;
+        --tx1: 6.7em;
+        --tx2: 7.78em;
+        --light: 98%;
+        --ry: -30deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(199) {
+        --rotate1: 241deg;
+        --rotate2: 2041deg;
+        --tx1: 7.05em;
+        --tx2: 11.86em;
+        --light: 78%;
+        --ry: -8deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(200) {
+        --rotate1: 116deg;
+        --rotate2: 1916deg;
+        --tx1: 3.4em;
+        --tx2: 9.16em;
+        --light: 79%;
+        --ry: 2deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(201) {
+        --rotate1: 218deg;
+        --rotate2: 2018deg;
+        --tx1: 4.8em;
+        --tx2: 11.26em;
+        --light: 89%;
+        --ry: 12deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(202) {
+        --rotate1: 129deg;
+        --rotate2: 1929deg;
+        --tx1: 4.5em;
+        --tx2: 11.62em;
+        --light: 71%;
+        --ry: -2deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(203) {
+        --rotate1: 246deg;
+        --rotate2: 2046deg;
+        --tx1: 5.15em;
+        --tx2: 9.46em;
+        --light: 85%;
+        --ry: -12deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(204) {
+        --rotate1: 343deg;
+        --rotate2: 2143deg;
+        --tx1: 7.3em;
+        --tx2: 12.7em;
+        --light: 93%;
+        --ry: 9deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(205) {
+        --rotate1: 282deg;
+        --rotate2: 2082deg;
+        --tx1: 7.25em;
+        --tx2: 7.6em;
+        --light: 92%;
+        --ry: 57deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(206) {
+        --rotate1: 102deg;
+        --rotate2: 1902deg;
+        --tx1: 6.4em;
+        --tx2: 11.14em;
+        --light: 85%;
+        --ry: -22deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(207) {
+        --rotate1: 67deg;
+        --rotate2: 1867deg;
+        --tx1: 4.65em;
+        --tx2: 9.16em;
+        --light: 93%;
+        --ry: 52deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(208) {
+        --rotate1: 178deg;
+        --rotate2: 1978deg;
+        --tx1: 3.9em;
+        --tx2: 11.62em;
+        --light: 84%;
+        --ry: -23deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(209) {
+        --rotate1: 269deg;
+        --rotate2: 2069deg;
+        --tx1: 5.3em;
+        --tx2: 9.7em;
+        --light: 80%;
+        --ry: 14deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(210) {
+        --rotate1: 355deg;
+        --rotate2: 2155deg;
+        --tx1: 6.8em;
+        --tx2: 11.56em;
+        --light: 76%;
+        --ry: -33deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(211) {
+        --rotate1: 313deg;
+        --rotate2: 2113deg;
+        --tx1: 7em;
+        --tx2: 10.78em;
+        --light: 81%;
+        --ry: -16deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(212) {
+        --rotate1: 119deg;
+        --rotate2: 1919deg;
+        --tx1: 5.65em;
+        --tx2: 7.66em;
+        --light: 84%;
+        --ry: 50deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(213) {
+        --rotate1: 255deg;
+        --rotate2: 2055deg;
+        --tx1: 6.7em;
+        --tx2: 12.34em;
+        --light: 82%;
+        --ry: -14deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(214) {
+        --rotate1: 275deg;
+        --rotate2: 2075deg;
+        --tx1: 3.85em;
+        --tx2: 8.92em;
+        --light: 86%;
+        --ry: 42deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(215) {
+        --rotate1: 29deg;
+        --rotate2: 1829deg;
+        --tx1: 5.7em;
+        --tx2: 11.02em;
+        --light: 90%;
+        --ry: 23deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(216) {
+        --rotate1: 226deg;
+        --rotate2: 2026deg;
+        --tx1: 4.05em;
+        --tx2: 7.9em;
+        --light: 72%;
+        --ry: 14deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(217) {
+        --rotate1: 313deg;
+        --rotate2: 2113deg;
+        --tx1: 6em;
+        --tx2: 8.86em;
+        --light: 80%;
+        --ry: 0deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(218) {
+        --rotate1: 87deg;
+        --rotate2: 1887deg;
+        --tx1: 7.3em;
+        --tx2: 9.76em;
+        --light: 99%;
+        --ry: -10deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(219) {
+        --rotate1: 185deg;
+        --rotate2: 1985deg;
+        --tx1: 4.9em;
+        --tx2: 8.68em;
+        --light: 95%;
+        --ry: 48deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(220) {
+        --rotate1: 7deg;
+        --rotate2: 1807deg;
+        --tx1: 6.05em;
+        --tx2: 7.84em;
+        --light: 99%;
+        --ry: 19deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(221) {
+        --rotate1: 148deg;
+        --rotate2: 1948deg;
+        --tx1: 3.15em;
+        --tx2: 12.04em;
+        --light: 97%;
+        --ry: 52deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(222) {
+        --rotate1: 233deg;
+        --rotate2: 2033deg;
+        --tx1: 7.7em;
+        --tx2: 10.24em;
+        --light: 80%;
+        --ry: 26deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(223) {
+        --rotate1: 72deg;
+        --rotate2: 1872deg;
+        --tx1: 7.85em;
+        --tx2: 11.32em;
+        --light: 85%;
+        --ry: 47deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(224) {
+        --rotate1: 233deg;
+        --rotate2: 2033deg;
+        --tx1: 4.05em;
+        --tx2: 7.66em;
+        --light: 75%;
+        --ry: -27deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(225) {
+        --rotate1: 75deg;
+        --rotate2: 1875deg;
+        --tx1: 5.4em;
+        --tx2: 12.28em;
+        --light: 86%;
+        --ry: 46deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(226) {
+        --rotate1: 25deg;
+        --rotate2: 1825deg;
+        --tx1: 5.55em;
+        --tx2: 7.3em;
+        --light: 80%;
+        --ry: -15deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(227) {
+        --rotate1: 26deg;
+        --rotate2: 1826deg;
+        --tx1: 3.5em;
+        --tx2: 11.62em;
+        --light: 100%;
+        --ry: 65deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(228) {
+        --rotate1: 188deg;
+        --rotate2: 1988deg;
+        --tx1: 4.9em;
+        --tx2: 9.04em;
+        --light: 79%;
+        --ry: -19deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(229) {
+        --rotate1: 130deg;
+        --rotate2: 1930deg;
+        --tx1: 3.6em;
+        --tx2: 9.58em;
+        --light: 96%;
+        --ry: -12deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(230) {
+        --rotate1: 106deg;
+        --rotate2: 1906deg;
+        --tx1: 3.45em;
+        --tx2: 12.58em;
+        --light: 79%;
+        --ry: 25deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(231) {
+        --rotate1: 336deg;
+        --rotate2: 2136deg;
+        --tx1: 5.4em;
+        --tx2: 8.56em;
+        --light: 94%;
+        --ry: 30deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(232) {
+        --rotate1: 65deg;
+        --rotate2: 1865deg;
+        --tx1: 7.55em;
+        --tx2: 12.34em;
+        --light: 84%;
+        --ry: -20deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(233) {
+        --rotate1: 86deg;
+        --rotate2: 1886deg;
+        --tx1: 5.65em;
+        --tx2: 7.42em;
+        --light: 95%;
+        --ry: 73deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(234) {
+        --rotate1: 203deg;
+        --rotate2: 2003deg;
+        --tx1: 7.1em;
+        --tx2: 12.16em;
+        --light: 90%;
+        --ry: 48deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(235) {
+        --rotate1: 291deg;
+        --rotate2: 2091deg;
+        --tx1: 6.05em;
+        --tx2: 9.64em;
+        --light: 84%;
+        --ry: -28deg;
+        --r3d: 14turn;
+      }
+      .flakes i:nth-child(236) {
+        --rotate1: 305deg;
+        --rotate2: 2105deg;
+        --tx1: 4.55em;
+        --tx2: 12.28em;
+        --light: 74%;
+        --ry: 17deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(237) {
+        --rotate1: 100deg;
+        --rotate2: 1900deg;
+        --tx1: 5.25em;
+        --tx2: 10.78em;
+        --light: 75%;
+        --ry: -28deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(238) {
+        --rotate1: 164deg;
+        --rotate2: 1964deg;
+        --tx1: 4.85em;
+        --tx2: 9.94em;
+        --light: 72%;
+        --ry: -14deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(239) {
+        --rotate1: 318deg;
+        --rotate2: 2118deg;
+        --tx1: 8em;
+        --tx2: 10.48em;
+        --light: 94%;
+        --ry: 48deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(240) {
+        --rotate1: 85deg;
+        --rotate2: 1885deg;
+        --tx1: 3.65em;
+        --tx2: 12.82em;
+        --light: 74%;
+        --ry: 42deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(241) {
+        --rotate1: 293deg;
+        --rotate2: 2093deg;
+        --tx1: 4.9em;
+        --tx2: 10em;
+        --light: 97%;
+        --ry: -19deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(242) {
+        --rotate1: 208deg;
+        --rotate2: 2008deg;
+        --tx1: 7.95em;
+        --tx2: 12.16em;
+        --light: 97%;
+        --ry: 42deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(243) {
+        --rotate1: 215deg;
+        --rotate2: 2015deg;
+        --tx1: 6.15em;
+        --tx2: 7.66em;
+        --light: 79%;
+        --ry: -18deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(244) {
+        --rotate1: 139deg;
+        --rotate2: 1939deg;
+        --tx1: 7.95em;
+        --tx2: 12.58em;
+        --light: 82%;
+        --ry: 36deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(245) {
+        --rotate1: 186deg;
+        --rotate2: 1986deg;
+        --tx1: 7.75em;
+        --tx2: 9.4em;
+        --light: 88%;
+        --ry: -2deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(246) {
+        --rotate1: 195deg;
+        --rotate2: 1995deg;
+        --tx1: 6.1em;
+        --tx2: 7.96em;
+        --light: 75%;
+        --ry: 50deg;
+        --r3d: 9turn;
+      }
+      .flakes i:nth-child(247) {
+        --rotate1: 199deg;
+        --rotate2: 1999deg;
+        --tx1: 4.15em;
+        --tx2: 8.14em;
+        --light: 82%;
+        --ry: 63deg;
+        --r3d: 15turn;
+      }
+      .flakes i:nth-child(248) {
+        --rotate1: 105deg;
+        --rotate2: 1905deg;
+        --tx1: 6.45em;
+        --tx2: 11.44em;
+        --light: 84%;
+        --ry: 26deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(249) {
+        --rotate1: 213deg;
+        --rotate2: 2013deg;
+        --tx1: 7.05em;
+        --tx2: 10.9em;
+        --light: 84%;
+        --ry: -20deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(250) {
+        --rotate1: 339deg;
+        --rotate2: 2139deg;
+        --tx1: 3.2em;
+        --tx2: 8.44em;
+        --light: 79%;
+        --ry: 21deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(251) {
+        --rotate1: 180deg;
+        --rotate2: 1980deg;
+        --tx1: 7.2em;
+        --tx2: 7.78em;
+        --light: 99%;
+        --ry: -21deg;
+        --r3d: 16turn;
+      }
+      .flakes i:nth-child(252) {
+        --rotate1: 126deg;
+        --rotate2: 1926deg;
+        --tx1: 6.45em;
+        --tx2: 8.14em;
+        --light: 81%;
+        --ry: -25deg;
+        --r3d: 11turn;
+      }
+      .flakes i:nth-child(253) {
+        --rotate1: 117deg;
+        --rotate2: 1917deg;
+        --tx1: 3.45em;
+        --tx2: 10.84em;
+        --light: 97%;
+        --ry: 36deg;
+        --r3d: 10turn;
+      }
+      .flakes i:nth-child(254) {
+        --rotate1: 77deg;
+        --rotate2: 1877deg;
+        --tx1: 6.6em;
+        --tx2: 7.18em;
+        --light: 74%;
+        --ry: -1deg;
+        --r3d: 13turn;
+      }
+      .flakes i:nth-child(255) {
+        --rotate1: 30deg;
+        --rotate2: 1830deg;
+        --tx1: 3.7em;
+        --tx2: 8.68em;
+        --light: 84%;
+        --ry: 24deg;
+        --r3d: 12turn;
+      }
+      .flakes i:nth-child(256) {
+        --rotate1: 46deg;
+        --rotate2: 1846deg;
+        --tx1: 4.4em;
+        --tx2: 8.92em;
+        --light: 96%;
+        --ry: 11deg;
+        --r3d: 9turn;
+      }
+
+      .star {
+        position: absolute;
+        top: -5.5em;
+      }
+      .star i {
+        position: absolute;
+        left: -1.25em;
+        width: 2.5em;
+        height: 0.5em;
+        background-color: gold;
+        background-image: linear-gradient(90deg, transparent, #000a);
+        -webkit-clip-path: polygon(0 0, 100% 0, 50% 100%);
+        clip-path: polygon(0 0, 100% 0, 50% 100%);
+        transform-origin: top;
+        transform: rotate(var(--angle)) translateY(-0.41em)
+          rotateX(var(--rx, 35deg));
+      }
+      .star i:nth-child(5n + 1) {
+        --angle: 0deg;
+      }
+      .star i:nth-child(5n + 2) {
+        --angle: 72deg;
+      }
+      .star i:nth-child(5n + 3) {
+        --angle: 144deg;
+      }
+      .star i:nth-child(5n + 4) {
+        --angle: 216deg;
+      }
+      .star i:nth-child(5n + 5) {
+        --angle: 288deg;
+      }
+      .star i:nth-child(n + 6) {
+        --rx: -35deg;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scene">
+      <div class="floor"></div>
+
+      <div class="snowglobe">
+        <div class="text">
+          <i>click to restart...</i>
+        </div>
+
+        <div class="base"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+        <div class="glass"></div>
+
+        <div class="tree">
+          <div class="trunk"></div>
+          <div class="leafs">
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+          </div>
+          <div class="lights">
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+          </div>
+          <div class="star">
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+          </div>
+        </div>
+
+        <div class="flakes">
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

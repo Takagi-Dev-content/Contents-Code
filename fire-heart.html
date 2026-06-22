@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        padding: 0;
+        margin: 0 auto;
+        box-sizing: border-box;
+      }
+
+      body {
+        background-color: #000;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+
+      .heart {
+        position: relative;
+      }
+      .heart i {
+        position: absolute;
+        left: -30px;
+        top: -30px;
+        width: 200px;
+        height: 200px;
+        border-radius: 100px 100px 0 100px;
+        transform-origin: 30px 30px;
+        mix-blend-mode: plus-lighter;
+        box-shadow:
+          25px 25px 5px var(--color) inset,
+          5px 5px 50px var(--color);
+        -webkit-animation: i var(--duration) var(--delay) infinite linear;
+        animation: i var(--duration) var(--delay) infinite linear;
+      }
+      @-webkit-keyframes i {
+        to {
+          rotate: 1turn;
+        }
+      }
+      @keyframes i {
+        to {
+          rotate: 1turn;
+        }
+      }
+      .heart i:nth-child(odd) {
+        animation-direction: reverse;
+      }
+      .heart i:nth-child(1) {
+        --color: hsl(0 100% 50% / 0.25);
+        --delay: -7.17s;
+        --duration: 6.072s;
+      }
+      .heart i:nth-child(2) {
+        --color: hsl(1 100% 50% / 0.25);
+        --delay: -1.18s;
+        --duration: 7.094s;
+      }
+      .heart i:nth-child(3) {
+        --color: hsl(2 100% 50% / 0.25);
+        --delay: -5.17s;
+        --duration: 7.71s;
+      }
+      .heart i:nth-child(4) {
+        --color: hsl(3 100% 50% / 0.25);
+        --delay: -8.29s;
+        --duration: 8.576s;
+      }
+      .heart i:nth-child(5) {
+        --color: hsl(4 100% 50% / 0.25);
+        --delay: -2.74s;
+        --duration: 9.39s;
+      }
+      .heart i:nth-child(6) {
+        --color: hsl(5 100% 50% / 0.25);
+        --delay: -3.67s;
+        --duration: 10.554s;
+      }
+      .heart i:nth-child(7) {
+        --color: hsl(6 100% 50% / 0.25);
+        --delay: -2.83s;
+        --duration: 11.255s;
+      }
+      .heart i:nth-child(8) {
+        --color: hsl(7 100% 50% / 0.25);
+        --delay: -1.16s;
+        --duration: 12.727s;
+      }
+      .heart i:nth-child(9) {
+        --color: hsl(8 100% 50% / 0.25);
+        --delay: -1s;
+        --duration: 13.397s;
+      }
+      .heart i:nth-child(10) {
+        --color: hsl(9 100% 50% / 0.25);
+        --delay: -1.67s;
+        --duration: 14.057s;
+      }
+      .heart i:nth-child(11) {
+        --color: hsl(10 100% 50% / 0.25);
+        --delay: -2.01s;
+        --duration: 15.309s;
+      }
+      .heart i:nth-child(12) {
+        --color: hsl(11 100% 50% / 0.25);
+        --delay: -0.31s;
+        --duration: 16.177s;
+      }
+      .heart i:nth-child(13) {
+        --color: hsl(12 100% 50% / 0.25);
+        --delay: -1.78s;
+        --duration: 16.736s;
+      }
+      .heart i:nth-child(14) {
+        --color: hsl(13 100% 50% / 0.25);
+        --delay: -3.4s;
+        --duration: 17.975s;
+      }
+      .heart i:nth-child(15) {
+        --color: hsl(14 100% 50% / 0.25);
+        --delay: -0.77s;
+        --duration: 19.307s;
+      }
+      .heart i:nth-child(16) {
+        --color: hsl(15 100% 50% / 0.25);
+        --delay: -5.93s;
+        --duration: 20.248s;
+      }
+      .heart i:nth-child(17) {
+        --color: hsl(16 100% 50% / 0.25);
+        --delay: -6.51s;
+        --duration: 21.051s;
+      }
+      .heart i:nth-child(18) {
+        --color: hsl(17 100% 50% / 0.25);
+        --delay: -0.93s;
+        --duration: 21.582s;
+      }
+      .heart i:nth-child(19) {
+        --color: hsl(18 100% 50% / 0.25);
+        --delay: -5.41s;
+        --duration: 22.566s;
+      }
+      .heart i:nth-child(20) {
+        --color: hsl(19 100% 50% / 0.25);
+        --delay: -3.25s;
+        --duration: 23.733s;
+      }
+      .heart i:nth-child(21) {
+        --color: hsl(20 100% 50% / 0.25);
+        --delay: -7.5s;
+        --duration: 25.179s;
+      }
+      .heart i:nth-child(22) {
+        --color: hsl(21 100% 50% / 0.25);
+        --delay: -8.42s;
+        --duration: 25.767s;
+      }
+      .heart i:nth-child(23) {
+        --color: hsl(22 100% 50% / 0.25);
+        --delay: -9.7s;
+        --duration: 26.481s;
+      }
+      .heart i:nth-child(24) {
+        --color: hsl(23 100% 50% / 0.25);
+        --delay: -7.58s;
+        --duration: 27.061s;
+      }
+      .heart i:nth-child(25) {
+        --color: hsl(24 100% 50% / 0.25);
+        --delay: -8.8s;
+        --duration: 27.655s;
+      }
+      .heart i:nth-child(26) {
+        --color: hsl(25 100% 50% / 0.25);
+        --delay: -9.72s;
+        --duration: 28.721s;
+      }
+      .heart i:nth-child(27) {
+        --color: hsl(26 100% 50% / 0.25);
+        --delay: -1.91s;
+        --duration: 29.314s;
+      }
+      .heart i:nth-child(28) {
+        --color: hsl(27 100% 50% / 0.25);
+        --delay: -3.47s;
+        --duration: 30.024s;
+      }
+      .heart i:nth-child(29) {
+        --color: hsl(28 100% 50% / 0.25);
+        --delay: -6.68s;
+        --duration: 31.239s;
+      }
+      .heart i:nth-child(30) {
+        --color: hsl(29 100% 50% / 0.25);
+        --delay: -8.49s;
+        --duration: 32.229s;
+      }
+      .heart i:nth-child(31) {
+        --color: hsl(30 100% 50% / 0.25);
+        --delay: -9.23s;
+        --duration: 32.931s;
+      }
+      .heart i:nth-child(32) {
+        --color: hsl(31 100% 50% / 0.25);
+        --delay: -3.41s;
+        --duration: 34.028s;
+      }
+      .heart i:nth-child(33) {
+        --color: hsl(32 100% 50% / 0.25);
+        --delay: -1.67s;
+        --duration: 35.327s;
+      }
+      .heart i:nth-child(34) {
+        --color: hsl(33 100% 50% / 0.25);
+        --delay: -4.76s;
+        --duration: 36.19s;
+      }
+      .heart i:nth-child(35) {
+        --color: hsl(34 100% 50% / 0.25);
+        --delay: -6.96s;
+        --duration: 37.676s;
+      }
+      .heart i:nth-child(36) {
+        --color: hsl(35 100% 50% / 0.25);
+        --delay: -4.19s;
+        --duration: 38.448s;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="heart">
+      <i></i><i></i><i></i><i></i> <i></i><i></i><i></i><i></i> <i></i><i></i
+      ><i></i><i></i> <i></i><i></i><i></i><i></i> <i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i> <i></i><i></i><i></i><i></i> <i></i><i></i
+      ><i></i><i></i> <i></i><i></i><i></i><i></i>
+    </div>
+  </body>
+</html>
