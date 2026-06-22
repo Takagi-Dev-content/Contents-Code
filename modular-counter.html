@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modular Counter</title>
+    <style>
+      @property --num {
+        syntax: "<number>";
+        inherits: true;
+        initial-value: -2;
+      }
+
+      :root {
+        --size: 50vmin;
+        --gap: 1vmin;
+      }
+
+      @keyframes stepsAnim {
+        to {
+          --num: 11;
+        }
+      }
+
+      @function --centerY(--row: 0) {
+        result: calc((var(--h) * var(--row)) + (var(--gap) * var(--row)) + 50%);
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+
+        background: #ec472c;
+        color: #000;
+
+        animation: stepsAnim 13s steps(13) infinite;
+      }
+
+      div {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1vmin;
+        counter-reset: i;
+      }
+
+      span {
+        --h: calc(var(--size) / 8);
+        --move-left: calc(-100% - var(--gap));
+        --move-double-left: calc(-200% - var(--gap) - var(--gap));
+        --move-right: calc(100% + var(--gap));
+        --move-double-right: calc(200% + var(--gap) + var(--gap));
+
+        display: block;
+        height: var(--h);
+        aspect-ratio: 2 / 1;
+        background: currentcolor;
+        transition: transform var(--speed, 0.5s) var(--delay, 0ms)
+          cubic-bezier(0.65, 0, 0.35, 1);
+      }
+
+      span:nth-child(3n + 1) {
+        --move: var(--move-right);
+        --move-double: var(--move-double-right);
+      }
+
+      span:nth-child(3n + 2) {
+        --move: var(--move-right);
+        --move-double: 0%;
+      }
+
+      span:nth-child(3n + 3) {
+        --move: var(--move-left);
+        --move-double: var(--move-double-left);
+      }
+
+      span:nth-child(odd) {
+        --delay: 123ms;
+      }
+      span:nth-child(2n + 3) {
+        --delay: 222ms;
+      }
+      span:nth-child(5n + 1) {
+        --delay: 69ms;
+      }
+      span:nth-child(3n + 2) {
+        --delay: 99ms;
+      }
+
+      /* */
+
+      span:nth-child(1) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(3)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(var(--move), 0) ;
+            style(--num: 3): translate(var(--move), 0) ;
+            style(--num: 4): translate(0, 0) ; style(--num: 5): translate(0, 0)
+            ; style(--num: 6): translate(var(--move), 0) ;
+            style(--num: 7): translate(0, 0) ;
+            style(--num: 8): translate(var(--move), 0) ;
+            style(--num: 9): translate(var(--move), 0) ;
+            style(--num: 10): translate(var(--move), 0) ;
+            else: translate(var(--move), 0) ;
+        );
+      }
+
+      span:nth-child(2) {
+        transform: if(
+          style(--num: -2): translate(0, --centerY(3)) ;
+            style(--num: -1): translate(0, 0) ; style(--num: 1): translate(0, 0)
+            ; style(--num: 2): translate(0, 0) ;
+            style(--num: 3): translate(0, 0) ;
+            style(--num: 4): translate(var(--move), 0) ;
+            style(--num: 5): translate(0, 0) ; style(--num: 6): translate(0, 0)
+            ; style(--num: 7): translate(0, 0) ;
+            style(--num: 8): translate(0, 0) ; style(--num: 9): translate(0, 0)
+            ; style(--num: 10): translate(0, 0) ; else: translate(0, 0) ;
+        );
+      }
+
+      span:nth-child(3) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(3)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(var(--move), 0) ;
+            style(--num: 3): translate(var(--move), 0) ;
+            style(--num: 4): translate(0, 0) ; style(--num: 5): translate(0, 0)
+            ; style(--num: 6): translate(var(--move), 0) ;
+            style(--num: 7): translate(0, 0) ;
+            style(--num: 8): translate(var(--move), 0) ;
+            style(--num: 9): translate(var(--move), 0) ;
+            style(--num: 10): translate(var(--move), 0) ;
+            else: translate(var(--move), 0) ;
+        );
+      }
+
+      span:nth-child(4) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(2)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(0, 0) ; style(--num: 2): translate(0, 0)
+            ; style(--num: 3): translate(0, 0) ;
+            style(--num: 4): translate(0, 0) ; style(--num: 5): translate(0, 0)
+            ; style(--num: 6): translate(0, 0) ;
+            style(--num: 7): translate(var(--move-double), 0) ;
+            style(--num: 8): translate(0, 0) ; style(--num: 9): translate(0, 0)
+            ; style(--num: 10): translate(var(--move), 0) ;
+            else: translate(0, 0) ;
+        );
+      }
+
+      span:nth-child(5) {
+        transform: if(
+          style(--num: -2): translate(0, --centerY(2)) ;
+            style(--num: -1): translate(0, 0) ; style(--num: 1): translate(0, 0)
+            ; style(--num: 2): translate(var(--move), 0) ;
+            style(--num: 3): translate(var(--move), 0) ;
+            style(--num: 4): translate(var(--move), 0) ;
+            style(--num: 5): translate(var(--move-left), 0) ;
+            style(--num: 6): translate(var(--move-left), 0) ;
+            style(--num: 7): translate(var(--move), 0) ;
+            style(--num: 8): translate(var(--move), 0) ;
+            style(--num: 9): translate(var(--move), 0) ;
+            style(--num: 10): translate(0, 0) ; else: translate(var(--move), 0)
+            ;
+        );
+      }
+
+      span:nth-child(6) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(2)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(0, 0) ; style(--num: 3): translate(0, 0)
+            ; style(--num: 4): translate(0, 0) ;
+            style(--num: 5): translate(var(--move-double), 0) ;
+            style(--num: 6): translate(0, 0) ; style(--num: 7): translate(0, 0)
+            ; style(--num: 8): translate(0, 0) ;
+            style(--num: 9): translate(0, 0) ;
+            style(--num: 10): translate(var(--move), 0) ; else: translate(0, 0)
+            ;
+        );
+      }
+
+      span:nth-child(7) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(1)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(var(--move-double), 0) ;
+            style(--num: 3): translate(var(--move-double), 0) ;
+            style(--num: 4): translate(0, 0) ; style(--num: 5): translate(0, 0)
+            ; style(--num: 6): translate(0, 0) ;
+            style(--num: 7): translate(var(--move-double), 0) ;
+            style(--num: 8): translate(0, 0) ; style(--num: 9): translate(0, 0)
+            ; style(--num: 10): translate(var(--move), 0) ;
+            else: translate(0, 0) ;
+        );
+      }
+
+      span:nth-child(8) {
+        transform: if(
+          style(--num: -2): translate(0, --centerY(1)) ;
+            style(--num: -1): translate(0, 0) ; style(--num: 1): translate(0, 0)
+            ; style(--num: 2): translate(var(--move), 0) ;
+            style(--num: 3): translate(var(--move), 0) ;
+            style(--num: 4): translate(var(--move), 0) ;
+            style(--num: 5): translate(var(--move-left), 0) ;
+            style(--num: 6): translate(var(--move-left), 0) ;
+            style(--num: 7): translate(var(--move), 0) ;
+            style(--num: 8): translate(var(--move), 0) ;
+            style(--num: 9): translate(var(--move), 0) ;
+            style(--num: 10): translate(0, 0) ; else: translate(var(--move), 0)
+            ;
+        );
+      }
+
+      span:nth-child(9) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(1)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(0, 0) ; style(--num: 3): translate(0, 0)
+            ; style(--num: 4): translate(0, 0) ;
+            style(--num: 5): translate(var(--move-double), 0) ;
+            style(--num: 6): translate(var(--move-double), 0) ;
+            style(--num: 7): translate(0, 0) ; style(--num: 8): translate(0, 0)
+            ; style(--num: 9): translate(0, 0) ;
+            style(--num: 10): translate(var(--move), 0) ; else: translate(0, 0)
+            ;
+        );
+      }
+
+      span:nth-child(10) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(0)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(var(--move-double), 0) ;
+            style(--num: 3): translate(var(--move), 0) ;
+            style(--num: 4): translate(0, 0) ;
+            style(--num: 5): translate(var(--move), 0) ;
+            style(--num: 6): translate(0, 0) ;
+            style(--num: 7): translate(var(--move), 0) ;
+            style(--num: 8): translate(var(--move), 0) ;
+            style(--num: 9): translate(var(--move), 0) ;
+            style(--num: 10): translate(var(--move), 0) ; else: translate(0, 0)
+            ;
+        );
+      }
+
+      span:nth-child(11) {
+        transform: if(
+          style(--num: -2): translate(0, --centerY(0)) ;
+            style(--num: -1): translate(0, 0) ; style(--num: 1): translate(0, 0)
+            ; style(--num: 2): translate(var(--move), 0) ;
+            style(--num: 3): translate(0, 0) ;
+            style(--num: 4): translate(var(--move), 0) ;
+            style(--num: 5): translate(0, 0) ; style(--num: 6): translate(0, 0)
+            ; style(--num: 7): translate(0, 0) ;
+            style(--num: 8): translate(0, 0) ; style(--num: 9): translate(0, 0)
+            ; style(--num: 10): translate(0, 0) ;
+            else: translate(var(--move), 0) ;
+        );
+      }
+
+      span:nth-child(12) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(0)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(0, 0) ;
+            style(--num: 3): translate(var(--move), 0) ;
+            style(--num: 4): translate(0, 0) ; style(--num: 5): translate(0, 0)
+            ; style(--num: 6): translate(var(--move), 0) ;
+            style(--num: 7): translate(var(--move), 0) ;
+            style(--num: 8): translate(var(--move), 0) ;
+            style(--num: 9): translate(0, 0) ;
+            style(--num: 10): translate(var(--move), 0) ; else: translate(0, 0)
+            ;
+        );
+      }
+
+      span:nth-child(13) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(-1)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(var(--move), 0) ;
+            style(--num: 3): translate(var(--move-double), 0) ;
+            style(--num: 4): translate(var(--move), 0) ;
+            style(--num: 5): translate(var(--move-double), 0) ;
+            style(--num: 6): translate(0, 0) ;
+            style(--num: 7): translate(var(--move), 0) ;
+            style(--num: 8): translate(0, 0) ;
+            style(--num: 9): translate(var(--move-double), 0) ;
+            style(--num: 10): translate(var(--move), 0) ; else: translate(0, 0)
+            ;
+        );
+      }
+
+      span:nth-child(14) {
+        transform: if(
+          style(--num: -2): translate(0, --centerY(-1)) ;
+            style(--num: -1): translate(0, 0) ; style(--num: 1): translate(0, 0)
+            ; style(--num: 2): translate(0, 0) ;
+            style(--num: 3): translate(var(--move), 0) ;
+            style(--num: 4): translate(0, 0) ;
+            style(--num: 5): translate(var(--move), 0) ;
+            style(--num: 6): translate(var(--move-left), 0) ;
+            style(--num: 7): translate(0, 0) ;
+            style(--num: 8): translate(var(--move), 0) ;
+            style(--num: 9): translate(var(--move), 0) ;
+            style(--num: 10): translate(0, 0) ; else: translate(var(--move), 0)
+            ;
+        );
+      }
+
+      span:nth-child(15) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(-1)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(var(--move), 0) ;
+            style(--num: 3): translate(0, 0) ; style(--num: 4): translate(0, 0)
+            ; style(--num: 5): translate(0, 0) ;
+            style(--num: 6): translate(0, 0) ;
+            style(--num: 7): translate(var(--move), 0) ;
+            style(--num: 8): translate(0, 0) ; style(--num: 9): translate(0, 0)
+            ; style(--num: 10): translate(var(--move), 0) ;
+            else: translate(0, 0) ;
+        );
+      }
+
+      span:nth-child(16) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(-2)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(0, 0) ;
+            style(--num: 3): translate(var(--move-double), 0) ;
+            style(--num: 4): translate(var(--move-double), 0) ;
+            style(--num: 5): translate(var(--move-double), 0) ;
+            style(--num: 6): translate(0, 0) ;
+            style(--num: 7): translate(var(--move), 0) ;
+            style(--num: 8): translate(0, 0) ;
+            style(--num: 9): translate(var(--move-double), 0) ;
+            style(--num: 10): translate(var(--move), 0) ; else: translate(0, 0)
+            ;
+        );
+      }
+
+      span:nth-child(17) {
+        transform: if(
+          style(--num: -2): translate(0, --centerY(-2)) ;
+            style(--num: -1): translate(0, 0) ; style(--num: 1): translate(0, 0)
+            ; style(--num: 2): translate(var(--move-left), 0) ;
+            style(--num: 3): translate(var(--move), 0) ;
+            style(--num: 4): translate(var(--move), 0) ;
+            style(--num: 5): translate(var(--move), 0) ;
+            style(--num: 6): translate(var(--move), 0) ;
+            style(--num: 7): translate(0, 0) ;
+            style(--num: 8): translate(var(--move), 0) ;
+            style(--num: 9): translate(var(--move), 0) ;
+            style(--num: 10): translate(0, 0) ; else: translate(var(--move), 0)
+            ;
+        );
+      }
+
+      span:nth-child(18) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(-2)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(var(--move-double), 0) ;
+            style(--num: 3): translate(0, 0) ; style(--num: 4): translate(0, 0)
+            ; style(--num: 5): translate(0, 0) ;
+            style(--num: 6): translate(0, 0) ;
+            style(--num: 7): translate(var(--move), 0) ;
+            style(--num: 8): translate(0, 0) ; style(--num: 9): translate(0, 0)
+            ; style(--num: 10): translate(var(--move), 0) ;
+            else: translate(0, 0) ;
+        );
+      }
+
+      span:nth-child(19) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(-3)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(0, 0) ; style(--num: 3): translate(0, 0)
+            ; style(--num: 4): translate(var(--move-double), 0) ;
+            style(--num: 5): translate(0, 0) ; style(--num: 6): translate(0, 0)
+            ; style(--num: 7): translate(var(--move), 0) ;
+            style(--num: 8): translate(0, 0) ; style(--num: 9): translate(0, 0)
+            ; style(--num: 10): translate(var(--move), 0) ;
+            else: translate(0, 0) ;
+        );
+      }
+
+      span:nth-child(20) {
+        transform: if(
+          style(--num: -2): translate(0, --centerY(-3)) ;
+            style(--num: -1): translate(0, 0) ; style(--num: 1): translate(0, 0)
+            ; style(--num: 2): translate(var(--move-left), 0) ;
+            style(--num: 3): translate(var(--move), 0) ;
+            style(--num: 4): translate(var(--move), 0) ;
+            style(--num: 5): translate(var(--move), 0) ;
+            style(--num: 6): translate(var(--move), 0) ;
+            style(--num: 7): translate(0, 0) ;
+            style(--num: 8): translate(var(--move), 0) ;
+            style(--num: 9): translate(var(--move), 0) ;
+            style(--num: 10): translate(0, 0) ; else: translate(var(--move), 0)
+            ;
+        );
+      }
+
+      span:nth-child(21) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(-3)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(var(--move), 0) ;
+            style(--num: 2): translate(var(--move-double), 0) ;
+            style(--num: 3): translate(0, 0) ; style(--num: 4): translate(0, 0)
+            ; style(--num: 5): translate(0, 0) ;
+            style(--num: 6): translate(0, 0) ;
+            style(--num: 7): translate(var(--move), 0) ;
+            style(--num: 8): translate(0, 0) ; style(--num: 9): translate(0, 0)
+            ; style(--num: 10): translate(var(--move), 0) ;
+            else: translate(0, 0) ;
+        );
+      }
+
+      span:nth-child(22) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(-4)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(0, 0) ; style(--num: 2): translate(0, 0)
+            ; style(--num: 3): translate(var(--move), 0) ;
+            style(--num: 4): translate(var(--move-double), 0) ;
+            style(--num: 5): translate(var(--move), 0) ;
+            style(--num: 6): translate(var(--move), 0) ;
+            style(--num: 7): translate(var(--move), 0) ;
+            style(--num: 8): translate(var(--move), 0) ;
+            style(--num: 9): translate(var(--move), 0) ;
+            style(--num: 10): translate(var(--move), 0) ;
+            else: translate(var(--move), 0) ;
+        );
+      }
+
+      span:nth-child(23) {
+        transform: if(
+          style(--num: -2): translate(0, --centerY(-4)) ;
+            style(--num: -1): translate(0, 0) ; style(--num: 1): translate(0, 0)
+            ; style(--num: 2): translate(0, 0) ;
+            style(--num: 3): translate(0, 0) ;
+            style(--num: 4): translate(var(--move), 0) ;
+            style(--num: 5): translate(0, 0) ; style(--num: 6): translate(0, 0)
+            ; style(--num: 7): translate(0, 0) ;
+            style(--num: 8): translate(0, 0) ; style(--num: 9): translate(0, 0)
+            ; style(--num: 10): translate(0, 0) ; else: translate(0, 0) ;
+        );
+      }
+
+      span:nth-child(24) {
+        transform: if(
+          style(--num: -2): translate(var(--move), --centerY(-4)) ;
+            style(--num: -1): translate(var(--move), 0) ;
+            style(--num: 1): translate(0, 0) ; style(--num: 2): translate(0, 0)
+            ; style(--num: 3): translate(var(--move), 0) ;
+            style(--num: 4): translate(0, 0) ;
+            style(--num: 5): translate(var(--move), 0) ;
+            style(--num: 6): translate(var(--move), 0) ;
+            style(--num: 7): translate(var(--move), 0) ;
+            style(--num: 8): translate(var(--move), 0) ;
+            style(--num: 9): translate(var(--move), 0) ;
+            style(--num: 10): translate(var(--move), 0) ;
+            else: translate(var(--move), 0) ;
+        );
+      }
+
+      em {
+        position: fixed;
+        top: 10%;
+        right: 0;
+        left: 0;
+
+        text-align: center;
+        font-style: normal;
+        font-size: clamp(16px, 2vw, 24px);
+        line-height: 0;
+
+        @supports (top: if(style(--x: 0): 0px; else: 0px)) {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <span></span>
+      <span></span>
+      <span></span>
+
+      <span></span>
+      <span></span>
+      <span></span>
+
+      <span></span>
+      <span></span>
+      <span></span>
+
+      <span></span>
+      <span></span>
+      <span></span>
+
+      <span></span>
+      <span></span>
+      <span></span>
+
+      <span></span>
+      <span></span>
+      <span></span>
+
+      <span></span>
+      <span></span>
+      <span></span>
+
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
+    <em>Your browser does not support the latest CSS features ☹️</em>
+  </body>
+</html>
