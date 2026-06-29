@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      #debug {
+        background: #000;
+        color: #fff;
+        display: inline-block;
+        position: fixed;
+        top: 0;
+        right: 0;
+        font-family: sans-serif;
+        padding: 0.5em;
+      }
+
+      body {
+        min-height: 100vh;
+        background: linear-gradient(0deg, #22c1c3 0%, #fdbb2d 100%);
+        background:
+          linear-gradient(red, transparent),
+          linear-gradient(to top left, lime, transparent),
+          linear-gradient(to top right, blue, transparent);
+        background-blend-mode: screen;
+        overflow: hidden;
+      }
+
+      .container {
+        perspective: 1200px;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .card {
+        transform-style: preserve-3d;
+        transform: scale(0.9);
+        transition:
+          transform 250ms ease-out,
+          box-shadow 250ms ease-out;
+        background: crimson;
+        background: linear-gradient(0deg, #f16100 0%, #ffa900 100%);
+        color: white;
+        width: 100%;
+        height: 100vh;
+        max-width: 900px;
+        max-height: 600px;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0px 5px 10px 2px rgba(33, 33, 33, 0.125);
+      }
+      .card h2 {
+        font-size: 3em;
+        margin: 0;
+        font-family: Helvetica, sans-serif;
+      }
+      .card h2 a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .card h2 a:hover {
+        text-decoration: underline;
+      }
+      .card .text {
+        z-index: 500;
+        padding: 1.5em;
+      }
+      .card:hover {
+        box-shadow: 0px 12px 33px 8px rgba(255, 252, 163, 0.25);
+        transform: rotateY(calc(var(--offset-x) * 30deg))
+          rotateX(calc(var(--offset-y) * 30deg));
+      }
+      .card:hover .layers > span:nth-child(1) {
+        transform: translate3d(
+          calc(var(--offset-x) * -100px),
+          calc(var(--offset-y) * -70px),
+          0
+        );
+      }
+      .card:hover .layers > span:nth-child(2) {
+        transform: translate3d(
+          calc(var(--offset-x) * -20px),
+          calc(var(--offset-y) * -10px),
+          0
+        );
+      }
+      .card:hover .layers > span:nth-child(3) {
+        transform: translate3d(
+          calc(var(--offset-x) * -20px),
+          calc(var(--offset-y) * -10px),
+          0px
+        );
+      }
+      .card:hover .layers > span:nth-child(4) {
+        transform: translate3d(
+          calc(var(--offset-x) * 70px),
+          calc(var(--offset-y) * 60px),
+          0px
+        );
+      }
+      .card:hover .layers > span:nth-child(5) {
+        transform: translate3d(
+          calc(var(--offset-x) * 100px),
+          calc(var(--offset-y) * 70px),
+          0px
+        );
+      }
+      .card:hover .layers > span:nth-child(6) {
+        transform: translate3d(
+          calc(var(--offset-x) * 150px),
+          calc(var(--offset-y) * 80px),
+          0px
+        );
+      }
+      .card .layers {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+      }
+      .card .layers > span {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        transition: transform 250ms ease-out;
+      }
+      .card .layers img {
+        position: absolute;
+        top: -12.5%;
+        left: -12.5%;
+        width: 125%;
+        height: 125%;
+        -o-object-fit: cover;
+        object-fit: cover;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <div class="text">
+          <h2><a href="https://mephysto.io/" target="_blank">Mephysto</a></h2>
+        </div>
+        <div class="layers">
+          <span>
+            <img
+              src="https://s3.ap-southeast-2.amazonaws.com/mephysto.io/media/para-layer-2.png" /></span
+          ><span
+            ><img
+              src="https://s3.ap-southeast-2.amazonaws.com/mephysto.io/media/para-layer-3.png" /></span
+          ><span
+            ><img
+              src="https://s3.ap-southeast-2.amazonaws.com/mephysto.io/media/para-layer-4.png" /></span
+          ><span
+            ><img
+              src="https://s3.ap-southeast-2.amazonaws.com/mephysto.io/media/para-layer-5.png" /></span
+          ><span
+            ><img
+              src="https://s3.ap-southeast-2.amazonaws.com/mephysto.io/media/para-layer-6.png" /></span
+          ><span
+            ><img
+              src="https://s3.ap-southeast-2.amazonaws.com/mephysto.io/media/para-layer-1.png"
+          /></span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+
+      const onMouseMoveHandler = (ev) => {
+        const xOffset =
+          Math.floor((ev.clientX / window.innerWidth - 0.5) * 100) / 100;
+        const yOffset =
+          Math.floor((ev.clientY / window.innerHeight - 0.5) * 100) / 100;
+
+        root.style.setProperty("--offset-x", xOffset);
+        root.style.setProperty("--offset-y", yOffset);
+      };
+
+      document.body.addEventListener("mousemove", onMouseMoveHandler);
+    </script>
+  </body>
+</html>
