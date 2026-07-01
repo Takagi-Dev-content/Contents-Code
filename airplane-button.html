@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Document</title>
+    <style>
+      @charset "UTF-8";
+      * {
+        border: 0;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --hue: 210;
+        --gray50: hsl(var(--hue) 10% 95%);
+        --gray950: hsl(var(--hue) 10% 5%);
+        --primary500: hsl(var(--hue) 90% 45%);
+        --trans-dur: 0.3s;
+        color-scheme: light dark;
+        font-size: clamp(1.5rem, 1.425rem + 0.375vw, 1.875rem);
+      }
+
+      body,
+      button {
+        font:
+          1em/1.5 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+      }
+
+      body {
+        background-color: light-dark(var(--gray50), var(--gray950));
+        color: light-dark(var(--gray950), var(--gray50));
+        display: grid;
+        place-items: center;
+        height: 100vh;
+        transition:
+          background-color var(--trans-dur),
+          color var(--trans-dur);
+      }
+
+      button {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .plane-btn {
+        background-color: var(--primary500);
+        border-radius: 0.5em;
+        color: var(--gray50);
+        cursor: pointer;
+        display: block;
+        overflow: hidden;
+        padding: 0.5em 1.5em;
+        position: relative;
+        transition:
+          background-color var(--trans-dur),
+          color var(--trans-dur),
+          transform var(--trans-dur);
+      }
+      .plane-btn__cloud {
+        background-color: white;
+        border-radius: 50%;
+        display: block;
+        filter: blur(16px);
+        opacity: 0.7;
+        height: 2.25em;
+      }
+      .plane-btn__cloud--l {
+        transform: translateX(-33%);
+      }
+      .plane-btn__cloud--r {
+        margin-left: auto;
+        transform: translateX(33%);
+      }
+      .plane-btn__cloud--sm {
+        width: 33%;
+      }
+      .plane-btn__cloud--md {
+        width: 50%;
+      }
+      .plane-btn__cloud--lg {
+        width: 67%;
+      }
+      .plane-btn__land {
+        background-color: #59a659;
+        border-radius: 33% 67% 70% 30%/33% 67% 33% 67%;
+        box-shadow: 0 0 0 0.5em rgba(255, 255, 255, 0.1);
+        width: 3.5em;
+        height: 2.25em;
+        transform: translateX(-25%);
+      }
+      .plane-btn__plane,
+      .plane-btn__scroller {
+        position: absolute;
+      }
+      .plane-btn__plane,
+      .plane-btn__text {
+        transition: transform 0.5s ease-in-out;
+      }
+      .plane-btn__plane {
+        display: grid;
+        place-items: center;
+        font-size: 1.25em;
+        inset: 0;
+        transform: translateY(100%);
+      }
+      .plane-btn__plane::before {
+        animation: 1.5s plane-move ease-in-out infinite;
+        content: "✈️";
+        display: block;
+      }
+      .plane-btn__scroller {
+        display: flex;
+        flex-direction: column;
+        inset: 0 0 auto;
+        padding: 3em 0.75em;
+        transform: translateY(-100%);
+      }
+      .plane-btn__text {
+        display: block;
+      }
+      .plane-btn:focus-visible,
+      .plane-btn:hover {
+        transform: scale(1.05);
+      }
+      .plane-btn:active {
+        transform: scale(0.95);
+      }
+      .plane-btn:focus-visible .plane-btn__plane,
+      .plane-btn:hover .plane-btn__plane {
+        transform: translateY(0);
+      }
+      .plane-btn:focus-visible .plane-btn__scroller,
+      .plane-btn:hover .plane-btn__scroller {
+        animation: 3s scroller-move linear infinite;
+      }
+      .plane-btn:focus-visible .plane-btn__text,
+      .plane-btn:hover .plane-btn__text {
+        transform: translateY(-2.5em);
+      }
+
+      @keyframes plane-move {
+        0%,
+        100% {
+          transform: translateX(-0.125rem) rotate(-45deg);
+        }
+        50% {
+          transform: translateX(0.125rem) rotate(-45deg);
+        }
+      }
+      @keyframes scroller-move {
+        0% {
+          transform: translateY(-100%);
+        }
+        100% {
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="module">
+      import React, { StrictMode } from "https://esm.sh/react";
+      import { createRoot } from "https://esm.sh/react-dom/client";
+      import clsx from "https://esm.sh/clsx";
+      createRoot(document.getElementById("root")).render(
+        React.createElement(
+          StrictMode,
+          null,
+          React.createElement(AirplaneTicketButton, null),
+        ),
+      );
+      function AirplaneTicketButton({ onclick }) {
+        return React.createElement(
+          "button",
+          { className: "plane-btn", type: "button", onClick: onclick },
+          React.createElement(
+            "span",
+            { className: "plane-btn__scroller" },
+            React.createElement(AirplaneTicketButtonLand, null),
+          ),
+          React.createElement(
+            "span",
+            { className: "plane-btn__scroller" },
+            React.createElement(AirplaneTicketButtonCloud, {
+              position: "r",
+              size: "lg",
+            }),
+            React.createElement(AirplaneTicketButtonCloud, null),
+            React.createElement(AirplaneTicketButtonCloud, { size: "sm" }),
+            React.createElement(AirplaneTicketButtonCloud, {
+              position: "r",
+              size: "lg",
+            }),
+          ),
+          React.createElement("span", {
+            className: "plane-btn__plane",
+            "aria-hidden": "true",
+          }),
+          React.createElement(
+            "span",
+            { className: "plane-btn__text" },
+            "Get Tickets",
+          ),
+        );
+      }
+      function AirplaneTicketButtonCloud({ position = "l", size = "md" }) {
+        const _position = `plane-btn__cloud--${position}`;
+        const _size = `plane-btn__cloud--${size}`;
+        return React.createElement("span", {
+          className: clsx("plane-btn__cloud", _position, _size),
+        });
+      }
+      function AirplaneTicketButtonLand({ position = "l" }) {
+        const _position = `plane-btn__land--${position}`;
+        return React.createElement("span", {
+          className: clsx("plane-btn__land", _position),
+        });
+      }
+    </script>
+  </body>
+</html>
