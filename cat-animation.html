@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Animation</title>
+    <script src="https://labs.nearpod.com/bodymovin/demo/catrim/data.js"></script>
+    <script src="https://labs.nearpod.com/bodymovin/demo/catrim/bodymovin.js"></script>
+    <style>
+      html{
+        margin: 0;
+        padding: 0;
+        background-color: black;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        
+      }
+      body{
+        width: 100%;
+        height: 100%;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div id="svgContainer" style="width:100%;height:100%;background-color:#000;display:inline-block"></div>
+
+    <script>
+      let svgContainer = document.getElementById('svgContainer');
+
+      bodymovin.loadAnimation({
+        wrapper: svgContainer,
+        animType: 'svg',
+        loop: true,
+        animationData: JSON.parse(animationData)
+      });
+    </script>
+
+  </body>
+</html>
