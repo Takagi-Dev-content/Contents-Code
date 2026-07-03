@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Loading Bar</title>
+      <style>
+        .progress {
+          width: 300px;
+          padding: 1em;
+          font-size: 1.2rem;
+          border-radius: 2rem;
+          background: white;
+          overflow:clip;
+          display: grid;
+          box-shadow:
+            0 0 0 4px #444,   
+            0 0 0 6px white;   
+        }
+
+        .progress__bar,
+        .progress__text {
+          grid-area: 1 / 1; 
+        }
+
+        .progress__bar {
+          background: #444;
+          margin: -1em;
+
+          transform: scaleX(0);
+          transform-origin: right;
+          animation: grow 4s ease-in-out infinite alternate;
+        }
+
+        .progress__text {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1;
+          mix-blend-mode: difference;
+          font-weight: bold;
+          font-size: 2rem;
+        }
+
+        @keyframes grow {
+          from {
+            transform: scaleX(0);
+          }
+          to {
+            transform: scaleX(1);
+          }
+        }
+
+        body {
+          font-family: sans-serif;
+          background: #444;
+          color: #fff;
+          display: flex;
+          min-height: 90vh;
+          align-items: center;
+          justify-content: space-evenly;
+          
+        }
+      </style>
+    </head>
+    <body>
+      <div class="progress">
+        <div class="progress__bar"></div>
+        <div class="progress__text">Loading....</div>
+      </div>
+    </body>
+</html>

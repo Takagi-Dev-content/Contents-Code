@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>rose curve animation</title>
+    <style>
+      body {
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head> 
+  <body>
+  
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.4.21/p5.min.js'></script>
+    <script>
+      let pSize = 4;
+      let maxAngle = 0;
+      let g_freq = 0;
+      let g_col_h = 0;
+      let g_col_i = 0;
+      let freq_increase = true;
+      let col_increase = true;
+      let radius = 0;
+
+
+      function setup(){
+        createCanvas(windowWidth, windowHeight);
+        background(0);
+        blendMode(ADD);
+        colorMode(HSB);
+        init();
+
+      }
+
+      function draw(){
+        clear();
+        background(0);
+        translate(windowWidth/2, windowHeight/2);
+
+        noStroke();
+
+        if(freq_increase){
+          g_freq += 0.01;
+        }else{
+          g_freq -= 0.01;
+        }
+        if(g_freq>1000){
+          g_freq = 1000;
+          freq_increase = false;
+        }else if(g_freq<0){
+          g_freq = 0;
+          freq_increase = true;
+        }
+        rose_curve();
+      }
+
+      function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
+        init();
+      }
+      
+      function rose_curve(){
+        var maxAngle = 360;
+        for(var i=0; i<maxAngle; i+=0.5){
+
+          var a = sin(radians(i*4));
+          var r = a * radius;
+          var rad = radians(i*g_freq);
+          var x = cos(rad) * r;
+          var y = sin(rad) * r;
+
+          //g_col_h = g_col_h%360;
+          //g_col_h = map(i,0,maxAngle,0,360);
+          //g_col_h = map(a,-1,1,0,360);
+          if(col_increase){
+            g_col_i += 0.003;
+          }else{
+            g_col_i -= 0.003;
+          }
+          if(g_col_i>360){
+            col_increase = false;
+            g_col_i = 360;
+          }else if(g_col_i<0){
+            col_increase = true;
+            g_col_i = 0;
+          }
+          g_col_h = map(a,-1,1,0,g_col_i);
+          fill(g_col_h,100,100,1);
+          ellipse(x,y,pSize,pSize);
+
+        }
+      }
+
+      function init(){
+        const size = 0.37;
+
+        if(windowWidth>windowHeight){
+          radius = windowHeight * size;
+        }else{
+          radius = windowWidth * size;
+        }
+      }
+    </script>
+  </body>
+</html>

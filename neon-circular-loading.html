@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Circular Loading</title>
+    <style>
+      body {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: #000000;
+        animation: colorRot 5000ms linear infinite;
+        overflow: hidden;
+      }
+      .loader {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        top: calc(50% - 50px);
+        left: calc(50% - 50px);
+        animation: rotAnim 750ms ease-in-out infinite;
+      }
+      .loader::before,
+      .loader::after {
+        content: "";
+        position: absolute;
+        width: 25%;
+        height: 25%;
+        top: 0;
+        left: 0;
+        border-radius: 50%;
+        background-color: #ffffff;
+        box-shadow: 0 0 40px #7aa8ff, 0 0 10px #7aa8ff;
+      }
+      .loader::after {
+        top: unset;
+        left: unset;
+        bottom: 0;
+        right: 0;
+      }
+
+      @keyframes rotAnim {
+        0% {
+          rotate: 0deg;
+        }
+        100% {
+          rotate: 360deg;
+        }
+      }
+
+      @keyframes colorRot {
+        0% {
+          filter: hue-rotate(0deg);
+        }
+        100% {
+          filter: hue-rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="loader circular-loader"></div>
+
+    <script>
+      const opacityFactor = (opacity, f) => (+opacity * f).toString();
+
+      const getTrueOpacity = (el) => {
+        let opacity = '1';
+        let specialOpacity = '1';
+
+        const match = el.outerHTML.match(
+          /((?<=fadejs-data="opacity:)|(?<=fadejs-data="opacity: ))(([0-9]\d*(\.\d+)?;)|([0-9]\d*(\.\d+)?"))/gm
+        );
+
+        if (match?.length > 0) {
+          opacity = match[0].slice(0, match[0].length - 1).replace(/opacity:/, '');
+          specialOpacity = getSpecialOpacityFactor(opacity).toFixed(4).toString();
+          opacity = (+opacity / 1.80555555).toFixed(8).toString();
+        }
+
+        return [opacity, specialOpacity];
+      };
+
+      const getSpecialOpacityFactor = (x) => {
+        x = Math.abs(+x);
+
+        if (x >= 1) return x > 0 ? 1 : 0;
+
+        if (x < 0.01) return 0;
+        if (x <= 0.05) return 0.01;
+
+        if (x <= 0.2)
+          return 13.3333 * x ** 3 - 6 * x ** 2 + 1.06667 * x - 0.03;
+
+        if (x < 0.3) {
+          if (x <= 0.28)
+            return (
+              465029.7619 * x ** 5 -
+              554650.2976 * x ** 4 +
+              263229.1667 * x ** 3 -
+              62118.6756 * x ** 2 +
+              7287.7232 * x -
+              339.917
+            );
+          return 0.09;
+        }
+
+        if (x < 0.4) {
+          if (x >= 0.32)
+            return 9375 * x ** 4 - 13229.2 * x ** 3 + 6987.5 * x ** 2 - 1636.58 * x + 143.466;
+          return 0.09;
+        }
+
+        if (x < 0.55)
+          return -24.2424 * x ** 3 + 35.8182 * x ** 2 - 16.7485 * x + 2.67;
+
+        if (x < 0.6) return 1.2 * x - 0.4;
+        if (x < 0.65) return 0.6 * x - 0.04;
+
+        if (x < 0.85)
+          return -13.3333 * x ** 3 + 30 * x ** 2 - 20.8667 * x + 4.9;
+
+        return -26.1905 * x ** 3 + 72.7143 * x ** 2 - 64.8774 * x + 19.3439;
+      };
+
+      const whenDone = () => {
+        if (!window.runScriptA) {
+          document.querySelectorAll('.circular-loader').forEach((el) => {
+            const siblings = [...el.parentNode.children];
+
+            siblings.forEach((sibling, r) => {
+              if (!sibling.classList.contains('circular-loader')) return;
+
+              const isScale = sibling.classList.contains('scale');
+              const delays = isScale ? [0, 50, 100, 150] : [0, 20, 40, 60];
+              const scales = [1, 0.75, 0.5, 0.25];
+
+              const clones = delays.map((delay, i) => {
+                const styleAttr = isScale
+                  ? `style='animation-delay:${delay}ms;--scale:${scales[i]};'`
+                  : `style='animation-delay:${delay}ms;'`;
+                return sibling.outerHTML.replace(/class=/, `${styleAttr} class=`);
+              });
+
+              sibling.outerHTML = clones.reverse().join('');
+            });
+          });
+
+          window.runScriptA = 1;
+        }
+
+        if (!window.runScriptB) {
+          document.querySelectorAll('.fadejs').forEach((el) => {
+            const siblings = [...el.parentNode.children];
+
+            siblings.forEach((sibling) => {
+              if (!sibling.classList.contains('fadejs')) return;
+
+              const [opacity, specialOpacity] = getTrueOpacity(sibling);
+
+              const clones = [
+                sibling.outerHTML.replace(/class=/, `style='animation-delay:0ms;opacity:${specialOpacity};' class=`),
+                sibling.outerHTML.replace(/class=/, `style='animation-delay:20ms;opacity:${opacityFactor(opacity, 0.75)};' class=`),
+                sibling.outerHTML.replace(/class=/, `style='animation-delay:40ms;opacity:${opacityFactor(opacity, 0.5)};' class=`),
+                sibling.outerHTML.replace(/class=/, `style='animation-delay:60ms;opacity:${opacityFactor(opacity, 0.25)};' class=`),
+              ];
+
+              sibling.outerHTML = clones.reverse().join('');
+            });
+          });
+
+          window.runScriptB = 1;
+        }
+      };
+
+      document.addEventListener('DOMContentLoaded', whenDone);
+
+      const blurMe = (e) => {
+        const c = e.target.parentNode;
+        const g = Number(c.getAttribute('circular-loader-ghost')) || 4;
+
+        c.querySelector('img')?.remove();
+        const d = c.outerHTML;
+
+        const clones = Array.from({ length: g }, (_, i) => {
+          const delay = (g - (i + 1)) * 20;
+          return d.replace(/class=/, `style='animation-delay:${delay}ms;transition-delay:${delay}ms;' class=`);
+        });
+
+        c.outerHTML = clones.join('');
+      };
+
+      const fadeMe = (e) => {
+        const c = e.target.parentNode;
+        const g = Number(c.getAttribute('circular-loader-ghost')) || 4;
+
+        c.querySelector('img')?.remove();
+        const d = c.outerHTML;
+
+        const clones = Array.from({ length: g }, (_, i) => {
+          const delay = (g - (i + 1)) * 20;
+          const opacityPct = 100 - (g - (i + 1)) * (100 / g);
+          return d.replace(/class=/, `style='animation-delay:${delay}ms;transition-delay:${delay}ms;opacity:${opacityPct}%;' class=`);
+        });
+
+        c.outerHTML = clones.join('');
+      };
+    </script>
+  </body>
+</html>

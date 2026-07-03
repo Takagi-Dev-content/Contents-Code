@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/3.4.2/gl-matrix-min.js"></script>
+    <title>Laser Heart</title>
+  </head>
+  <body>
+    
+    <script>
+      ////////////////////////////////////////////////////////////////////////////////
+      console.clear();
+
+      const {vec3, mat4} = glMatrix;
+
+      requestAnimationFrame(main);
+
+      ////////////////////////////////////////////////////////////////////////////////
+      function main(){
+          const scene = new Scene();
+          const renderer = new Renderer(scene);
+        
+        const loop = () => {
+          scene.cycle();
+          renderer.render();
+          requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+      }
+
+      ////////////////////////////////////////////////////////////////////////////////
+      class Renderer {
+        scale = 1;
+        // adjustable factor for reducing content size
+        contentScale = 0.5;
+        
+        constructor(scene){
+          this.scene = scene;
+          // default content scale (0.5 draws at half size)
+          this.contentScale = 0.7;
+          
+          const canvas = document.createElement('canvas');
+          this.canvas = canvas;
+          this.canvasCtx = canvas.getContext('2d');
+          
+          canvas.style.display = 'block';
+          document.body.style.margin = '0';
+          document.body.appendChild(canvas);
+          
+          this.canvasSize = [0, 0];
+        }
+        
+        resize(){
+          const {canvas, canvasSize} = this;
+          const w = window.innerWidth;
+          const h = window.innerHeight;
+          if(canvasSize[0] !== w || canvasSize[1] !== h) {
+            canvasSize[0] = w;
+            canvasSize[1] = h;
+            canvas.width = w;
+            canvas.height = h;
+          }
+        }
+        
+        render(){
+          this.resize();
+          const {canvasCtx, canvasSize, scene, mVP} = this;
+          const {time} = scene;
+          
+          canvasCtx.fillStyle = '#000000';
+          canvasCtx.fillRect(0, 0, canvasSize[0], canvasSize[1]);
+          
+          this.applyCamera();
+          
+          //this.drawAxisHelper();
+          
+          this.drawNodes();
+          this.drawLinks();
+        }
+
+        applyCamera(){
+          const {canvasSize, mVP} = this;
+          const {time} = this.scene;
+          
+          const min = Math.min(canvasSize[0], canvasSize[1]);
+          const scale = min;
+          this.scale = scale;
+        // global content scaling factor (less than 1 to shrink drawing)
+        const contentScale = this.contentScale || 1;
+
+          const mProj = mat4.create();
+          mat4.perspectiveNO(
+            mProj,
+            Math.PI / 180 * 90,
+            1, // canvasSize[1] / canvasSize[0],
+            1,
+            100,
+          );
+
+          const mView = mat4.create();
+          const a = Math.PI * 2 * time / 4;
+          const r = 5;
+          
+          mat4.lookAt(
+            mView,
+            [Math.cos(a) * r, Math.sin(a) * r, 3],
+            //[0, -2, 2],
+            [0, 0, 3],
+            [0, 0, 1], // z-up
+          );
+
+          mat4.identity(mVP);
+          mat4.translate(mVP, mVP, [canvasSize[0] / 2, canvasSize[1] / 2, 0]);
+          // apply both viewport scale and content scale
+          mat4.scale(mVP, mVP, [scale * contentScale, -scale * contentScale, scale * contentScale]);
+          mat4.multiply(mVP, mVP, mProj);
+          mat4.multiply(mVP, mVP, mView);
+        }
+        
+        drawAxisHelper(){
+          const axisMarkerR = 0.1;
+          const markers = [
+            {pos: [0, 0, 0], r: axisMarkerR, color: '#ffffff'},
+            {pos: [1, 0, 0], r: axisMarkerR, color: '#ff0000'},
+            {pos: [0, 1, 0], r: axisMarkerR, color: '#00ff00'},
+            {pos: [0, 0, 1], r: axisMarkerR, color: '#0000ff'},
+          ];
+          
+          const tPos = vec3.create();
+          for(const marker of markers){
+            this.drawCircle(marker.pos, marker.r, marker.color);
+          }
+          this.drawLine(markers[0].pos, markers[1].pos, markers[1].color);
+          this.drawLine(markers[0].pos, markers[2].pos, markers[2].color);
+          this.drawLine(markers[0].pos, markers[3].pos, markers[3].color);
+        }
+        
+        //
+        
+        mVP = mat4.create();
+        tPos1 = vec3.create();
+        tPos2 = vec3.create();
+        tPos3 = vec3.create();
+        
+        drawCircle(pos, r, color){
+          const {canvasCtx, canvasSize, mVP, tPos1: tPos} = this;
+          vec3.transformMat4(tPos, pos, mVP);
+          // const x = (0.5 + tPos[0] / 2) * scale;
+          // const y = (0.5 - tPos[1] / 2) * scale;
+          // const _r = r * (1 - tPos[2]) / 4 * scale;
+          if(tPos[2] < 0) return;
+          canvasCtx.beginPath();
+          canvasCtx.arc(
+            tPos[0], tPos[1],
+            r * tPos[2] / 2,
+            0, Math.PI * 2,
+          );
+          canvasCtx.strokeStyle = color;
+          canvasCtx.stroke();
+        }
+        
+        drawLine(start, end, color){
+          const {canvasCtx, canvasSize, mVP, tPos1, tPos2, scale} = this;
+          vec3.transformMat4(tPos1, start, mVP);
+          vec3.transformMat4(tPos2, end, mVP);
+          if(tPos1[2] < 0) return;
+          if(tPos2[2] < 0) return;
+          canvasCtx.beginPath();
+          canvasCtx.moveTo(
+            // (0.5 + tPos1[0] / 2) * scale,
+            // (0.5 - tPos1[1] / 2) * scale,
+            tPos1[0], tPos1[1],
+          );
+          canvasCtx.lineTo(
+            // (0.5 + tPos2[0] / 2) * scale,
+            // (0.5 - tPos2[1] / 2) * scale,
+            tPos2[0], tPos2[1],
+          );
+          canvasCtx.strokeStyle = color;
+          canvasCtx.stroke();
+        }
+        
+        //
+        
+        drawNodes(){
+          const {canvasCtx, scene} = this;
+          const {time} = scene;
+          canvasCtx.lineWidth = 0.5;
+          const s = Math.pow(Math.abs((time % 1) - 0.5), 0.5);
+          for(const node of scene.nodes){
+            //const color = node.color;
+            const hue = 0 + 30 * Math.sin(Math.PI * 2 * (time + node.id / 2) / 1);
+            const color = `hsl(${hue}, 100%, 50%)`;
+            this.drawCircle(
+              node.pos,
+              node.baseR * Math.pow(node.charge, 0.5) * 2 * (0.75 + 0.25 * s),
+              color,
+            );
+          }
+          canvasCtx.lineWidth = 1;
+        }
+        
+        drawLinks(){
+          const {scene, canvasCtx} = this;
+          const {time, links} = scene;
+          for(const link of links){
+            const totalTime = link.endTime - link.startTime;
+            const remaining = Math.pow((link.endTime - time) / 1, 2);
+            canvasCtx.globalAlpha = Math.min(remaining, 1);
+            this.drawLine(link.startPos, link.endPos, link.color);
+          }
+          canvasCtx.globalAlpha = 1;
+        }
+      }
+
+      ////////////////////////////////////////////////////////////////////////////////
+      class Scene {
+        time = 0;
+        timeDelta = 1 / 60;
+        
+        nodes = [];
+        links = [];
+        
+        constructor(){
+          this.genNodes();
+        }
+        
+        nextId = 1;
+        
+        getNextId(){
+          return this.nextId++;
+        }
+        
+        cycle(){
+          this.time += this.timeDelta;
+          this.processNodes();
+          this.processLinks();
+        }
+        
+        genNodes(){
+          const {nodes} = this;
+          nodes.length = 0;
+          const q = 10;
+          const cols = q;
+          const rows = q;
+          const s = 0.5;
+          const zones = [
+            {pos: [-0.2, 0, 0.25], r: 0.23},
+            {pos: [+0.2, 0, 0.25], r: 0.23},
+            {pos: [0, 0, 0], r: 0.2},
+          ];
+          for(const zone of zones){
+            zone.r *= q / 2;
+            zone.pos[0] = zone.pos[0] / 2 * q;
+            zone.pos[1] = 0.5;
+            zone.pos[2] = (zone.pos[2] + 0.5) / 2 * q;
+          }
+          
+          for(let depth = 0, depthEnd = 2; depth < depthEnd; ++depth){
+            for(let row = 0, rowEnd = rows; row < rowEnd; row += 0.5){
+              for(let col = 0, colEnd = cols; col < colEnd; col += 0.5){
+                const node = new Node(this);
+                const cd = Math.hypot(col - cols / 2, row - rows / 2) / q * 2;
+                const s2 = 1 - cd;
+                node.pos[0] = (col - cols / 2 + Math.random() * 0.5) * s;
+                node.pos[2] = (row + Math.random() * 0.5) * s;
+                node.pos[1] = (depth / 2 - 0.5 + (Math.random() - 0.5) * 0.5) * s2;
+                let valid = false;
+                for(const zone of zones){
+                  const d = vec3.dist(zone.pos, node.pos);
+                  if(d < zone.r){
+                    valid = true;
+                    break;
+                  }
+                }
+                if(valid) nodes.push(node);
+              }
+            }
+          }
+        }
+        
+        //
+        
+        lastNodeTriggerTime = -60;
+        
+        processNodes(){
+          const {nodes, links, time} = this;
+          
+          const elapsed = time - this.lastNodeTriggerTime;
+          const triggerInterval = 60 / 90;
+          if(elapsed > triggerInterval) {
+            this.lastNodeTriggerTime = time;
+            for(let i = 0; i < 3; ++i){
+              const node = nodes[Math.floor(Math.random() * nodes.length)];
+              node.charge += 4 + 10 * Math.random();
+              const link = new Link(this, null, node);
+              vec3.set(link.startPos, 0, 1, 0);
+              link.endTime += 1;
+              links.push(link);
+            }
+          }
+          
+          const nNodes = nodes.length;
+          for(let i = 0; i < nNodes; ++i){
+            const node1 = nodes[i];
+            const list = [];
+            node1.charge *= 1 - 1 / 30;
+            for(let j = 0; j < nNodes; ++j){
+              if(i === j) continue;
+              const node2 = nodes[j];
+              const d = vec3.dist(node1.pos, node2.pos);
+              if(node1.charge + node2.charge > Math.pow(d * 2, 2)){
+                list.push(node2);
+              }
+            }
+            if(list.length > 0){
+              list.push(node1);
+              let sum = 0;
+              for(const node of list) sum += node.charge;
+              sum /= list.length;
+              for(const node of list){
+                node.charge = sum;
+                node.lastLinkTime = time;
+                if(node !== node1){
+                  this.setLink(node1, node);
+                }
+              }
+            }
+          }
+        }
+        
+        linkByNodePair = {};
+        
+        setLink(node1, node2){
+          const {time} = this;
+          let aId = node1.id;
+          let bId = node1.id;
+          // dirty hack
+          const n = this.nextId;
+          if(aId > bId) [aId, bId] = [bId, aId];
+          const index = aId + bId * n;
+          
+          let link = this.linkByNodePair[index];
+          if(!link){
+            link = new Link(
+              this,
+              node1,
+              node2,
+            );
+            this.linkByNodePair[index] = link;
+            link.index = index;
+            this.links.push(link);
+          }
+          
+          link.endTime = time + 2 + Math.random() * 1;
+          vec3.copy(link.startPos, node1.pos);
+          vec3.copy(link.endPos, node2.pos);
+        }
+        
+        processLinks(){
+          const {time, links} = this;
+          for(let i = 0; i < links.length; ++i){
+            const link = links[i];
+            if(time >= link.endTime){
+              links.splice(i--, 1);
+              if(link.index !== -1) delete this.linkByNodePair[link.index];
+            }
+          }
+        }
+      }
+
+      ////////////////////////////////////////////////////////////////////////////////
+      class Node {
+        pos = vec3.create();
+        r = 0.1;
+        color = '#ff7fa0';
+        charge = 0.1;
+        baseR = 0.1;
+        lastLinkTime = 0;
+        
+        constructor(scene){
+          this.id = scene.getNextId();
+        }
+      }
+
+      ////////////////////////////////////////////////////////////////////////////////
+      class Link {
+        startPos = vec3.create();
+        endPos = vec3.create();
+        //color = '#a0a0ff';
+        color = '#ff00ff';
+        startTime = 0;
+        endTime = 0;
+        index = -1;
+        
+        constructor(scene, node1, node2){
+          this.startTime = scene.time;
+          this.endTime = this.startTime;
+          if(node1) vec3.copy(this.startPos, node1.pos);
+          if(node2) vec3.copy(this.endPos, node2.pos);
+        }
+      }
+
+      ////////////////////////////////////////////////////////////////////////////////
+    </script>
+  </body>
+</html>
