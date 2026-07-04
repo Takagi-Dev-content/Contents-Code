@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        font-family: Arial, Helvetica, "Liberation Sans", FreeSans, sans-serif;
+        background-color: #000;
+        margin: 0;
+        padding: 0;
+        border-width: 0;
+      }
+    </style>
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      "use strict";
+
+      let nbDots, symm;
+
+      let canv, ctx; // canvas and context
+      let maxx, maxy; // canvas dimensions
+      let xc, yc, lRef;
+      let tbSin, tbCos;
+
+      // for animation
+      let messages;
+
+      // shortcuts for Math.
+      const mrandom = Math.random;
+      const mfloor = Math.floor;
+      const mround = Math.round;
+      const mceil = Math.ceil;
+      const mabs = Math.abs;
+      const mmin = Math.min;
+      const mmax = Math.max;
+
+      const mPI = Math.PI;
+      const mPIS2 = Math.PI / 2;
+      const mPIS3 = Math.PI / 3;
+      const m2PI = Math.PI * 2;
+      const m2PIS3 = (Math.PI * 2) / 3;
+      const msin = Math.sin;
+      const mcos = Math.cos;
+      const matan2 = Math.atan2;
+
+      const mhypot = Math.hypot;
+      const msqrt = Math.sqrt;
+
+      const rac3 = msqrt(3);
+      const rac3s2 = rac3 / 2;
+
+      //-----------------------------------------------------------------------------
+      /*	============================================================================
+          This is based upon Johannes Baagoe's carefully designed and efficient hash
+          function for use with JavaScript.  It has a proven "avalanche" effect such
+          that every bit of the input affects every bit of the output 50% of the time,
+          which is good.	See: http://baagoe.com/en/RandomMusings/hash/avalanche.xhtml
+          ============================================================================
+        */
+      /* This function returns a hash function depending on a seed.
+
+        if no seed is provided (or a falsy value), Math.random() is used.
+        The returned function always returns the same number in the range [0..1[ for the
+        same value of the argument. This argument may be a String or a Number or anything else
+        which can be 'toStringed'
+        Two returned functions obtained with two equal seeds are equivalent.
+        */
+
+      function hashFunction(seed) {
+        let n0 = 0xefc8249d;
+        let n = n0;
+        mash(seed || Math.random()); // pre-compute n for seed
+        n0 = n; //
+
+        function mash(data) {
+          data = data.toString() + "U";
+          n = n0;
+          for (let i = 0; i < data.length; i++) {
+            n += data.charCodeAt(i);
+            var h = 0.02519603282416938 * n;
+            n = h >>> 0;
+            h -= n;
+            h *= n;
+            n = h >>> 0;
+            h -= n;
+            n += h * 0x100000000; // 2^32
+          } // for
+          return (n >>> 0) * 2.3283064365386963e-10; // 2^-32
+        } // mash
+        return mash;
+      } // hashFunction(seed)
+
+      //------------------------------------------------------------------------
+
+      function alea(mini, maxi) {
+        // random number in given range
+
+        if (typeof maxi == "undefined") return mini * mrandom(); // range 0..mini
+
+        return mini + mrandom() * (maxi - mini); // range mini..maxi
+      }
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      function intAlea(mini, maxi) {
+        // random integer in given range (mini..maxi - 1 or 0..mini - 1)
+        //
+        if (typeof maxi == "undefined") return mfloor(mini * mrandom()); // range 0..mini - 1
+        return mini + mfloor(mrandom() * (maxi - mini)); // range mini .. maxi - 1
+      }
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+      function Noise1D(period, min = 0, max = 1, hash) {
+        /* returns a 1D noise function.
+               the (mandatory) hash function must return a value between 0 and 1. The hash function
+               will be called with an integer number for a parameter.
+              the returned function takes one parameter, and will always return the same value if called with the same parameter
+              period should be > 1. The bigger period is, the smoother the output noise is
+
+            suggestion : the hash parameter could be a function returned from a call to hashFunction above
+
+            */
+
+        let currx, y0, y1; // cached valued, to reduce number of calls to 'hash'
+        let phase = hash(0); // to shift the phase of different generators between each other;
+
+        return function (x) {
+          let xx = x / period + phase;
+          let intx = mfloor(xx);
+
+          if (intx - 1 === currx) {
+            // next integer interval
+            ++currx;
+            y0 = y1;
+            y1 = min + (max - min) * hash(currx + 1);
+          } else if (intx !== currx) {
+            // unrelated interval
+            currx = intx;
+            y0 = min + (max - min) * hash(currx);
+            y1 = min + (max - min) * hash(currx + 1);
+          }
+          let frac = xx - currx;
+          let z = (3 - 2 * frac) * frac * frac;
+          return z * y1 + (1 - z) * y0;
+        };
+      } // Noise1D
+      //------------------------------------------------------------------------
+
+      function Noise1DOneShotModuloTime(period, modulo, step) {
+        /* returns a 1D single-shot noise generator.
+               modulo must be > 0
+               step represents the normalized value (in "turns" or times modulo) of change in function value after a time equal to period
+              the returned function has one parameter "time" which is supposed to increase at every call. It will return a new number
+              between 0 and modulo every time it is called.
+              period (in ms) should be > 0. The bigger period is, the smoother output noise is
+              All values between 0 and modulo have an equal probablilty. The values wraps from 0 to modulo and vice versa
+              This makes the returned function suitable for directions or hues
+            */
+
+        let currx = 1 + mrandom(); // start with random offset
+        let y0;
+        let y1 = mrandom(); // 'previous' value
+        let period0 = period;
+        let prevT;
+
+        return function (time) {
+          if (prevT === undefined) prevT = time;
+          let dt = time - prevT;
+          prevT = time;
+          currx += dt / period;
+          while (currx > 1) {
+            currx -= 1;
+            y0 = y1 % 1;
+            y1 = y0 + step * (2 * mrandom() - 1); // 'next' value
+            while (y1 < 0) {
+              y0 += 1;
+              y1 += 1;
+            }
+            period = period0 * (0.8 + 0.4 * mrandom()); // spread periods a bit
+          }
+          let z = (3 - 2 * currx) * currx * currx;
+          return ((z * y1 + (1 - z) * y0) % 1) * modulo;
+        };
+      } // Noise1DOneShotModuloTime
+
+      //------------------------------------------------------------------------
+      class Blob {
+        constructor() {
+          this.fxs = new Array(nbDots)
+            .fill(0)
+            .map(() => Noise1D(alea(10000, 20000), -1, 1, hashFunction()));
+          this.fys = new Array(nbDots)
+            .fill(0)
+            .map(() => Noise1D(alea(10000, 20000), -1, 1, hashFunction()));
+          this.flum = Noise1D(alea(1000, 2000), 20, 100, hashFunction());
+          this.hue = intAlea(360);
+        } // constructor
+
+        actu(t) {
+          let dir, rad;
+          let k0, k1, k2, k3;
+          let x, y;
+
+          this.nbDirs = nbDots * symm;
+          this.points = [];
+
+          let max = 0;
+
+          for (let k = 0; k < nbDots; ++k) {
+            x = this.fxs[k](t);
+            y = this.fys[k](t);
+            max = mmax(max, mhypot(x, y));
+            this.points[k] = [x, y];
+          } // for k
+          max = 1; // max == 0 forbidden
+          for (let k = 0; k < nbDots; ++k) {
+            x = (this.points[k][0] * lRef) / 2.2 / max; // scale to fill canvas
+            y = (this.points[k][1] * lRef) / 2.2 / max;
+            this.points[k] = [x, y];
+            for (let k1 = 1; k1 < symm; ++k1) {
+              this.points[nbDots * k1 + k] = [
+                x * tbCos[k1] - y * tbSin[k1],
+                x * tbSin[k1] + y * tbCos[k1],
+              ];
+            } // for k1
+          }
+
+          // compute control points
+          this.p1 = [];
+          this.p2 = [];
+
+          for (let k = 0; k < this.nbDirs; ++k) {
+            k0 = (k - 1 + this.nbDirs) % this.nbDirs;
+            k1 = k;
+            k2 = (k1 + 1) % this.nbDirs;
+            k3 = (k2 + 1) % this.nbDirs;
+            [this.p1[k2], this.p2[k2]] = getBezierControlPoints(
+              this.points[k0],
+              this.points[k1],
+              this.points[k2],
+              this.points[k3],
+            );
+          } // for k
+
+          // color
+
+          this.color = `hsl(${this.hue} 0% ${this.flum(t)}%)`;
+
+          // internal
+          function getBezierControlPoints(p0, p1, p2, p3) {
+            // computes control points for a Bezier quadratic curve between p1 and p2
+            // tangent at point p1 is parallel to p0-p2
+            // tangent at point p2 is parallel to p1-p3
+
+            let dx, dy, lngth, ltg, lctrl;
+            let x1c, y1c; // coordinates of 1st control point
+            let x2c, y2c; // coordinates of 2nd control point
+
+            const coeffDir = 0.3; // coefficient for distance of control points
+
+            lngth = mhypot(p2[0] - p1[0], p2[1] - p1[1]);
+            lctrl = lngth * coeffDir;
+
+            // 1st control point
+
+            dx = p2[0] - p0[0];
+            dy = p2[1] - p0[1];
+            ltg = mhypot(dx, dy);
+            x1c = p1[0] + (lctrl * dx) / ltg;
+            y1c = p1[1] + (lctrl * dy) / ltg;
+
+            // 2nd control point
+
+            dx = p1[0] - p3[0];
+            dy = p1[1] - p3[1];
+            ltg = mhypot(dx, dy);
+            x2c = p2[0] + (lctrl * dx) / ltg;
+            y2c = p2[1] + (lctrl * dy) / ltg;
+
+            return [
+              [x1c, y1c],
+              [x2c, y2c],
+            ];
+          } // getBezierControlPoints
+        } // Blob.actu
+
+        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        getPath() {
+          const path = new Path2D();
+
+          let x = xc + this.points[this.nbDirs - 1][0];
+          let y = yc + this.points[this.nbDirs - 1][1];
+          path.moveTo(x, y);
+          for (let k = 0; k < this.nbDirs; ++k) {
+            path.bezierCurveTo(
+              xc + this.p1[k][0],
+              yc + this.p1[k][1],
+              xc + this.p2[k][0],
+              yc + this.p2[k][1],
+              xc + this.points[k][0],
+              yc + this.points[k][1],
+            );
+          } // for k
+
+          x = xc - this.points[this.nbDirs - 1][0];
+          y = yc + this.points[this.nbDirs - 1][1];
+          path.moveTo(x, y);
+          for (let k = 0; k < this.nbDirs; ++k) {
+            path.bezierCurveTo(
+              xc - this.p1[k][0],
+              yc + this.p1[k][1],
+              xc - this.p2[k][0],
+              yc + this.p2[k][1],
+              xc - this.points[k][0],
+              yc + this.points[k][1],
+            );
+          } // for k
+          this.path = path;
+          return path;
+        } // getPath
+      } // class Blob
+
+      //------------------------------------------------------------------------
+
+      let animate;
+
+      {
+        // scope for animate
+
+        let animState = 0;
+        let bl;
+        animate = function (tStamp) {
+          let message;
+          let tinit;
+
+          message = messages.shift();
+          if (message && message.message == "reset") animState = 0;
+          if (message && message.message == "click") animState = 0;
+          window.requestAnimationFrame(animate);
+
+          tinit = performance.now();
+
+          switch (animState) {
+            case 0:
+              if (startOver()) {
+                ++animState;
+                bl = new Blob();
+              }
+              break;
+
+            case 1:
+              bl.actu(tStamp);
+              let path = bl.getPath();
+              ctx.lineWidth = 3;
+              ctx.strokeStyle = bl.color;
+              ctx.stroke(path);
+              ctx.strokeStyle = "#0000001C";
+              ctx.translate(-2, 2);
+              ctx.stroke(path);
+              ctx.resetTransform();
+              break;
+
+            case 2:
+              break;
+          } // switch
+        }; // animate
+      } // scope for animate
+
+      //------------------------------------------------------------------------
+      //------------------------------------------------------------------------
+
+      function startOver() {
+        // canvas dimensions
+
+        maxx = window.innerWidth;
+        maxy = window.innerHeight;
+
+        canv.width = maxx;
+        canv.height = maxy;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+
+        /*  ctx.fillStyle = '#000';
+              ctx.fillRect(0,0,maxx,maxy);
+            */
+        lRef = mmin(maxx, maxy);
+        xc = maxx / 2;
+        yc = maxy / 2;
+
+        nbDots = intAlea(2, 10);
+        symm = intAlea(2, 5);
+
+        tbCos = new Array(symm).fill(0).map((v, k) => mcos((k * m2PI) / symm));
+        tbSin = new Array(symm).fill(0).map((v, k) => msin((k * m2PI) / symm));
+
+        return true;
+      } // startOver
+
+      //------------------------------------------------------------------------
+
+      function mouseClick(event) {
+        messages.push({ message: "click", x: event.clientX, y: event.clientY });
+      } // mouseClick
+
+      //------------------------------------------------------------------------
+      //------------------------------------------------------------------------
+      // beginning of execution
+
+      {
+        canv = document.createElement("canvas");
+        canv.style.position = "absolute";
+        document.body.appendChild(canv);
+        ctx = canv.getContext("2d");
+      } // création CANVAS
+      canv.addEventListener("click", mouseClick);
+      messages = [{ message: "reset" }];
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>
