@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        perspective: 1400px;
+        text-align: center;
+        background: linear-gradient(-15deg, #600, black, #003);
+        filter: contrast(2.25);
+      }
+
+      .containerTilter {
+        transform-style: preserve-3d;
+        transform: rotateX(-8deg);
+      }
+
+      .containerRotator {
+        display: inline-block;
+        height: 100%;
+        width: 40svh;
+        margin: 0 auto;
+        transform-style: preserve-3d;
+        animation: container 6s infinite linear;
+      }
+
+      .strand {
+        height: 10svh;
+        display: flex;
+        align-items: center;
+        padding: 0svh;
+        transform: rotateY(calc(1turn * var(--index)));
+        transform-style: preserve-3d;
+      }
+
+      .strand__ball {
+        flex: 0 0 auto;
+        aspect-ratio: 1/1;
+        height: 100%;
+        border-radius: 100%;
+        animation: ball 6s infinite linear;
+        backface-visibility: hidden;
+        background-color: #32d0d9;
+        background-image: radial-gradient(
+          rgba(0, 0, 0, 0),
+          rgba(0, 0, 0, 0) 50%,
+          white
+        );
+        position: relative;
+        filter: drop-shadow(0 0 1.5vh blue);
+      }
+      .strand__ball:before,
+      .strand__ball:after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-image: radial-gradient(
+          #1ab9b6,
+          #05589c 38%,
+          #05589c 48%,
+          rgba(5, 88, 156, 0) 78%,
+          rgba(5, 88, 156, 0.75) 90%
+        );
+        top: -4%;
+        left: -4%;
+        border-radius: 100%;
+      }
+      .strand__ball:before {
+        filter: blur(0.25svh);
+      }
+      .strand__ball:after {
+        width: 15%;
+        height: 15%;
+        background-image: radial-gradient(
+          white,
+          white 15%,
+          rgba(255, 255, 255, 0.35) 20%,
+          rgba(255, 255, 255, 0.15) 45%,
+          rgba(255, 255, 255, 0) 75%
+        );
+        top: 22%;
+        left: 22%;
+      }
+
+      .strand__ball--right {
+        filter: hue-rotate(178deg) drop-shadow(0 0 1.5vh red);
+      }
+
+      .strand__ball__inner {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: white;
+        opacity: 0;
+        animation: ball__inner 6s linear infinite;
+        animation-delay: calc(var(--index) * -0.33s);
+        border-radius: 100%;
+      }
+      .strand__ball--right .strand__ball__inner {
+        animation-delay: calc(var(--index) * -0.33s + 3s);
+      }
+
+      .strand__stem {
+        flex: 1;
+        height: 10%;
+        transform-style: preserve-3d;
+        position: relative;
+      }
+      .strand__stem:before,
+      .strand__stem:after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        aspect-ratio: 1/1;
+        background: blue;
+        transform: translateX(-50%) rotateY(90deg);
+        border-radius: 100%;
+        backface-visibility: hidden;
+      }
+      .strand__stem:after {
+        left: unset;
+        right: 0;
+        transform: translateX(50%) rotateY(-90deg);
+        background: red;
+      }
+
+      .strand__stem__inner {
+        background: linear-gradient(
+          90deg,
+          blue,
+          #3197c6 12.5%,
+          white,
+          #cc744d 87.5%,
+          red
+        );
+        height: 100%;
+        position: relative;
+        transform-style: preserve-3d;
+      }
+      .strand__stem__inner:before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          blue,
+          #3197c6 12.5%,
+          white,
+          #cc744d 87.5%,
+          red
+        );
+        transform: rotateX(90deg);
+      }
+
+      @keyframes container {
+        from {
+          transform: translateY(-10svh) rotateY(0turn);
+        }
+        to {
+          transform: translateY(-40svh) rotateY(0.7turn);
+        }
+      }
+      @keyframes ball {
+        from {
+          transform: rotateY(calc(1turn - (1turn * var(--index))));
+        }
+        to {
+          transform: rotateY(calc(0turn - (1turn * var(--index)) + 0.3turn));
+        }
+      }
+      @keyframes ball__inner {
+        0% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 0.4;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- num DNA strands, needs to be kept in sync with the CSS-->
+    <!-- number of extra strands we need to ensure a smooth loop, since it's scrolling up-->
+    <div class="containerTilter">
+      <div class="containerRotator">
+        <div class="strand" style="--index: 0">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 0.1">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 0.2">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 0.3">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 0.4">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 0.5">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 0.6">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 0.7">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 0.8">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 0.9">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 1">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 1.1">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 1.2">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 1.3">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 1.4">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+        <div class="strand" style="--index: 1.5">
+          <div class="strand__ball">
+            <div class="strand__ball__inner"></div>
+          </div>
+          <div class="strand__stem">
+            <div class="strand__stem__inner"></div>
+          </div>
+          <div class="strand__ball strand__ball--right">
+            <div class="strand__ball__inner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
