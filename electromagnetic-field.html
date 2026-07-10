@@ -1,0 +1,383 @@
+<!-- remix of Mertl/pen/poQGmVp -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="./style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Electromagnetic Field</title>
+    <style>
+      @import url(https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400..700&display=swap);
+
+      :root {
+        --bg-gradient: linear-gradient(
+          110deg,
+          oklch(58% 0.28 255),
+          oklch(42% 0.34 295)
+        );
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: var(--bg-gradient);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+      }
+
+      .wordmark {
+        display: absolute;
+        text-align: center;
+        font-family: "Space Grotesk", system-ui;
+        font-weight: 500;
+        font-size: clamp(14px, 1.1vw, 24px);
+        letter-spacing: 0.35em;
+        text-transform: uppercase;
+        color: hsl(195 100% 80% / 0.85);
+        text-shadow: 1px 2px 4px rgba(0, 0, 0, 0.3);
+        user-select: none;
+        z-index: 1000;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <script src="./script.js"></script>
+    <h2 class="wordmark">Click to swap polarity</h2>
+
+    <script>
+      const CONFIG = {
+        linesPerAttractor: 36,
+        attractorCount: 11,
+        attractionSpeed: 0.06,
+        segmentLength: 16,
+        segmentCount: 180,
+        lineWidth: 2,
+        friction: 0.7,
+        palette: {
+          positive: { hue: 195, chroma: 0.25, lightness: 75 },
+          negative: { hue: 330, chroma: 0.28, lightness: 65 },
+        },
+      };
+
+      class Attractor {
+        constructor(id, width, height, addLineCallback) {
+          this.id = id;
+          this.isControlledByMouse = id === 0;
+
+          this.x = Math.random() * width;
+          this.y = Math.random() * height;
+
+          this.vx = 0;
+          this.vy = 0;
+          this.ax = 0;
+          this.ay = 0;
+
+          this.polarity = id % 2 === 0 ? -1 : 1;
+          this.size = CONFIG.segmentLength + 1;
+
+          this.initLines(addLineCallback);
+        }
+
+        get color() {
+          return this.polarity > 0
+            ? CONFIG.palette.positive
+            : CONFIG.palette.negative;
+        }
+
+        initLines(addLineCallback) {
+          if (this.polarity !== -1) return;
+
+          for (let i = 0; i < CONFIG.linesPerAttractor; i++) {
+            const angle = (i * 2 * Math.PI) / CONFIG.linesPerAttractor;
+            const offsetX = Math.cos(angle);
+            const offsetY = Math.sin(angle);
+            addLineCallback(this, offsetX, offsetY);
+          }
+        }
+
+        calculateForces(attractors, maxDistance) {
+          for (const other of attractors) {
+            if (other === this) continue;
+
+            const dx = other.x - this.x;
+            const dy = other.y - this.y;
+            const distance = Math.hypot(dx, dy);
+
+            if (distance >= maxDistance) continue;
+
+            const isSamePolarity =
+              (this.polarity > 0 && other.polarity > 0) ||
+              (this.polarity < 0 && other.polarity < 0);
+            const attractionForce = isSamePolarity ? -10 : 10;
+
+            const inverseDistance = maxDistance - distance;
+            const angle = Math.atan2(dy, dx);
+
+            const forceScale =
+              (maxDistance * maxDistance) / (inverseDistance * inverseDistance);
+            const magnitude =
+              distance > this.size * 2
+                ? (attractionForce * CONFIG.attractionSpeed) / forceScale
+                : (-1 * CONFIG.attractionSpeed) / forceScale;
+
+            this.ax += magnitude * Math.cos(angle);
+            this.ay += magnitude * Math.sin(angle);
+          }
+        }
+
+        update(pointer, width, height) {
+          if (this.isControlledByMouse) {
+            this.x = pointer.x;
+            this.y = pointer.y;
+
+            if (pointer.isDown && !pointer.wasDownChecked) {
+              this.polarity *= -1;
+              pointer.wasDownChecked = true;
+            }
+            if (!pointer.isDown) {
+              pointer.wasDownChecked = false;
+            }
+            return;
+          }
+
+          this.vx = (this.vx + this.ax) * CONFIG.friction;
+          this.vy = (this.vy + this.ay) * CONFIG.friction;
+          this.x += this.vx;
+          this.y += this.vy;
+
+          this.ax = 0;
+          this.ay = 0;
+
+          this.handleBoundaries(width, height);
+        }
+
+        handleBoundaries(width, height) {
+          if (this.x < this.size) {
+            this.x += this.size - this.x;
+            this.vx *= -1;
+          } else if (this.x > width - this.size) {
+            this.x -= this.x - width + this.size;
+            this.vx *= -1;
+          }
+
+          if (this.y < this.size) {
+            this.y += this.size - this.y;
+            this.vy *= -1;
+          } else if (this.y > height - this.size) {
+            this.y -= this.y - height + this.size;
+            this.vy *= -1;
+          }
+        }
+
+        render(ctx) {
+          const { lightness, chroma, hue } = this.color;
+
+          for (let i = 0; i < 10; i++) {
+            const radiusScale = Math.pow(i / 4, 3);
+            const alpha = Math.pow(1 - i / 10, 2);
+
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * radiusScale, 0, 2 * Math.PI);
+            ctx.fillStyle = `oklch(${lightness}% ${chroma} ${hue} / ${alpha})`;
+            ctx.fill();
+          }
+
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
+          ctx.fillStyle = `oklch(${lightness}% ${chroma} ${hue})`;
+          ctx.fill();
+        }
+      }
+
+      class VectorLine {
+        constructor(parent, offsetX, offsetY) {
+          this.parent = parent;
+          this.offsetX = offsetX;
+          this.offsetY = offsetY;
+          this.tail = [];
+          this.reset();
+        }
+
+        reset() {
+          this.x = this.parent.x + this.offsetX;
+          this.y = this.parent.y + this.offsetY;
+          this.tail = [
+            { x: this.parent.x, y: this.parent.y },
+            { x: this.x, y: this.y },
+          ];
+        }
+
+        update(attractors) {
+          this.tail = [];
+
+          for (let i = 0; i < CONFIG.segmentCount; i++) {
+            let shouldEarlyExit = false;
+            let vx = 0;
+            let vy = 0;
+
+            for (const attractor of attractors) {
+              const dx = (attractor.x - this.x) * attractor.polarity;
+              const dy = (attractor.y - this.y) * attractor.polarity;
+              const distance = Math.hypot(dx, dy) || 0.001;
+
+              if (
+                distance < CONFIG.segmentLength * 1.2 &&
+                attractor.polarity === 1
+              ) {
+                shouldEarlyExit = true;
+              }
+
+              const squaredDistance = distance * distance;
+              vx += dx / squaredDistance;
+              vy += dy / squaredDistance;
+            }
+
+            const velocityMagnitude = Math.hypot(vx, vy) || 0.001;
+            this.x += (vx / velocityMagnitude) * CONFIG.segmentLength;
+            this.y += (vy / velocityMagnitude) * CONFIG.segmentLength;
+
+            this.tail.push({ x: this.x, y: this.y });
+
+            if (shouldEarlyExit) break;
+          }
+        }
+
+        render(ctx) {
+          if (this.tail.length === 0) return;
+
+          ctx.beginPath();
+          ctx.moveTo(this.tail[0].x, this.tail[0].y);
+
+          for (let i = 1; i < this.tail.length; i++) {
+            ctx.lineTo(this.tail[i].x, this.tail[i].y);
+          }
+
+          ctx.strokeStyle = "oklch(98% 0.01 200 / 0.65)";
+          ctx.lineWidth = CONFIG.lineWidth;
+          ctx.stroke();
+        }
+      }
+
+      class Simulation {
+        constructor() {
+          this.canvas = document.getElementById("c");
+          this.ctx = this.canvas.getContext("2d");
+
+          this.width = 0;
+          this.height = 0;
+          this.maxDistance = 0;
+
+          this.attractors = [];
+          this.lines = [];
+
+          this.pointer = { x: 0, y: 0, isDown: false, wasDownChecked: false };
+
+          this.initDimensions();
+          this.initEntities();
+          this.initEventListeners();
+
+          this.loop = this.loop.bind(this);
+          requestAnimationFrame(this.loop);
+        }
+
+        initDimensions() {
+          this.width = this.canvas.width = window.innerWidth;
+          this.height = this.canvas.height = window.innerHeight;
+          this.maxDistance = Math.hypot(this.width, this.height);
+          this.pointer.x = this.width / 2;
+          this.pointer.y = this.height / 2;
+        }
+
+        initEntities() {
+          const addLine = (parent, x, y) =>
+            this.lines.push(new VectorLine(parent, x, y));
+
+          for (let i = 0; i < CONFIG.attractorCount; i++) {
+            this.attractors.push(
+              new Attractor(i, this.width, this.height, addLine),
+            );
+          }
+        }
+
+        initEventListeners() {
+          window.addEventListener("resize", () => this.initDimensions());
+
+          this.canvas.addEventListener("mousemove", (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            this.pointer.x = e.clientX - rect.left;
+            this.pointer.y = e.clientY - rect.top;
+          });
+
+          this.canvas.addEventListener(
+            "mousedown",
+            () => (this.pointer.isDown = true),
+          );
+          this.canvas.addEventListener(
+            "mouseup",
+            () => (this.pointer.isDown = false),
+          );
+
+          this.canvas.addEventListener(
+            "touchmove",
+            (e) => {
+              if (e.touches.length === 0) return;
+              const rect = this.canvas.getBoundingClientRect();
+              this.pointer.x = e.touches[0].clientX - rect.left;
+              this.pointer.y = e.touches[0].clientY - rect.top;
+            },
+            { passive: true },
+          );
+          this.canvas.addEventListener(
+            "touchstart",
+            () => (this.pointer.isDown = true),
+          );
+          this.canvas.addEventListener(
+            "touchend",
+            () => (this.pointer.isDown = false),
+          );
+        }
+
+        loop() {
+          this.ctx.clearRect(0, 0, this.width, this.height);
+
+          for (const line of this.lines) {
+            line.reset();
+            line.update(this.attractors);
+            line.render(this.ctx);
+          }
+
+          for (const attractor of this.attractors) {
+            attractor.calculateForces(this.attractors, this.maxDistance);
+            attractor.update(this.pointer, this.width, this.height);
+          }
+
+          for (const attractor of this.attractors) {
+            attractor.render(this.ctx);
+          }
+
+          requestAnimationFrame(this.loop);
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => new Simulation());
+    </script>
+  </body>
+</html>
