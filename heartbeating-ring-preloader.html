@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      * {
+        border: 0;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --hue: 223;
+        --gray50: hsl(var(--hue) 10% 95%);
+        --gray950: hsl(var(--hue) 10% 5%);
+        font-size: clamp(1rem, 0.95rem + 0.25vw, 1.25rem);
+      }
+
+      body {
+        --anim-dur: 3s;
+        animation: shift-color var(--anim-dur) linear infinite;
+        background-color: var(--gray950);
+        color: var(--gray50);
+        font: 1em/1.5 sans-serif;
+        display: grid;
+        place-items: center;
+        height: 100vh;
+      }
+
+      main {
+        padding: 1.5em 0;
+      }
+
+      .pl {
+        display: block;
+        width: 12em;
+        height: auto;
+      }
+      .pl__ring-inner,
+      .pl__ring-outer {
+        animation-duration: calc(var(--anim-dur) / 3);
+        animation-iteration-count: infinite;
+      }
+      .pl__ring-inner {
+        animation-name: scale-in;
+        animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+      }
+      .pl__ring-outer {
+        animation-name: stroke-out-in;
+      }
+
+      @keyframes scale-in {
+        0%,
+        15% {
+          transform: scale(0);
+        }
+        71.6666666667%,
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes stroke-out-in {
+        0%,
+        51.6666666667%,
+        100% {
+          animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+          r: 45px;
+          stroke-width: 10px;
+        }
+        63.3333333333% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          r: 50px;
+          stroke-width: 15px;
+        }
+      }
+      @keyframes shift-color {
+        0%,
+        17.2222222222%,
+        100% {
+          background-color: #f20d4e;
+        }
+        33.3333333333%,
+        50.5555555556% {
+          background-color: #f28b0d;
+        }
+        66.6666666667%,
+        83.8888888889% {
+          background-color: #0d4ef2;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg class="pl" viewBox="0 0 120 120" width="20" height="20">
+        <g
+          fill="none"
+          stroke="currentcolor"
+          stroke-width="10"
+          transform="translate(60,60)"
+        >
+          <circle class="pl__ring-outer" r="45" />
+          <circle class="pl__ring-inner" r="45" />
+        </g>
+      </svg>
+    </main>
+  </body>
+</html>
