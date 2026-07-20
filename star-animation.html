@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #050505;
+        color: #fff;
+        font-family: monospace;
+        height: 100%;
+      }
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+      #hud {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        background: rgba(0, 0, 0, 0.85);
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px dashed rgba(255, 255, 255, 0.2);
+        pointer-events: none;
+        line-height: 1.5;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+
+    <script>
+      let hue, complexity, speed, configHash, angle;
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      let width = (canvas.width = window.innerWidth);
+      let height = (canvas.height = window.innerHeight);
+      window.addEventListener("resize", () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      });
+      function reset() {
+        angle = 0;
+        hue = Math.floor(Math.random() * 360);
+        complexity = Math.floor(Math.random() * 5) + 3;
+        speed = (Math.random() * 0.5 + 0.1).toFixed(2);
+        configHash = `hue=${hue}&complexity=${complexity}&speed=${speed}`;
+      }
+      canvas.addEventListener("click", reset);
+      function draw() {
+        ctx.fillStyle = "rgba(5, 5, 5, 0.08)";
+        ctx.fillRect(0, 0, width, height);
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const baseRadius = Math.min(width, height) * 0.25;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < 360; i++) {
+          const rad = (i * Math.PI) / 180;
+          const r =
+            baseRadius +
+            Math.sin(rad * complexity + angle) * 60 * Math.cos(rad * 3 - angle);
+          const x = centerX + Math.cos(rad + angle * 0.1) * r;
+          const y = centerY + Math.sin(rad + angle * 0.1) * r;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = `hsl(${(hue + angle * 10) % 360}, 85%, 60%)`;
+        ctx.stroke();
+        angle += speed * 0.05;
+        requestAnimationFrame(draw);
+      }
+      reset();
+      draw();
+    </script>
+  </body>
+</html>
