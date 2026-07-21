@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blocks</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        background: #090a09;
+        font-family: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+        overflow: hidden;
+      }
+
+      #field {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        cursor: crosshair;
+        touch-action: none;
+      }
+
+      .ui {
+        position: fixed;
+        inset: 0;
+        padding: 28px 32px;
+        display: flex;
+        align-items: flex-end;
+        pointer-events: none;
+      }
+
+      .hint {
+        color: #5d6058;
+        font-size: 13px;
+        letter-spacing: 0.02em;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="field"></canvas>
+    <div class="ui">
+      <span class="hint">click to ripple</span>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("field");
+      const ctx = canvas.getContext("2d");
+
+      let W = 0;
+      let H = 0;
+      let cols = 16;
+      let rows = 16;
+      let tileW = 0;
+      let tileH = 0;
+      let thick = 0;
+      let maxLift = 0;
+      let originX = 0;
+      let originY = 0;
+
+      const inset = 0.9;
+      let blocks = [];
+      let ripples = [];
+
+      const pointer = { gx: 0, gy: 0, tx: 0, ty: 0, power: 0, target: 0 };
+      let lastActivity = -10;
+      let lastAuto = -10;
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        W = window.innerWidth;
+        H = window.innerHeight;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const n = W < 560 ? 11 : W < 900 ? 13 : 16;
+        cols = rows = n;
+        tileW = Math.max(26, Math.min((W * 0.9) / n, (H * 1.16) / n, 64));
+        tileH = tileW / 2;
+        thick = tileW * 0.38;
+        maxLift = tileW * 0.85;
+
+        originX = W / 2;
+        originY = H / 2 - ((rows - 1) * tileH + thick - maxLift) / 2;
+
+        if (blocks.length !== n * n) {
+          blocks = [];
+          for (let y = 0; y < n; y++) {
+            for (let x = 0; x < n; x++) {
+              blocks.push({ x, y, lift: 0, vel: 0 });
+            }
+          }
+          pointer.gx = pointer.tx = (n - 1) / 2;
+          pointer.gy = pointer.ty = (n - 1) / 2;
+        }
+      }
+
+      function toGrid(mx, my) {
+        const a = (mx - originX) / (tileW / 2);
+        const b = (my - originY) / (tileH / 2);
+        return { x: (b + a) / 2, y: (b - a) / 2 };
+      }
+
+      function idle(x, y, t) {
+        const w =
+          (Math.sin(x * 0.6 + t * 0.7) +
+            Math.cos(y * 0.7 - t * 0.55) +
+            Math.sin((x + y) * 0.32 + t * 0.4)) /
+          3;
+        return 0.1 + 0.07 * w;
+      }
+
+      function step(t) {
+        pointer.gx += (pointer.tx - pointer.gx) * 0.14;
+        pointer.gy += (pointer.ty - pointer.gy) * 0.14;
+        pointer.power += (pointer.target - pointer.power) * 0.08;
+
+        ripples = ripples.filter((r) => t - r.t0 < 3.2);
+
+        if (t - lastActivity > 5 && t - lastAuto > 3.4) {
+          lastAuto = t;
+          ripples.push({
+            x: 2 + Math.random() * (cols - 4),
+            y: 2 + Math.random() * (rows - 4),
+            t0: t,
+            amp: 0.85,
+          });
+        }
+
+        for (const b of blocks) {
+          let h = idle(b.x, b.y, t);
+
+          const dx = b.x - pointer.gx;
+          const dy = b.y - pointer.gy;
+          h += pointer.power * 0.6 * Math.exp(-(dx * dx + dy * dy) / 7.5);
+
+          for (const r of ripples) {
+            const age = t - r.t0;
+            const d = Math.hypot(b.x - r.x, b.y - r.y);
+            const front = d - age * 7.5;
+            h +=
+              r.amp * Math.exp(-(front * front) / 3.4) * Math.exp(-age * 1.45);
+          }
+
+          const target = Math.max(0, Math.min(h, 1.25)) * maxLift;
+          b.vel = (b.vel + (target - b.lift) * 0.16) * 0.78;
+          b.lift += b.vel;
+        }
+      }
+
+      function face(f, mul) {
+        const e = f * f * (3 - 2 * f);
+        const l = (11 + 64 * e) * mul;
+        const s = 8 + 30 * e;
+        return `hsl(52 ${s}% ${l}%)`;
+      }
+
+      function quad(x1, y1, x2, y2, x3, y3, x4, y4) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.lineTo(x3, y3);
+        ctx.lineTo(x4, y4);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, W, H);
+        const hw = (tileW / 2) * inset;
+        const hh = (tileH / 2) * inset;
+
+        for (let s = 0; s <= cols + rows - 2; s++) {
+          const xMin = Math.max(0, s - rows + 1);
+          const xMax = Math.min(cols - 1, s);
+          for (let x = xMin; x <= xMax; x++) {
+            const y = s - x;
+            const b = blocks[y * cols + x];
+            const px = originX + ((x - y) * tileW) / 2;
+            const py = originY + ((x + y) * tileH) / 2;
+            const topY = py - b.lift;
+            const drop = b.lift + thick;
+            const f = Math.max(0, Math.min(1, b.lift / maxLift));
+
+            ctx.fillStyle = face(f, 0.52);
+            quad(
+              px - hw,
+              topY,
+              px,
+              topY + hh,
+              px,
+              topY + hh + drop,
+              px - hw,
+              topY + drop,
+            );
+
+            ctx.fillStyle = face(f, 0.34);
+            quad(
+              px + hw,
+              topY,
+              px,
+              topY + hh,
+              px,
+              topY + hh + drop,
+              px + hw,
+              topY + drop,
+            );
+
+            ctx.fillStyle = face(f, 1);
+            quad(px, topY - hh, px + hw, topY, px, topY + hh, px - hw, topY);
+          }
+        }
+      }
+
+      function frame(now) {
+        const t = now / 1000;
+        step(t);
+        render();
+        requestAnimationFrame(frame);
+      }
+      window.addEventListener("resize", resize);
+      window.addEventListener("pointermove", (e) => {
+        const g = toGrid(e.clientX, e.clientY);
+        pointer.tx = g.x;
+        pointer.ty = g.y;
+        pointer.target = 1;
+        lastActivity = performance.now() / 1000;
+      });
+      window.addEventListener("pointerdown", (e) => {
+        const g = toGrid(e.clientX, e.clientY);
+        const t = performance.now() / 1000;
+        ripples.push({ x: g.x, y: g.y, t0: t, amp: 1.15 });
+        pointer.tx = g.x;
+        pointer.ty = g.y;
+        pointer.target = 1;
+        lastActivity = t;
+      });
+
+      window.addEventListener("pointerup", (e) => {
+        if (e.pointerType !== "mouse") pointer.target = 0;
+      });
+
+      document.addEventListener("mouseleave", () => {
+        pointer.target = 0;
+      });
+
+      resize();
+      ripples.push({
+        x: (cols - 1) / 2,
+        y: (rows - 1) / 2,
+        t0: performance.now() / 1000 + 0.4,
+        amp: 1.1,
+      });
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body></body>
+</html>
