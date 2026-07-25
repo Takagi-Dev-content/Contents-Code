@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+    </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/"
+        }
+    }
+</script>
+  </head>
+  <body>
+    <div id="loading">GENERATING UNIVERSE...</div>
+    <div id="canvas-container">
+    </div>
+
+  <script type="module">
+      import * as THREE from 'three';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+      const container = document.getElementById('canvas-container');
+      const scene = new THREE.Scene();
+      
+      const universe = new THREE.Group();
+      scene.add(universe);
+      
+      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+      camera.position.set(0, 0, 100);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      const clock = new THREE.Clock();
+
+      const bgVertexShader = `
+          varying vec2 vUv;
+          void main() {
+              vUv = uv;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+      `;
+
+      const bgFragmentShader = `
+          uniform float uTime;
+          varying vec2 vUv;
+
+          float hash(vec2 p) { 
+              return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); 
+          }
+          
+          float noise(vec2 p) {
+              vec2 i = floor(p); 
+              vec2 f = fract(p);
+              f = f * f * (3.0 - 2.0 * f);
+              return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+                        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+          }
+          
+          float fbm(vec2 p) {
+              float v = 0.0; 
+              float a = 0.5;
+              for (int i = 0; i < 5; i++) {
+                  v += a * noise(p); 
+                  p *= 2.0; 
+                  a *= 0.5;
+              }
+              return v;
+          }
+
+          void main() {
+              vec2 uv = vUv * 2.0;
+              float t = uTime * 0.02;
+
+              float equator = smoothstep(0.4, 0.0, abs(vUv.y - 0.5));
+
+              float n1 = fbm(uv * 3.0 + vec2(t, t));
+              float n2 = fbm(uv * 5.0 - vec2(t * 1.2, t * 0.8) + n1);
+
+              vec3 baseSpace = vec3(0.005, 0.0, 0.015);
+              vec3 color1 = vec3(0.15, 0.02, 0.25);
+              vec3 color2 = vec3(0.02, 0.12, 0.25);
+              vec3 starBand = vec3(0.1, 0.08, 0.05);
+
+              vec3 finalColor = baseSpace;
+              
+              finalColor += color1 * n1 * (0.4 + 0.6 * equator);
+              finalColor += color2 * n2 * (0.4 + 0.4 * equator);
+              finalColor += starBand * equator * (n1 * n2) * 2.0;
+
+              gl_FragColor = vec4(finalColor, 1.0);
+          }
+      `;
+
+      const bgGeometry = new THREE.SphereGeometry(1000, 32, 32);
+      const bgMaterial = new THREE.ShaderMaterial({
+          vertexShader: bgVertexShader,
+          fragmentShader: bgFragmentShader,
+          uniforms: { uTime: { value: 0 } },
+          side: THREE.BackSide,
+          depthWrite: false
+      });
+      const nebulaMesh = new THREE.Mesh(bgGeometry, bgMaterial);
+      universe.add(nebulaMesh);
+
+      const particleCount = 65000;
+      const starGeometry = new THREE.BufferGeometry();
+      
+      const positions = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+      const sizes = new Float32Array(particleCount);
+      const phases = new Float32Array(particleCount);
+      const twinkleSpeeds = new Float32Array(particleCount);
+
+      const colorPalette = [
+          '#ff1e4a',
+          '#23ff4b',
+          '#2a6fff',
+          '#ffd900',
+          '#ff00ea',
+          '#00ffea',
+          '#ffffff',
+          '#ff8800'
+      ].map(c => new THREE.Color(c));
+
+      const radius = 800;
+      
+      for (let i = 0; i < particleCount; i++) {
+          const r = radius * Math.cbrt(Math.random());
+          const theta = Math.random() * 2 * Math.PI;
+          const phi = Math.acos(2 * Math.random() - 1);
+          
+          positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+          positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+          positions[i * 3 + 2] = r * Math.cos(phi);
+
+          const baseColor = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+          const color = baseColor.clone().lerp(new THREE.Color(0xffffff), Math.random() * 0.2);
+          
+          colors[i * 3] = color.r;
+          colors[i * 3 + 1] = color.g;
+          colors[i * 3 + 2] = color.b;
+
+          sizes[i] = Math.pow(Math.random(), 7.0) * 20.0 + 1.0; 
+          
+          phases[i] = Math.random() * Math.PI * 2;
+          twinkleSpeeds[i] = Math.random() * 4.0 + 0.5;
+      }
+
+      starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      starGeometry.setAttribute('customColor', new THREE.BufferAttribute(colors, 3));
+      starGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+      starGeometry.setAttribute('phase', new THREE.BufferAttribute(phases, 1));
+      starGeometry.setAttribute('twinkleSpeed', new THREE.BufferAttribute(twinkleSpeeds, 1));
+
+      const starVertexShader = `
+          uniform float uTime;
+          uniform float uPixelRatio;
+
+          attribute float size;
+          attribute float phase;
+          attribute float twinkleSpeed;
+          attribute vec3 customColor;
+
+          varying vec3 vColor;
+          varying float vTwinkle;
+
+          void main() {
+              vColor = customColor;
+
+              float t = uTime * twinkleSpeed + phase;
+              float wave = sin(t) * 0.5 + 0.5;
+              
+              float flash = pow(wave, 10.0) * 2.5; 
+              float basePulse = 0.15 + wave * 0.3;
+              
+              vTwinkle = basePulse + flash;
+
+              vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+              gl_Position = projectionMatrix * mvPosition;
+
+              float dist = length(mvPosition.xyz);
+              gl_PointSize = size * uPixelRatio * (600.0 / dist) * vTwinkle;
+          }
+      `;
+
+      const starFragmentShader = `
+          varying vec3 vColor;
+          varying float vTwinkle;
+
+          void main() {
+              vec2 uv = gl_PointCoord.xy * 2.0 - 1.0;
+              float d = length(uv);
+
+              float rayX = exp(-abs(uv.x) * 30.0) * exp(-abs(uv.y) * 1.0);
+              float rayY = exp(-abs(uv.y) * 30.0) * exp(-abs(uv.x) * 1.0);
+
+              float core = exp(-d * 15.0);
+              float halo = exp(-d * 4.0) * 0.5;
+
+              float alpha = (rayX + rayY) * 0.8 + core + halo;
+
+              alpha *= smoothstep(1.0, 0.1, d);
+
+              if (alpha < 0.02) discard;
+
+              vec3 finalColor = mix(vColor, vec3(1.0), core * 0.9);
+
+              gl_FragColor = vec4(finalColor, alpha * min(vTwinkle, 2.5));
+          }
+      `;
+
+      const starMaterial = new THREE.ShaderMaterial({
+          vertexShader: starVertexShader,
+          fragmentShader: starFragmentShader,
+          uniforms: {
+              uTime: { value: 0.0 },
+              uPixelRatio: { value: renderer.getPixelRatio() }
+          },
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+      });
+
+      const starMesh = new THREE.Points(starGeometry, starMaterial);
+      universe.add(starMesh);
+
+      document.getElementById('loading').style.opacity = '0';
+
+      let mouseX = 0;
+      let mouseY = 0;
+      document.addEventListener('mousemove', (event) => {
+          mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+          mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+      });
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.enablePan = false;
+      controls.enableZoom = true;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.4;
+
+      window.addEventListener('resize', onWindowResize, false);
+      function onWindowResize() {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          starMaterial.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
+      }
+
+      function animate() {
+          requestAnimationFrame(animate);
+
+          const elapsedTime = clock.getElapsedTime();
+
+          starMaterial.uniforms.uTime.value = elapsedTime;
+          bgMaterial.uniforms.uTime.value = elapsedTime;
+
+          universe.rotation.x += (mouseY * 0.08 - universe.rotation.x) * 0.05;
+          universe.rotation.y += (mouseX * 0.08 - universe.rotation.y) * 0.05;
+
+          controls.update();
+          renderer.render(scene, camera);
+      }
+
+      animate();
+  </script>
+  </body>
+</html>
+
+
+
+
+
