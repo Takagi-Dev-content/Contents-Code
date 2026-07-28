@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mouse Trail</title>
+    <script src="https://unpkg.com/gsap@3/dist/gsap.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100vh;
+        background: #000;
+      }
+
+      svg {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <svg fill="none" stroke-linecap="round">
+      <!--   <path id="shape" d="M300,50 450,550 50,250 550,250 150,550z"/> -->
+      <path id="p0" d="" />
+    </svg>
+
+    <script>
+      const svg = document.querySelector("svg");
+      const shape = svg.querySelector("#shape");
+      const p0 = svg.querySelector("#p0");
+      const nPaths = 200;
+      const paths = [];
+      const pts = []; //ptsInPath(shape, nPaths);
+      const m = { x: innerHeight / 2, y: innerHeight };
+      const xTo = gsap.quickTo(m, "x", { duration: 0.3 });
+      const yTo = gsap.quickTo(m, "y", { duration: 0.3 });
+
+      for (let i = 0; i < nPaths; i++) {
+        const path = p0.cloneNode();
+        // path.setAttribute("data-stroke-width", 45);
+        // path.setAttribute("data-stroke-width", nPaths-i);
+        path.setAttribute(
+          "data-stroke-width",
+          gsap.utils.wrapYoyo(1, nPaths / 2, i),
+        );
+        path.setAttribute("data-speed", 0.25);
+        svg.prepend(path);
+        paths.push(path);
+        pts.push({
+          x: innerWidth * Math.random(),
+          y: (1 - i / nPaths) * innerHeight,
+        });
+      }
+
+      window.addEventListener("pointermove", (e) => {
+        xTo(e.x);
+        yTo(e.y);
+      });
+      gsap.ticker.add(() => {
+        let next = { x: m.x, y: m.y };
+        pts.forEach((pt, i) => {
+          pt.x += (next.x - pt.x) / 3.5;
+          pt.y += (next.y - pt.y) / 3.5;
+          if (i > 0) {
+            const prev = pts[i - 1];
+            const dist = Math.hypot(prev.x - pt.x, prev.y - pt.y);
+            gsap.set(paths[i], {
+              attr: {
+                d: "M" + prev.x + "," + prev.y + " L" + pt.x + "," + pt.y,
+                stroke: "hsl(" + (200 + i) + ", 80%, 60%)",
+                "stroke-width": (i, t) =>
+                  t.dataset.strokeWidth * gsap.utils.clamp(0, 1, dist),
+              },
+            });
+          }
+          next = pt;
+        });
+      });
+
+      function ptsInPath(p, n = 10) {
+        const l = p.getTotalLength();
+        const pts = [];
+        for (let i = 0; i < l; i += l / n) pts.push(p.getPointAtLength(i));
+        return pts;
+      }
+    </script>
+  </body>
+</html>
