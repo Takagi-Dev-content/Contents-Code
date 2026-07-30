@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rotated Flower</title>
+    <style>
+      body {
+        background: #0b0b0b;
+      }
+
+      svg {
+        overflow: visible;
+      }
+
+      .flower--parent {
+        --size: 55%;
+
+        position: fixed;
+        left: 50%;
+        top: 48%;
+        transform: translate(-50%, -50%);
+        width: var(--size);
+        height: var(--size);
+      }
+
+      .r-bounds {
+        fill: none;
+        /*   stroke: green */
+      }
+
+      .g-petals {
+        transform-origin: 60px 400px;
+        -webkit-animation: rotate-360 20s infinite;
+        animation: rotate-360 20s infinite;
+      }
+
+      .g-petal {
+        transform-origin: 60px 415px;
+      }
+      .g-petal:nth-of-type(15n + 1) {
+        transform: rotate(24deg);
+        color: #c4fa38;
+      }
+      .g-petal:nth-of-type(15n + 2) {
+        transform: rotate(48deg);
+        color: #38faa5;
+      }
+      .g-petal:nth-of-type(15n + 3) {
+        transform: rotate(72deg);
+        color: #3857fa;
+      }
+      .g-petal:nth-of-type(15n + 4) {
+        transform: rotate(96deg);
+        color: #fa38e3;
+      }
+      .g-petal:nth-of-type(15n + 5) {
+        transform: rotate(120deg);
+        color: #fa8638;
+      }
+      .g-petal:nth-of-type(15n + 6) {
+        transform: rotate(144deg);
+        color: #76fa38;
+      }
+      .g-petal:nth-of-type(15n + 7) {
+        transform: rotate(168deg);
+        color: #38faf2;
+      }
+      .g-petal:nth-of-type(15n + 8) {
+        transform: rotate(192deg);
+        color: #6738fa;
+      }
+      .g-petal:nth-of-type(15n + 9) {
+        transform: rotate(216deg);
+        color: #fa3895;
+      }
+      .g-petal:nth-of-type(15n + 10) {
+        transform: rotate(240deg);
+        color: #fad338;
+      }
+      .g-petal:nth-of-type(15n + 11) {
+        transform: rotate(264deg);
+        color: #38fa48;
+      }
+      .g-petal:nth-of-type(15n + 12) {
+        transform: rotate(288deg);
+        color: #38b4fa;
+      }
+      .g-petal:nth-of-type(15n + 13) {
+        transform: rotate(312deg);
+        color: #b438fa;
+      }
+      .g-petal:nth-of-type(15n + 14) {
+        transform: rotate(336deg);
+        color: #fa3848;
+      }
+      .g-petal:nth-of-type(15n + 15) {
+        transform: rotate(360deg);
+        color: #d3fa38;
+      }
+
+      .g-petal use {
+        fill: currentColor;
+        transform-origin: 60px 250px;
+        -webkit-mask: url(#mask);
+        mask: url(#mask);
+        -webkit-animation: rotate-360 5s infinite;
+        animation: rotate-360 5s infinite;
+      }
+
+      @-webkit-keyframes rotate-360 {
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes rotate-360 {
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="l-wrapper">
+      <svg viewBox="0 0 800 600" class="flower--parent">
+        <rect width="100%" height="100%" class="r-bounds"></rect>
+
+        <linearGradient id="gr-bw">
+          <stop stop-color="black" offset="0" />
+          <stop stop-color="white" offset="100%" />
+        </linearGradient>
+
+        <mask
+          id="mask"
+          maskunits="objectBoundingBox"
+          maskcontentunits="objectBoundingBox"
+        >
+          <rect y="0" width="1" height="1" fill="url(#gr-bw)" />
+        </mask>
+
+        <symbol id="s-petal">
+          <path
+            d="M60,400 C60,400 120,298.319352 120,200 C120,89.54305 60,0 60,0 C60,0 0,89.54305 0,200 C0,310.45695 60,400 60,400 Z"
+            class="e-petal"
+          ></path>
+        </symbol>
+
+        <svg viewBox="0 10 120 800">
+          <rect width="100%" height="100%" class="r-bounds"></rect>
+          <g class="g-petals">
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+            <!-- -->
+            <g class="g-petal">
+              <use xlink:href="#s-petal" />
+            </g>
+          </g>
+        </svg>
+      </svg>
+    </div>
+  </body>
+</html>
