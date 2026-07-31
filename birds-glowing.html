@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glowing Birds</title>
+    <style>
+      html, body {
+        margin: 0;
+        background: #000;
+      }
+
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas></canvas>
+
+    <script>
+      class Birds {
+        #config = {
+          number: 50
+        };
+
+        #width;
+        #height;
+
+        #canvas;
+        #engine;
+
+        #birds;
+        #frame = 0;
+
+        #speed         = 0.4;
+        #birdLineCount = 10;
+        #birdLineIndex = -1;
+
+        #bgTop;
+        #bgBot;
+
+        #z = {
+          current: 1,
+          target: 1
+        };
+
+        #mouse = {
+          x: 0.5,
+          y: 0.5,
+          z: 0.5
+        };
+
+        #prepare = () => {
+          this.#canvas = document.getElementsByTagName('canvas')[0];
+          this.#engine = this.#canvas.getContext('2d');
+
+          this.#width  = window.innerWidth;
+          this.#height = window.innerHeight;
+
+          this.#canvas.setAttribute('width', this.#width);
+          this.#canvas.setAttribute('height', this.#height);
+
+          this.#bgTop = this.#engine.createLinearGradient(0, 0, 0, this.#height / 2);
+          this.#bgTop.addColorStop(0, '#000');
+          this.#bgTop.addColorStop(1, '#110');
+
+          this.#bgBot = this.#engine.createLinearGradient(0, this.#height / 2, 0, this.#height);
+          this.#bgBot.addColorStop(0, '#000');
+          this.#bgBot.addColorStop(1, '#001');
+        };
+
+        #request = () => {
+          window.requestAnimationFrame(this.#tick);
+        };
+
+        #solveBirdMove = (bird) => {
+          ['x', 'y', 'z'].forEach((key) => {
+            if (Math.abs(bird.move[key]) > 0.003) {
+              bird.move[key] *= 0.99;
+            }
+          });
+
+          if (this.#frame % bird.ownMove.t === 0) {
+            bird.ownMove.x = (0.5 - Math.random()) / 3;
+            bird.ownMove.y = (0.5 - Math.random()) / 3;
+          }
+
+          bird.move.x += this.#speed * (this.#mouse.x - bird.pos.x + bird.ownMove.x) * bird.speed;
+          bird.move.y += this.#speed * (this.#mouse.y - bird.pos.y + bird.ownMove.y) * bird.speed;
+          bird.move.z += this.#speed * (this.#mouse.z - bird.pos.z) * bird.speed;
+        };
+
+        #applyPath = (pathStack) => {
+          this.#engine.moveTo(pathStack[0].x, pathStack[0].y);
+
+          for (let i = 1; i < pathStack.length; i++) {
+            this.#engine.lineTo(pathStack[i].x, pathStack[i].y);
+          }
+        };
+
+        #drawBird = (bird) => {
+          this.#engine.fillStyle = `hsl(${this.#frame % 360}, 100%, 90%)`;
+
+          const pos = {
+            x: bird.pos.x * this.#width,
+            y: bird.pos.y * this.#height,
+            z: bird.pos.z * 1.5
+          };
+
+          const size = (this.#width + this.#height) / 200 * pos.z * this.#z.current;
+          const atan = Math.atan2(bird.move.y * this.#height, bird.move.x * this.#width);
+
+          this.#engine.lineWidth = 1;
+
+          const p = (rad, customSize) => ({
+            x: pos.x + Math.cos(atan + rad * Math.PI * 2) * size * customSize,
+            y: pos.y + Math.sin(atan + rad * Math.PI * 2) * size * customSize
+          });
+
+          // addLinePath
+          this.#addLinePath(bird, p(0.5, 1.3));
+
+          this.#engine.beginPath();
+
+          // body
+          this.#applyPath([
+            // spitze
+            p(0, 1.2),
+            p(0.01, 0.9),
+            p(0.05, 0.7),
+
+            // schweif
+            p(0.47, 0.9),
+            p(0.45, 1.5),
+            p(0.47, 1.2),
+            p(0.5, 1.5),
+            p(0.52, 1.2),
+            p(0.55, 1.5),
+            p(0.53, 0.9),
+
+            // spitze
+            p(-0.25, 0.5),
+            p(-0.05, 0.7),
+            p(-0.01, 0.9),
+            p(0, 1.2)
+          ]);
+
+          this.#engine.fill();
+
+          const wingWave = Math.sin(bird.wing);
+          const wingAdd  = wingWave * 0.1;
+          const wingPositiveWave = (wingWave + 1) / 2;
+
+          this.#engine.beginPath();
+
+          // wings
+          this.#applyPath([
+            p(0, 0.5),
+
+            // rauf
+            p(-0.15, wingPositiveWave),
+            p(-0.25, -1 + 3 * wingPositiveWave),
+
+            // runter
+            p(-0.4, 0.5),
+            p(0, 0)
+          ]);
+
+          this.#engine.fill();
+        };
+
+        #addLinePath = (bird, pos) => {
+          bird.lines[this.#birdLineIndex * 2]     = pos.x;
+          bird.lines[this.#birdLineIndex * 2 + 1] = pos.y;
+        };
+
+        #drawBirdLines = () => {
+          for (let i = this.#birdLineCount; i >= 2; i--) {
+
+            this.#engine.beginPath();
+            this.#engine.lineWidth   = i / this.#birdLineCount * (this.#width + this.#height) / 1000;
+            this.#engine.strokeStyle = `hsla(${(this.#frame + i) % 360}, 100%, 50%, ${i / this.#birdLineCount})`;
+
+            const currentIndex = (this.#birdLineIndex + i) % this.#birdLineCount;
+            const lastIndex    = (this.#birdLineIndex + i + this.#birdLineCount - 1) % this.#birdLineCount;
+
+            this.#birds.forEach((bird) => {
+              if (bird.lines[lastIndex * 2] !== 0 && bird.lines[currentIndex * 2] !== 0) {
+
+                this.#engine.moveTo(
+                  bird.lines[currentIndex * 2],
+                  bird.lines[currentIndex * 2 + 1]
+                );
+
+                this.#engine.lineTo(
+                  bird.lines[lastIndex * 2],
+                  bird.lines[lastIndex * 2 + 1]
+                );
+              }
+            });
+
+            this.#engine.stroke();
+          }
+        };
+
+        #drawShine = () => {
+          this.#engine.fillStyle = `hsla(${this.#frame % 360}, 100%, 90%, 0.01)`;
+
+          this.#engine.beginPath();
+          this.#birds.forEach((bird) => {
+            this.#engine.moveTo(bird.pos.x * this.#width, bird.pos.y * this.#height);
+            this.#engine.arc(
+              bird.pos.x * this.#width,
+              bird.pos.y * this.#height,
+              bird.pos.z * (this.#width + this.#height) / 30,
+              0,
+              Math.PI * 2
+            );
+          });
+
+          this.#engine.fill();
+          this.#engine.closePath();
+
+          this.#engine.globalCompositeOperation = 'source-over';
+        };
+
+        #renderBirds = () => {
+          this.#birds.forEach((bird) => {
+            this.#solveBirdMove(bird);
+
+            bird.wing += 0.1 + bird.wingAdd * 0.3 * this.#speed;
+
+            bird.pos.x += bird.move.x;
+            bird.pos.y += bird.move.y;
+            bird.pos.z += bird.move.z;
+          });
+
+          this.#drawBirdLines();
+
+          this.#birdLineIndex = (this.#birdLineIndex + 1) % this.#birdLineCount;
+
+          this.#birds.forEach((bird) => {
+            this.#drawBird(bird);
+          });
+
+          this.#drawShine();
+        };
+
+        #clear = () => {
+          this.#engine.clearRect(0, 0, this.#width, this.#height);
+        };
+
+        #drawBg = () => {
+          this.#engine.fillStyle = this.#bgTop;
+          this.#engine.fillRect(0, 0, this.#width, this.#height / 2);
+
+          this.#engine.fillStyle = this.#bgBot;
+          this.#engine.fillRect(0, this.#height / 2, this.#width, this.#height);
+        };
+
+        #tick = () => {
+          this.#frame++;
+
+          this.#z.current += (this.#z.target - this.#z.current) / 100;
+
+          this.#clear();
+          // this.#drawBg();
+          this.#renderBirds();
+
+          this.#request();
+        };
+
+        #createBirds = () => {
+          this.#birds = [];
+
+          for (let i = 0; i < this.#config.number; i++) {
+
+            this.#birds.push({
+              wing: Math.random(),
+              wingAdd: Math.random(),
+              speed: (0.2 + Math.random() * 0.8) / 2000,
+              pos: {
+                x: 0.25 + Math.random() * 0.5,
+                y: 0.25 + Math.random() * 0.5,
+                z: Math.random()
+              },
+              move: {
+                x: (0.5 - Math.random()) / 100,
+                y: (0.5 - Math.random()) / 100,
+                z: 0
+              },
+              moveCache: { // dirty
+                x: 0,
+                y: 0
+              },
+              ownMove: {
+                t: 20 + Math.random() * 100 | 0,
+                x: 0,
+                y: 0
+              },
+              tar: {
+                x: 0.5,
+                y: 0.5
+              },
+              lines: new Float32Array(this.#birdLineCount * 2)
+            });
+          }
+        };
+
+        #registerMouse = () => {
+          // document.addEventListener('mousemove', (e) => {
+          //     this.#mouse.x = e.clientX / this.#width;
+          //     this.#mouse.y = e.clientY / this.#height;
+          // });
+
+          setInterval(() => {
+            this.#mouse.x = Math.random();
+            this.#mouse.y = Math.random();
+
+            this.#z.target = 0.5 + Math.random();
+
+          }, 1000);
+        };
+
+        run = () => {
+          this.#registerMouse();
+          this.#prepare();
+          this.#createBirds();
+
+          this.#tick();
+        };
+      }
+
+      const b = new Birds();
+      b.run();
+    </script>
+  </body>
+</html>
