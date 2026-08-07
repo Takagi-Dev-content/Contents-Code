@@ -1,0 +1,1186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      /* login robot */
+      @import url("https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&display=swap");
+
+      :root {
+        --paper: #f4efe5;
+        --ink: #23252d;
+        --accent: #ff6b4b;
+        --accent-deep: #e5532f;
+        --teal: #2ec4b6;
+        --yellow: #ffc53d;
+        --shell: #fffdf8;
+        --screen: #23252d;
+        --eye: #fffdf8;
+        --muted: #9a948a;
+        --field: #faf7f0;
+        --line: 2px solid var(--ink);
+        --turn: 0.65s cubic-bezier(0.5, -0.3, 0.25, 1.35);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Sora", "Segoe UI", system-ui, sans-serif;
+        color: var(--ink);
+        overflow: hidden;
+      }
+
+      .scene {
+        min-height: 100vh;
+        min-height: 100svh;
+        display: grid;
+        place-items: center;
+        padding: 110px 24px 70px;
+        overflow: clip;
+        position: relative;
+        background:
+          radial-gradient(rgba(35, 37, 45, 0.07) 1.2px, transparent 1.3px) 0 0 /
+            24px 24px,
+          var(--paper);
+      }
+
+      .stage {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+      }
+
+      /* robot */
+
+      .robot {
+        position: relative;
+        z-index: 1;
+        margin-bottom: -16px;
+        animation: float 4s ease-in-out infinite alternate;
+        perspective: 800px; /* for the head tilt */
+      }
+
+      @keyframes float {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-5px);
+        }
+      }
+
+      /* antenna */
+      .antenna {
+        position: absolute;
+        top: -32px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 2;
+      }
+      .antenna-rod {
+        width: 4px;
+        height: 22px;
+        background: var(--ink);
+        border-radius: 2px;
+      }
+      .antenna-tip {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: var(--line);
+        order: -1;
+        margin-bottom: -2px;
+        position: relative;
+        animation: bob 2.4s ease-in-out infinite;
+      }
+      .antenna-tip::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 3px;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.85);
+      }
+      @keyframes bob {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-2.5px);
+        }
+      }
+      .robot[data-mood="excited"] .antenna-tip {
+        animation-duration: 0.4s;
+        background: var(--yellow);
+      }
+      .robot[data-mood="success"] .antenna-tip {
+        background: var(--teal);
+      }
+
+      /* head */
+      .head3d {
+        width: 152px;
+        height: 140px;
+        perspective: 700px;
+        transform-style: preserve-3d;
+        transform: translateY(var(--hy, 0px)) scale(var(--hsc, 1))
+          rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+        transition: transform 0.25s ease-out;
+        will-change: transform;
+      }
+      .is-hyped .head3d {
+        --hy: 5px;
+        --hsc: 1.04;
+      }
+      .is-pressed .head3d {
+        --hy: 9px;
+        --hsc: 0.94;
+      } /* squash on click */
+
+      .head {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        transition: transform var(--turn);
+      }
+      .is-turned .head {
+        transform: rotateY(180deg);
+      }
+      .is-spinning .head {
+        animation: victory 0.9s ease-in-out;
+      }
+      @keyframes victory {
+        to {
+          transform: rotateY(360deg);
+        }
+      }
+
+      .ear {
+        position: absolute;
+        top: 48px;
+        width: 16px;
+        height: 40px;
+        background: var(--shell);
+        border: var(--line);
+        border-radius: 8px;
+        transform: translateZ(0);
+      }
+      .ear--l {
+        left: -10px;
+      }
+      .ear--r {
+        right: -10px;
+      }
+
+      .face {
+        position: absolute;
+        inset: 0;
+        border-radius: 34px;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        background: var(--shell);
+        border: var(--line);
+      }
+      .face--front {
+        box-shadow: 5px 6px 0 rgba(35, 37, 45, 0.16);
+      }
+      .face--back {
+        box-shadow: 5px 6px 0 rgba(35, 37, 45, 0.16);
+        transform: rotateY(180deg);
+        display: grid;
+        place-items: center;
+      }
+
+      /* face */
+      .visor {
+        position: absolute;
+        inset: 22px 16px 20px;
+        background: var(--screen);
+        border-radius: 22px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 13px;
+        overflow: hidden;
+      }
+
+      .eyes {
+        display: flex;
+        gap: 28px;
+        transform: translate(var(--lx, 0px), var(--ly, 0px));
+        transition: transform 0.18s ease-out;
+      }
+      .eyes.blink .eye {
+        transform: scaleY(0.08);
+      }
+
+      .eye {
+        width: 19px;
+        height: 25px;
+        border-radius: 9px;
+        background: var(--eye);
+        transition: all 0.22s ease;
+      }
+
+      /* happy eyes */
+      [data-mood="happy"] .eye,
+      [data-mood="success"] .eye {
+        width: 25px;
+        height: 12px;
+        background: transparent;
+        border: 5px solid var(--eye);
+        border-bottom: none;
+        border-radius: 25px 25px 0 0;
+      }
+      [data-mood="excited"] .eye {
+        transform: scale(1.2);
+        border-radius: 50%;
+        height: 21px;
+      }
+
+      /* eyes closed when the button is pressed */
+      [data-mood="pressed"] .eye {
+        width: 24px;
+        height: 12px;
+        background: transparent;
+        border: 5px solid var(--eye);
+        border-top: none;
+        border-radius: 0 0 24px 24px;
+      }
+
+      .cheek {
+        position: absolute;
+        top: 59%;
+        width: 15px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .cheek--l {
+        left: 15px;
+      }
+      .cheek--r {
+        right: 15px;
+      }
+      [data-mood="happy"] .cheek,
+      [data-mood="excited"] .cheek,
+      [data-mood="pressed"] .cheek,
+      [data-mood="success"] .cheek {
+        opacity: 0.9;
+      }
+
+      .mouth {
+        width: 15px;
+        height: 5px;
+        border-radius: 4px;
+        background: var(--eye);
+        transition: all 0.25s ease;
+      }
+      [data-mood="watching"] .mouth {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+      }
+      [data-mood="happy"] .mouth {
+        width: 30px;
+        height: 12px;
+        border-radius: 0 0 16px 16px;
+      }
+      [data-mood="excited"] .mouth {
+        width: 22px;
+        height: 16px;
+        border-radius: 0 0 13px 13px;
+      }
+      [data-mood="pressed"] .mouth {
+        width: 27px;
+        height: 15px;
+        border-radius: 0 0 14px 14px;
+      }
+      [data-mood="success"] .mouth {
+        width: 38px;
+        height: 17px;
+        border-radius: 0 0 20px 20px;
+      }
+
+      /* back of the head + password meter */
+      .panel {
+        width: 116px;
+        padding: 12px 10px 10px;
+        background: var(--screen);
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      .panel-lights {
+        display: flex;
+        gap: 6px;
+      }
+      .panel-lights i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: bob 1.8s ease-in-out infinite;
+      }
+      .panel-lights i:nth-child(2) {
+        animation-delay: 0.3s;
+        background: var(--yellow);
+      }
+      .panel-lights i:nth-child(3) {
+        animation-delay: 0.6s;
+        background: var(--teal);
+      }
+
+      .meter {
+        display: flex;
+        gap: 5px;
+      }
+      .meter i {
+        width: 15px;
+        height: 20px;
+        border-radius: 4px;
+        background: #3b3e49;
+        transition: background 0.25s ease;
+      }
+      .meter[data-lvl="1"] i.on {
+        background: #ff5c4d;
+      }
+      .meter[data-lvl="2"] i.on {
+        background: #ff9f43;
+      }
+      .meter[data-lvl="3"] i.on {
+        background: var(--yellow);
+      }
+      .meter[data-lvl="4"] i.on {
+        background: var(--teal);
+      }
+
+      .panel-label {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--paper);
+        white-space: nowrap;
+      }
+
+      /* speech bubble */
+      .bubble {
+        position: absolute;
+        bottom: calc(100% + 16px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--shell);
+        border: var(--line);
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.35;
+        padding: 9px 14px;
+        border-radius: 12px;
+        width: max-content;
+        max-width: 250px;
+        text-align: center;
+        box-shadow: 3px 3px 0 rgba(35, 37, 45, 0.9);
+        z-index: 3;
+      }
+      .bubble::after {
+        content: "";
+        position: absolute;
+        top: calc(100% - 5px);
+        left: 50%;
+        width: 10px;
+        height: 10px;
+        background: var(--shell);
+        border-right: var(--line);
+        border-bottom: var(--line);
+        transform: translateX(-50%) rotate(45deg);
+      }
+      .bubble.pop {
+        animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      @keyframes pop {
+        from {
+          transform: translateX(-50%) scale(0.8);
+        }
+        to {
+          transform: translateX(-50%) scale(1);
+        }
+      }
+
+      /* form card */
+
+      .card {
+        position: relative;
+        z-index: 2;
+        width: min(344px, calc(100vw - 48px));
+        background: linear-gradient(
+          165deg,
+          #fffefb 0%,
+          #fdfaf3 45%,
+          #f7f1e4 100%
+        );
+        border: var(--line);
+        border-radius: 20px;
+        padding: 36px 28px 40px;
+        box-shadow: 8px 9px 0 rgba(35, 37, 45, 0.9);
+      }
+
+      .hand {
+        position: absolute;
+        top: -16px;
+        width: 44px;
+        height: 32px;
+        background:
+          linear-gradient(
+              90deg,
+              transparent 31%,
+              rgba(35, 37, 45, 0.9) 32%,
+              rgba(35, 37, 45, 0.9) 36%,
+              transparent 37%,
+              transparent 63%,
+              rgba(35, 37, 45, 0.9) 64%,
+              rgba(35, 37, 45, 0.9) 68%,
+              transparent 69%
+            )
+            0 12px / 100% calc(100% - 12px) no-repeat,
+          var(--shell);
+        border: var(--line);
+        border-radius: 9px 9px 14px 14px;
+        z-index: 3;
+        transition: transform 0.25s ease;
+      }
+      .hand--l {
+        left: 36px;
+      }
+      .hand--r {
+        right: 36px;
+      }
+      .is-hyped ~ .card .hand {
+        transform: translateY(-3px) scaleY(1.08);
+      }
+
+      .foot {
+        position: absolute;
+        bottom: -26px;
+        width: 54px;
+        height: 34px;
+        background: var(--shell);
+        border: var(--line);
+        border-radius: 9px 9px 14px 14px;
+        box-shadow: inset 0 -9px 0 rgba(35, 37, 45, 0.12);
+        z-index: -1;
+      }
+      .foot--l {
+        left: 62px;
+      }
+      .foot--r {
+        right: 62px;
+      }
+
+      .title {
+        font-size: 19px;
+        font-weight: 800;
+        letter-spacing: -0.2px;
+        text-align: center;
+        margin-bottom: 24px;
+      }
+
+      .field {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 52px;
+        padding: 0 14px;
+        margin-bottom: 14px;
+        background: var(--field);
+        border: 2px solid rgba(35, 37, 45, 0.22);
+        border-radius: 12px;
+        transition:
+          border-color 0.18s ease,
+          box-shadow 0.18s ease,
+          transform 0.18s ease;
+        cursor: text;
+      }
+      .field:focus-within {
+        border-color: var(--ink);
+        box-shadow: 3px 3px 0 var(--accent);
+        transform: translate(-1px, -1px);
+      }
+      .field-icon {
+        width: 19px;
+        height: 19px;
+        fill: var(--muted);
+        flex: none;
+        transition: fill 0.18s ease;
+      }
+      .field:focus-within .field-icon {
+        fill: var(--ink);
+      }
+
+      .field input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        outline: none;
+        background: transparent;
+        font: inherit;
+        font-size: 14.5px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .field input::placeholder {
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .peek {
+        border: none;
+        background: none;
+        padding: 4px;
+        cursor: pointer;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+      }
+      .peek svg {
+        width: 20px;
+        height: 20px;
+        fill: var(--muted);
+        transition: fill 0.18s ease;
+      }
+      .peek:hover svg,
+      .peek[aria-pressed="true"] svg {
+        fill: var(--ink);
+      }
+      .peek:focus-visible {
+        outline: 2px solid var(--ink);
+      }
+
+      /* login button */
+      .btn {
+        position: relative;
+        width: 100%;
+        height: 54px;
+        margin-top: 10px;
+        border: var(--line);
+        border-radius: 12px;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 4px 5px 0 rgba(35, 37, 45, 0.9);
+        transition:
+          transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+          box-shadow 0.18s ease,
+          background 0.25s ease;
+      }
+      .btn:hover,
+      .btn:focus-visible {
+        transform: translate(-2px, -2px);
+        background: var(--accent-deep);
+        box-shadow: 7px 8px 0 rgba(35, 37, 45, 0.9);
+      }
+      .btn:active {
+        transform: translate(3px, 4px);
+        box-shadow: 0 0 0 rgba(35, 37, 45, 0.9);
+      }
+      .btn:focus-visible {
+        outline: 3px solid var(--ink);
+        outline-offset: 3px;
+      }
+
+      .btn-bolt {
+        display: inline-block;
+        opacity: 0;
+        transform: translateX(-10px) scale(0.4) rotate(-30deg);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .btn:hover .btn-bolt,
+      .btn:focus-visible .btn-bolt {
+        opacity: 1;
+        transform: none;
+        animation: bolt-jitter 0.4s ease-in-out infinite;
+      }
+      @keyframes bolt-jitter {
+        0%,
+        100% {
+          transform: rotate(-7deg) scale(1);
+        }
+        50% {
+          transform: rotate(7deg) scale(1.2);
+        }
+      }
+
+      .btn.is-success {
+        background: var(--teal);
+      }
+
+      /* error shake */
+      .card.shake {
+        animation: shake 0.4s ease;
+      }
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-7px);
+        }
+        50% {
+          transform: translateX(6px);
+        }
+        75% {
+          transform: translateX(-3px);
+        }
+      }
+
+      /* confetti (from js) */
+      .confetti {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        top: 0;
+        left: 0;
+        border-radius: 2px;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      /* responsive + reduced motion */
+
+      @media (max-width: 560px) {
+        .scene {
+          padding-top: 96px;
+        }
+        .bubble {
+          max-width: 210px;
+          font-size: 12.5px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .robot {
+          animation: none;
+        }
+        .antenna-tip,
+        .panel-lights i {
+          animation: none;
+        }
+        .head {
+          transition-duration: 0.01s;
+        }
+        .btn:hover .btn-bolt {
+          animation: none;
+        }
+        .is-spinning .head {
+          animation: none;
+        }
+        .bubble.pop {
+          animation: none;
+        }
+        .eyes {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scene">
+      <main class="stage" id="stage">
+        <!-- robot -->
+        <div class="robot" id="robot" data-mood="idle">
+          <div class="bubble" id="bubble" role="status" aria-live="polite">
+            <span id="bubbleText">Hi. I'm Volt. I guard this form.</span>
+          </div>
+
+          <div class="antenna" aria-hidden="true">
+            <span class="antenna-rod"></span>
+            <span class="antenna-tip"></span>
+          </div>
+
+          <div class="head3d" aria-hidden="true">
+            <div class="head" id="head">
+              <span class="ear ear--l"></span>
+              <span class="ear ear--r"></span>
+
+              <!-- front -->
+              <div class="face face--front">
+                <div class="visor">
+                  <div class="eyes" id="eyes">
+                    <span class="eye eye--l"></span>
+                    <span class="eye eye--r"></span>
+                  </div>
+                  <span class="cheek cheek--l"></span>
+                  <span class="cheek cheek--r"></span>
+                  <span class="mouth"></span>
+                </div>
+              </div>
+
+              <!-- back -->
+              <div class="face face--back">
+                <div class="panel">
+                  <span class="panel-lights"><i></i><i></i><i></i></span>
+                  <div class="meter" id="meter">
+                    <i></i><i></i><i></i><i></i>
+                  </div>
+                  <p class="panel-label" id="panelLabel">NOT LOOKING</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- form -->
+        <form class="card" id="form" novalidate>
+          <span class="hand hand--l" aria-hidden="true"></span>
+          <span class="hand hand--r" aria-hidden="true"></span>
+
+          <h1 class="title">Beep boop. Who goes there?</h1>
+
+          <label class="field">
+            <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 12a4.5 4.5 0 1 0-4.5-4.5A4.5 4.5 0 0 0 12 12Zm0 2c-3.9 0-8 2-8 5v1.5h16V19c0-3-4.1-5-8-5Z"
+              />
+            </svg>
+            <input
+              id="name"
+              type="text"
+              placeholder="Your name"
+              autocomplete="name"
+              aria-label="Your name"
+            />
+          </label>
+
+          <label class="field">
+            <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm8 7.3L4.4 7h15.2L12 12.3ZM4 9.2V17h16V9.2l-8 5.3-8-5.3Z"
+              />
+            </svg>
+            <input
+              id="email"
+              type="email"
+              placeholder="Your email"
+              autocomplete="email"
+              aria-label="Your email"
+            />
+          </label>
+
+          <label class="field">
+            <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 8V7a3 3 0 0 1 6 0v3H9Zm3 4a2 2 0 0 1 1 3.7V19h-2v-1.3a2 2 0 0 1 1-3.7Z"
+              />
+            </svg>
+            <input
+              id="password"
+              type="password"
+              placeholder="Super secret password"
+              autocomplete="new-password"
+              aria-label="Password"
+            />
+            <button
+              class="peek"
+              id="togglePass"
+              type="button"
+              aria-label="Show password"
+              aria-pressed="false"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M12 5c-5 0-9.3 3.1-11 7.5C2.7 16.9 7 20 12 20s9.3-3.1 11-7.5C21.3 8.1 17 5 12 5Zm0 12.5a5 5 0 1 1 5-5 5 5 0 0 1-5 5Zm0-8a3 3 0 1 0 3 3 3 3 0 0 0-3-3Z"
+                />
+              </svg>
+            </button>
+          </label>
+
+          <button class="btn" id="loginBtn" type="submit">
+            <span class="btn-bolt" aria-hidden="true">⚡</span>
+            <span class="btn-label" id="btnLabel">LOG ME IN</span>
+          </button>
+
+          <span class="foot foot--l" aria-hidden="true"></span>
+          <span class="foot foot--r" aria-hidden="true"></span>
+        </form>
+      </main>
+    </div>
+
+    <script>
+      // login robot
+      const $ = (s) => document.querySelector(s);
+
+      const robot = $("#robot");
+      const stage = $("#stage");
+      const eyes = $("#eyes");
+      const bubble = $("#bubble");
+      const bubbleText = $("#bubbleText");
+      const meter = $("#meter");
+      const meterBars = [...meter.children];
+      const panelLabel = $("#panelLabel");
+      const form = $("#form");
+      const nameI = $("#name");
+      const emailI = $("#email");
+      const passI = $("#password");
+      const peekBtn = $("#togglePass");
+      const btn = $("#loginBtn");
+      const btnLabel = $("#btnLabel");
+
+      const reduceMotion = matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+      let done = false;
+      let lastSaid = "";
+
+      // helpers
+      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+      function setMood(mood) {
+        if (!done) robot.dataset.mood = mood;
+      }
+
+      function say(text) {
+        if (text === lastSaid) return;
+        lastSaid = text;
+        bubbleText.textContent = text;
+        bubble.classList.remove("pop");
+        void bubble.offsetWidth; // restart animation
+        bubble.classList.add("pop");
+      }
+
+      function look(x, y) {
+        eyes.style.setProperty("--lx", `${x}px`);
+        eyes.style.setProperty("--ly", `${y}px`);
+      }
+
+      // head tilt (deg)
+      const head3d = document.querySelector(".head3d");
+      function tilt(ry, rx) {
+        head3d.style.setProperty("--ry", `${ry}deg`);
+        head3d.style.setProperty("--rx", `${rx}deg`);
+      }
+
+      // eyes follow the text length
+      function followTyping(input) {
+        const ratio = Math.min(input.value.length / 22, 1);
+        look(-6 + 12 * ratio, 5);
+        tilt(-5 + 10 * ratio, -8); // look down at the card
+      }
+
+      function turnAway(on) {
+        robot.classList.toggle("is-turned", on);
+      }
+
+      // name
+      nameI.addEventListener("focus", () => {
+        turnAway(false);
+        setMood("watching");
+        say(
+          pick([
+            "A visitor. State your name.",
+            "Typing detected. Go on, I'm watching.",
+          ]),
+        );
+        followTyping(nameI);
+      });
+
+      nameI.addEventListener("input", () => {
+        followTyping(nameI);
+        const v = nameI.value.trim();
+        if (v.length >= 2) say(`${v}. Solid name. Filed forever.`);
+        else if (v.length === 0)
+          say("Deleted. I've already forgotten it. Mostly.");
+      });
+
+      // email
+      emailI.addEventListener("focus", () => {
+        turnAway(false);
+        setMood("watching");
+        say("Email next. I don't do spam — I don't even have an inbox.");
+        followTyping(emailI);
+      });
+
+      emailI.addEventListener("input", () => {
+        followTyping(emailI);
+        if (EMAIL_RE.test(emailI.value.trim())) {
+          setMood("happy");
+          say(
+            pick([
+              "Now that is a proper email. Respect.",
+              "Valid address detected. Quietly delighted.",
+            ]),
+          );
+        } else {
+          setMood("watching");
+          if (emailI.value.includes("@"))
+            say("Close. My sensors say: not yet.");
+        }
+      });
+
+      // password - head turns around
+      passI.addEventListener("focus", () => {
+        setMood("shy");
+        turnAway(true);
+        look(0, 0);
+        tilt(0, 0);
+        say("A secret? Say no more. *turns around*");
+        panelLabel.textContent = "NOT LOOKING";
+      });
+
+      passI.addEventListener("blur", (e) => {
+        if (e.relatedTarget === peekBtn) return; // ignore the eye toggle
+        turnAway(false);
+      });
+
+      passI.addEventListener("input", () => {
+        const v = passI.value;
+        let score = 0;
+        if (v.length >= 8) score++;
+        if (/[a-z]/.test(v) && /[A-Z]/.test(v)) score++;
+        if (/\d/.test(v)) score++;
+        if (/[^a-zA-Z0-9]/.test(v)) score++;
+        if (v.length > 0 && score === 0) score = 1;
+
+        meter.dataset.lvl = score;
+        meterBars.forEach((bar, i) => bar.classList.toggle("on", i < score));
+        panelLabel.textContent =
+          v.length === 0
+            ? "NOT LOOKING"
+            : [
+                "NOT LOOKING",
+                "TOO SHORT",
+                "GETTING THERE",
+                "STRONG",
+                "FORT KNOX",
+              ][score];
+      });
+
+      // show / hide password
+      peekBtn.addEventListener("click", () => {
+        const show = passI.type === "password";
+        passI.type = show ? "text" : "password";
+        peekBtn.setAttribute("aria-pressed", String(show));
+        peekBtn.setAttribute(
+          "aria-label",
+          show ? "Hide password" : "Show password",
+        );
+        if (show) say("Revealing it? Good thing I'm facing the wall.");
+        passI.focus();
+      });
+
+      // button hover
+      function hype(on) {
+        if (done) return;
+        if (on && robot.classList.contains("is-pressed")) return;
+        robot.classList.toggle("is-hyped", on);
+        if (on) {
+          turnAway(false);
+          setMood("excited");
+          say(pick(["Ooh. Do it. Press it.", "This is my favorite part."]));
+        } else {
+          setMood("idle");
+          say("The button misses you already.");
+        }
+      }
+      btn.addEventListener("mouseenter", () => hype(true));
+      btn.addEventListener("mouseleave", () => hype(false));
+      btn.addEventListener("focus", () => hype(true));
+      btn.addEventListener("blur", () => hype(false));
+
+      // closed happy eyes on every click
+      let pressTimer;
+      btn.addEventListener("pointerdown", () => {
+        clearTimeout(pressTimer);
+        robot.classList.add("is-pressed");
+        robot.dataset.mood = "pressed";
+        say(
+          pick([
+            "Ahh. That’s the stuff.",
+            "Mmm. Satisfying.",
+            "Beep. Do that again.",
+          ]),
+        );
+      });
+      function releasePress() {
+        clearTimeout(pressTimer);
+        pressTimer = setTimeout(() => {
+          robot.classList.remove("is-pressed");
+          if (robot.dataset.mood === "pressed") {
+            robot.dataset.mood = done ? "success" : "excited";
+          }
+        }, 340);
+      }
+      btn.addEventListener("pointerup", releasePress);
+      btn.addEventListener("pointercancel", releasePress);
+      btn.addEventListener("pointerleave", () => {
+        if (robot.classList.contains("is-pressed")) releasePress();
+      });
+
+      // submit
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (done) return;
+
+        const complaints = [];
+        if (!nameI.value.trim())
+          complaints.push(["Still don't know your name.", nameI]);
+        else if (!EMAIL_RE.test(emailI.value.trim()))
+          complaints.push(["That email isn't a real place.", emailI]);
+        else if (!passI.value)
+          complaints.push(["A password would help.", passI]);
+
+        if (complaints.length) {
+          const [msg, field] = complaints[0];
+          setTimeout(() => {
+            say(msg);
+            setMood("watching");
+          }, 380);
+          form.classList.remove("shake");
+          void form.offsetWidth;
+          form.classList.add("shake");
+          field.focus();
+          return;
+        }
+
+        done = true;
+        turnAway(false);
+        robot.classList.remove("is-hyped");
+
+        setTimeout(() => {
+          robot.dataset.mood = "success";
+          say(`Access granted. Welcome, ${nameI.value.trim()}.`);
+          btn.classList.add("is-success");
+          btnLabel.textContent = "ACCESS GRANTED ✓";
+          look(0, 0);
+          tilt(0, 0);
+
+          if (!reduceMotion) {
+            robot.classList.add("is-spinning");
+            setTimeout(() => robot.classList.remove("is-spinning"), 950);
+            confetti();
+          }
+        }, 420);
+
+        setTimeout(reset, 5600);
+      });
+
+      function reset() {
+        done = false;
+        robot.dataset.mood = "idle";
+        btn.classList.remove("is-success");
+        btnLabel.textContent = "LOG ME IN";
+        say("Again? I could do this all day.");
+      }
+
+      // blinking + follow the mouse
+      (function blinkLoop() {
+        setTimeout(
+          () => {
+            if (
+              robot.dataset.mood !== "success" &&
+              !robot.classList.contains("is-turned")
+            ) {
+              eyes.classList.add("blink");
+              setTimeout(() => eyes.classList.remove("blink"), 150);
+            }
+            blinkLoop();
+          },
+          2600 + Math.random() * 2600,
+        );
+      })();
+
+      let rafPending = false;
+      document.addEventListener("mousemove", (e) => {
+        const active = document.activeElement;
+        if (done || (active && active.tagName === "INPUT")) return;
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(() => {
+          rafPending = false;
+          const rect = robot.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          const dx = Math.max(-1, Math.min(1, (e.clientX - cx) / 260));
+          const dy = Math.max(-1, Math.min(1, (e.clientY - cy) / 260));
+          look(dx * 7, dy * 6);
+          if (!robot.classList.contains("is-turned")) tilt(dx * 12, -dy * 9);
+        });
+      });
+
+      // confetti
+      function confetti() {
+        const colors = ["#ff6b4b", "#2ec4b6", "#ffc53d", "#23252d", "#fffdf8"];
+        const origin = btn.getBoundingClientRect();
+        const host = document.querySelector(".scene");
+        const hostRect = host.getBoundingClientRect();
+        const ox = origin.left - hostRect.left + origin.width / 2;
+        const oy = origin.top - hostRect.top;
+
+        for (let i = 0; i < 70; i++) {
+          const bit = document.createElement("span");
+          bit.className = "confetti";
+          bit.style.background = pick(colors);
+          if (Math.random() > 0.5) bit.style.borderRadius = "50%";
+          host.appendChild(bit);
+
+          const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.6;
+          const speed = 240 + Math.random() * 380;
+          const tx = Math.cos(angle) * speed;
+          const ty = Math.sin(angle) * speed;
+
+          bit.animate(
+            [
+              {
+                transform: `translate(${ox}px, ${oy}px) rotate(0deg) scale(1)`,
+                opacity: 1,
+              },
+              {
+                transform: `translate(${ox + tx}px, ${oy + ty + 320}px) rotate(${540 * (Math.random() > 0.5 ? 1 : -1)}deg) scale(.6)`,
+                opacity: 0,
+              },
+            ],
+            {
+              duration: 1100 + Math.random() * 700,
+              easing: "cubic-bezier(.15,.6,.35,1)",
+            },
+          ).onfinish = function () {
+            bit.remove();
+          };
+        }
+      }
+    </script>
+  </body>
+</html>
