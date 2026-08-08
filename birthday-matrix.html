@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Birthday MAtrix</title>
+  <title>Birthday Cake Matrix</title>
   <style>
     * {
       margin: 0;
@@ -148,35 +148,60 @@
       cakeCanvas.width = window.innerWidth;
       cakeCanvas.height = window.innerHeight;
 
-      const cx = window.innerWidth / 2;
-      const cy = window.innerHeight / 2 + 100;
+      const cakeWidth = 240;
+      const cakeHeight = 180;
+      let cx = 0;
+      let cy = 0;
+      let cakeScale = 1;
+
+      function resizeCake() {
+        cakeCanvas.width = window.innerWidth;
+        cakeCanvas.height = window.innerHeight;
+        cakeScale = Math.min(
+          1,
+          (cakeCanvas.width - 32) / cakeWidth,
+          (cakeCanvas.height - 32) / cakeHeight,
+        );
+        cx = cakeCanvas.width / 2;
+        cy = cakeCanvas.height / 2 + Math.min(100, cakeCanvas.height * 0.12);
+      }
+
+      function withCakeTransform(draw) {
+        cakeCtx.save();
+        cakeCtx.translate(cx, cy);
+        cakeCtx.scale(cakeScale, cakeScale);
+        draw();
+        cakeCtx.restore();
+      }
 
       // Draw cake base
       function drawCakeBase() {
-        // Cake body
-        cakeCtx.fillStyle = "#f4a460";
-        cakeCtx.fillRect(cx - 100, cy - 30, 200, 60);
+        withCakeTransform(() => {
+          // Cake body
+          cakeCtx.fillStyle = "#f4a460";
+          cakeCtx.fillRect(-100, -30, 200, 60);
 
-        // Cake top layer
-        cakeCtx.fillStyle = "#deb887";
-        cakeCtx.fillRect(cx - 80, cy - 70, 160, 40);
+          // Cake top layer
+          cakeCtx.fillStyle = "#deb887";
+          cakeCtx.fillRect(-80, -70, 160, 40);
 
-        // Frosting on top
-        cakeCtx.fillStyle = "#fff";
-        cakeCtx.beginPath();
-        cakeCtx.moveTo(cx - 80, cy - 70);
-        cakeCtx.quadraticCurveTo(cx, cy - 100, cx + 80, cy - 70);
-        cakeCtx.lineTo(cx + 80, cy - 65);
-        cakeCtx.quadraticCurveTo(cx, cy - 95, cx - 80, cy - 65);
-        cakeCtx.closePath();
-        cakeCtx.fill();
+          // Frosting on top
+          cakeCtx.fillStyle = "#fff";
+          cakeCtx.beginPath();
+          cakeCtx.moveTo(-80, -70);
+          cakeCtx.quadraticCurveTo(0, -100, 80, -70);
+          cakeCtx.lineTo(80, -65);
+          cakeCtx.quadraticCurveTo(0, -95, -80, -65);
+          cakeCtx.closePath();
+          cakeCtx.fill();
 
-        // Plate ellipse
-        cakeCtx.strokeStyle = "#ccc";
-        cakeCtx.lineWidth = 4;
-        cakeCtx.beginPath();
-        cakeCtx.ellipse(cx, cy + 35, 120, 10, 0, 0, Math.PI * 2);
-        cakeCtx.stroke();
+          // Plate ellipse
+          cakeCtx.strokeStyle = "#ccc";
+          cakeCtx.lineWidth = 4;
+          cakeCtx.beginPath();
+          cakeCtx.ellipse(0, 35, 120, 10, 0, 0, Math.PI * 2);
+          cakeCtx.stroke();
+        });
       }
 
       // Toppings helper functions
@@ -206,20 +231,20 @@
 
       // Array of topping steps for each message index
       const cakeToppings = [
-        () => { drawBerry(cx - 60, cy - 80, "red"); drawBerry(cx + 60, cy - 80, "red"); },
-        () => { drawBerry(cx - 30, cy - 85, "pink"); drawBerry(cx + 30, cy - 85, "pink"); },
-        () => { drawCream(cx - 15, cy - 90); drawCream(cx + 15, cy - 90); },
-        () => { drawBerry(cx, cy - 92, "#87ceeb"); },
-        () => { drawCherry(cx - 45, cy - 70); drawCherry(cx + 45, cy - 70); },
-        () => { drawCherry(cx, cy - 100); },
+        () => { drawBerry(-60, -80, "red"); drawBerry(60, -80, "red"); },
+        () => { drawBerry(-30, -85, "pink"); drawBerry(30, -85, "pink"); },
+        () => { drawCream(-15, -90); drawCream(15, -90); },
+        () => { drawBerry(0, -92, "#87ceeb"); },
+        () => { drawCherry(-45, -70); drawCherry(45, -70); },
+        () => { drawCherry(0, -100); },
         () => {
           // Draw candles spelling "23RD"
           const candleX = [-45, -15, 15, 45];
           const letters = ["2", "3", "R", "D"];
 
           candleX.forEach((dx, i) => {
-            const x = cx + dx;
-            const y = cy - 110;
+            const x = dx;
+            const y = -110;
 
             // Candle body
             cakeCtx.fillStyle = "#ff69b4";
@@ -257,13 +282,21 @@
           cakeCtx.shadowBlur = 0;
         }
       ];
+      let toppingsShown = 0;
 
       // === DOM Elements for Text & Timing ===
       const popupContainer = document.getElementById("popupContainer");
       const timerEl = document.getElementById("timer");
       const messageContainer = document.getElementById("messageContainer");
 
-      const introMessages = ["11. 04. 25", "IT'S YOUR DAY!"];
+      const dateNow = new Date();
+      const formattedDate = dateNow.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      const introMessages = [formattedDate, "IT'S YOUR DAY!"];
       const mainMessages = ["HAPPY", "BIRTHDAY", "TO", "YOU"];
 
       timerEl.style.display = "none";
@@ -286,7 +319,10 @@
       // === Flow Functions ===
 
       function showIntroMessages(index = 0) {
-        if (index === 0) drawCakeBase();
+        if (index === 0) {
+          resizeCake();
+          drawCakeBase();
+        }
         if (index >= introMessages.length) {
           startTimer();
           return;
@@ -321,7 +357,10 @@
 
         // Draw corresponding topping or candle for each message index
         if (cakeToppings[index]) {
-          setTimeout(() => cakeToppings[index](), 500);
+          setTimeout(() => {
+            toppingsShown = Math.max(toppingsShown, index + 1);
+            withCakeTransform(cakeToppings[index]);
+          }, 500);
         }
 
         setTimeout(() => showMainMessages(index + 1), 2500);
@@ -333,8 +372,12 @@
       window.addEventListener("resize", () => {
         matrixCanvas.width = window.innerWidth;
         matrixCanvas.height = window.innerHeight;
-        cakeCanvas.width = window.innerWidth;
-        cakeCanvas.height = window.innerHeight;
+        resizeCake();
+        cakeCtx.clearRect(0, 0, cakeCanvas.width, cakeCanvas.height);
+        drawCakeBase();
+        for (let i = 0; i < toppingsShown; i++) {
+          withCakeTransform(cakeToppings[i]);
+        }
         confettiCanvas.width = window.innerWidth;
         confettiCanvas.height = window.innerHeight;
       });
