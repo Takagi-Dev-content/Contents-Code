@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Birthday MAtrix</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: black;
+      font-family: 'Impact', sans-serif;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: block;
+      pointer-events: none;
+    }
+
+    #matrixCanvas { z-index: 0; }
+    #cakeCanvas { z-index: 3; }
+    #confettiCanvas { z-index: 5; }
+
+    .popup, #messageContainer div {
+      position: fixed;
+      width: 100%;
+      text-align: center;
+      top: 20%; /* Moved up above cake */
+      font-size: 3.5rem;
+      color: #3fa5cd;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 6px;
+      z-index: 10;
+      animation: zoomIn 0.6s ease-in-out;
+      opacity: 1;
+      transition: opacity 1s ease-out;
+      text-shadow:
+        0 0 8px rgba(255, 222, 173, 0.8),
+        0 0 20px rgba(205, 133, 63, 0.7),
+        0 0 30px rgba(205, 133, 63, 0.5);
+    }
+
+    #messageContainer div {
+      font-size: 4.5rem;
+    }
+
+    @keyframes zoomIn {
+      from {
+        transform: scale(0.7);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+  <body>
+    <canvas id="matrixCanvas"></canvas>
+    <canvas id="cakeCanvas"></canvas>
+    <canvas id="confettiCanvas"></canvas>
+
+    <div id="popupContainer"></div>
+    <div id="timer" class="popup">3</div>
+    <div id="messageContainer"></div>
+
+    <script>
+      // === Matrix Rain Setup ===
+      const matrixCanvas = document.getElementById("matrixCanvas");
+      const ctx = matrixCanvas.getContext("2d");
+      matrixCanvas.width = window.innerWidth;
+      matrixCanvas.height = window.innerHeight;
+
+      const chars = "アカサタナハマヤラワ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+      const fontSize = 16;
+      const columns = Math.floor(matrixCanvas.width / fontSize);
+      const drops = Array(columns).fill(1);
+
+      function drawMatrix() {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+        ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+        ctx.fillStyle = "#cd853f";
+        ctx.font = fontSize + "px monospace";
+
+        drops.forEach((y, i) => {
+          const text = chars[Math.floor(Math.random() * chars.length)];
+          ctx.fillText(text, i * fontSize, y * fontSize);
+          if (y * fontSize > matrixCanvas.height && Math.random() > 0.975) drops[i] = 0;
+          drops[i]++;
+        });
+      }
+
+      setInterval(drawMatrix, 33);
+
+      // === Confetti Setup ===
+      const confettiCanvas = document.getElementById("confettiCanvas");
+      const confettiCtx = confettiCanvas.getContext("2d");
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+
+      let confettiParticles = [];
+
+      function createConfetti(x, y) {
+        const colors = ['#ff0', '#f0f', '#0ff', '#f55', '#5f5', '#55f'];
+        for (let i = 0; i < 100; i++) {
+          confettiParticles.push({
+            x: x + (Math.random() - 0.5) * 50,
+            y: y + (Math.random() - 0.5) * 50,
+            dx: (Math.random() - 0.5) * 4,
+            dy: Math.random() * -5 - 2,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            size: Math.random() * 4 + 2,
+            life: 100
+          });
+        }
+      }
+
+      function drawConfetti() {
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        confettiParticles = confettiParticles.filter(p => p.life > 0);
+        confettiParticles.forEach(p => {
+          confettiCtx.fillStyle = p.color;
+          confettiCtx.fillRect(p.x, p.y, p.size, p.size);
+          p.x += p.dx;
+          p.y += p.dy;
+          p.dy += 0.1;
+          p.life--;
+        });
+        requestAnimationFrame(drawConfetti);
+      }
+      drawConfetti();
+
+      // === Cake Drawing Setup ===
+      const cakeCanvas = document.getElementById("cakeCanvas");
+      const cakeCtx = cakeCanvas.getContext("2d");
+      cakeCanvas.width = window.innerWidth;
+      cakeCanvas.height = window.innerHeight;
+
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2 + 100;
+
+      // Draw cake base
+      function drawCakeBase() {
+        // Cake body
+        cakeCtx.fillStyle = "#f4a460";
+        cakeCtx.fillRect(cx - 100, cy - 30, 200, 60);
+
+        // Cake top layer
+        cakeCtx.fillStyle = "#deb887";
+        cakeCtx.fillRect(cx - 80, cy - 70, 160, 40);
+
+        // Frosting on top
+        cakeCtx.fillStyle = "#fff";
+        cakeCtx.beginPath();
+        cakeCtx.moveTo(cx - 80, cy - 70);
+        cakeCtx.quadraticCurveTo(cx, cy - 100, cx + 80, cy - 70);
+        cakeCtx.lineTo(cx + 80, cy - 65);
+        cakeCtx.quadraticCurveTo(cx, cy - 95, cx - 80, cy - 65);
+        cakeCtx.closePath();
+        cakeCtx.fill();
+
+        // Plate ellipse
+        cakeCtx.strokeStyle = "#ccc";
+        cakeCtx.lineWidth = 4;
+        cakeCtx.beginPath();
+        cakeCtx.ellipse(cx, cy + 35, 120, 10, 0, 0, Math.PI * 2);
+        cakeCtx.stroke();
+      }
+
+      // Toppings helper functions
+      function drawBerry(x, y, color) {
+        cakeCtx.beginPath();
+        cakeCtx.fillStyle = color;
+        cakeCtx.arc(x, y, 8, 0, Math.PI * 2);
+        cakeCtx.fill();
+      }
+
+      function drawCream(x, y) {
+        cakeCtx.beginPath();
+        cakeCtx.fillStyle = "white";
+        cakeCtx.ellipse(x, y, 10, 6, 0, 0, Math.PI * 2);
+        cakeCtx.fill();
+      }
+
+      function drawCherry(x, y) {
+        drawBerry(x, y, "crimson");
+        cakeCtx.beginPath();
+        cakeCtx.strokeStyle = "#006400";
+        cakeCtx.lineWidth = 2;
+        cakeCtx.moveTo(x, y);
+        cakeCtx.lineTo(x, y - 10);
+        cakeCtx.stroke();
+      }
+
+      // Array of topping steps for each message index
+      const cakeToppings = [
+        () => { drawBerry(cx - 60, cy - 80, "red"); drawBerry(cx + 60, cy - 80, "red"); },
+        () => { drawBerry(cx - 30, cy - 85, "pink"); drawBerry(cx + 30, cy - 85, "pink"); },
+        () => { drawCream(cx - 15, cy - 90); drawCream(cx + 15, cy - 90); },
+        () => { drawBerry(cx, cy - 92, "#87ceeb"); },
+        () => { drawCherry(cx - 45, cy - 70); drawCherry(cx + 45, cy - 70); },
+        () => { drawCherry(cx, cy - 100); },
+        () => {
+          // Draw candles spelling "23RD"
+          const candleX = [-45, -15, 15, 45];
+          const letters = ["2", "3", "R", "D"];
+
+          candleX.forEach((dx, i) => {
+            const x = cx + dx;
+            const y = cy - 110;
+
+            // Candle body
+            cakeCtx.fillStyle = "#ff69b4";
+            cakeCtx.fillRect(x - 5, y, 10, 40);
+
+            // Candle top rim for depth
+            cakeCtx.fillStyle = "#ffb6c1";
+            cakeCtx.fillRect(x - 5, y, 10, 3);
+
+            // Flickering flame - outer glow
+            cakeCtx.beginPath();
+            cakeCtx.fillStyle = "rgba(255, 215, 0, 0.9)";
+            cakeCtx.ellipse(x, y - 10, 5, 10, 0, 0, Math.PI * 2);
+            cakeCtx.fill();
+
+            // Flickering flame - inner glow
+            cakeCtx.beginPath();
+            cakeCtx.fillStyle = "rgba(255, 140, 0, 0.6)";
+            cakeCtx.ellipse(x, y - 10, 2, 5, 0, 0, Math.PI * 2);
+            cakeCtx.fill();
+
+            // Glow effect (soft light)
+            cakeCtx.shadowColor = "gold";
+            cakeCtx.shadowBlur = 15;
+
+            // Candle letter
+            cakeCtx.shadowBlur = 0;
+            cakeCtx.fillStyle = "#000";
+            cakeCtx.font = "bold 18px Arial";
+            cakeCtx.textAlign = "center";
+            cakeCtx.fillText(letters[i], x, y - 15);
+          });
+
+          // Reset shadow after candles
+          cakeCtx.shadowBlur = 0;
+        }
+      ];
+
+      // === DOM Elements for Text & Timing ===
+      const popupContainer = document.getElementById("popupContainer");
+      const timerEl = document.getElementById("timer");
+      const messageContainer = document.getElementById("messageContainer");
+
+      const introMessages = ["11. 04. 25", "IT'S YOUR DAY!"];
+      const mainMessages = ["HAPPY", "BIRTHDAY", "TO", "YOU"];
+
+      timerEl.style.display = "none";
+
+      function showPopupText(text, target) {
+        const el = document.createElement("div");
+        el.classList.add("popup");
+        el.textContent = text;
+        target.appendChild(el);
+
+        // Center confetti at center of viewport
+        createConfetti(window.innerWidth / 2, window.innerHeight / 2);
+
+        setTimeout(() => {
+          el.style.opacity = 0;
+          setTimeout(() => el.remove(), 1000);
+        }, 2000);
+      }
+
+      // === Flow Functions ===
+
+      function showIntroMessages(index = 0) {
+        if (index === 0) drawCakeBase();
+        if (index >= introMessages.length) {
+          startTimer();
+          return;
+        }
+        showPopupText(introMessages[index], popupContainer);
+        setTimeout(() => showIntroMessages(index + 1), 3000);
+      }
+
+      function startTimer() {
+        timerEl.style.display = "block";
+        let count = 3;
+        timerEl.textContent = count;
+
+        const interval = setInterval(() => {
+          count--;
+          timerEl.textContent = count;
+          if (count < 0) {
+            clearInterval(interval);
+            timerEl.style.opacity = 0;
+            setTimeout(() => {
+              timerEl.remove();
+              showMainMessages();
+            }, 1000);
+          }
+        }, 1000);
+      }
+
+      function showMainMessages(index = 0) {
+        if (index >= mainMessages.length) return;
+
+        showPopupText(mainMessages[index], messageContainer);
+
+        // Draw corresponding topping or candle for each message index
+        if (cakeToppings[index]) {
+          setTimeout(() => cakeToppings[index](), 500);
+        }
+
+        setTimeout(() => showMainMessages(index + 1), 2500);
+      }
+
+      showIntroMessages();
+
+      // === Handle Resize ===
+      window.addEventListener("resize", () => {
+        matrixCanvas.width = window.innerWidth;
+        matrixCanvas.height = window.innerHeight;
+        cakeCanvas.width = window.innerWidth;
+        cakeCanvas.height = window.innerHeight;
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+      });
+    </script>
+  </body>
+</html>
