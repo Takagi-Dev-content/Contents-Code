@@ -209,6 +209,7 @@
         const particleRate =
           settings.particles.length / settings.particles.duration; // particles/sec
         let time;
+        let sceneScale = 1;
 
         // get point on heart with -PI <= t <= PI
         function pointOnHeart(t) {
@@ -272,6 +273,11 @@
           // clear canvas
           context.clearRect(0, 0, canvas.width, canvas.height);
 
+          context.save();
+          context.translate(canvas.width / 2, canvas.height / 2);
+          context.scale(sceneScale, sceneScale);
+          context.translate(-canvas.width / 2, -canvas.height / 2);
+
           // animated text in the heart
           const pulse = 1 + Math.sin(newTime * 5) * 0.12;
           context.save();
@@ -302,12 +308,14 @@
           // update and draw particles
           particles.update(deltaTime);
           particles.draw(context, image);
+          context.restore();
         }
 
         // handle (re-)sizing of the canvas
         function onResize() {
           canvas.width = canvas.clientWidth;
           canvas.height = canvas.clientHeight;
+          sceneScale = Math.min(1, canvas.width / 520);
         }
         window.onresize = onResize;
 
