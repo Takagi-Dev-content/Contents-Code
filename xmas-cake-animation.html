@@ -10,9 +10,11 @@
     <style>
       @charset "UTF-8";
       body {
-        background: #9ae5a1;
+        --bg-color: rgb(89, 63, 68);
+        background: var(--bg-color);
         margin: 0;
         padding: 0;
+        padding-bottom: 500px;
       }
 
       .container {
@@ -22,13 +24,13 @@
       }
 
       .color-bg {
-        fill: #9ae5a1;
+        fill: var(--bg-color);
       }
       .color-brown-1 {
         fill: #d6bdab;
       }
       .color-brown-2 {
-        fill: #996666;
+        fill: #a20000;
       }
       .color-brown-3 {
         fill: #996633;
@@ -105,7 +107,7 @@
 
       .chocolate-message path {
         fill: none;
-        stroke: #ffcc99;
+        stroke: pink;
         stroke-width: 1;
         /* stroke-dasharray,stroke-dashoffsetの値を操作して筆記アニメーションを行なう */
         stroke-dasharray: 100;
@@ -125,7 +127,7 @@
         enable-background="new 0 0 514 522"
         xml:space="preserve"
       >
-        <rect id="bg" class="color-bg" width="514" height="522" />
+        <rect id="bg" class="color-bg" width="514" height="500" />
         <g id="foundation">
           <rect
             class="color-brown-1"
