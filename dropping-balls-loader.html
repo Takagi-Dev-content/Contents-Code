@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dropping Balls Loader</title>
+    <!-- GSAPアニメーションライブラリを読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+    <!-- SVGの線描画アニメーション用プラグインを読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/DrawSVGPlugin.min.js"></script>
+    <style>
+      body {
+        background-color: #ef4748; /* 背景色を赤系に設定 */
+        overflow: hidden; /* スクロールバーを非表示にする */
+      }
+
+      body,
+      html {
+        height: 100%; /* 画面いっぱいの高さにする */
+        width: 100%; /* 画面いっぱいの幅にする */
+        margin: 0;
+        padding: 0;
+      }
+
+      svg {
+        width: 100%;
+        height: 100%;
+        visibility: hidden; /* 最初は非表示（JSで準備完了後に表示する） */
+      }
+    </style>
+  </head>
+  <body>
+    <!-- メインのSVGコンテナ -->
+    <svg
+      class="mainSVG"
+      viewBox="0 0 800 600"
+      xmlns:xlink="http://www.w3.org/1999/xlink"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="xMidYMin meet"
+    >
+      <defs>
+        <!-- 波形状のパス定義（再利用するためdefs内に配置） -->
+        <path
+          id="mainPath"
+          fill="none"
+          stroke="#F05555"
+          stroke-width="0"
+          stroke-miterlimit="10"
+          d="M481.5,195.5H302	c-33,0-60.5,26.534-60.5,59.534v0.017c0,33,27.125,59.975,60.125,59.975l179.875,0.041c33,0,60.125,27.433,60.125,60.433h0.125	c0,33-27.25,59.567-60.25,59.567h-180c-33,0-59.875,27.433-59.875,60.433h0.125c0,33,26.75,59.567,59.75,59.567l180.125-0.042	c33,0,59.875,27.025,59.875,60.025v-0.017c0,33-26.5,60.466-59.5,60.466H301.5"
+        />
+      </defs>
+      <!-- <line x1="396" y1="0" x2="396" y2="600" fill="none" stroke="#FFF" opacity="1" stroke-width="3"/> -->
+      <!-- アニメーション全体をまとめるグループ（縦にスクロールさせて無限ループに見せる） -->
+      <g class="wholeGroup">
+        <!-- 同じパスを上・中央・下に複製して配置し、繋ぎ目のない波を作る -->
+        <use xlink:href="#mainPath" y="-480" />
+        <use xlink:href="#mainPath" />
+        <use xlink:href="#mainPath" y="480" />
+        <g
+          id="mainPathGroup"
+          fill="none"
+          stroke-miterlimit="10"
+          stroke-width="4"
+          stroke-linecap="round"
+          stroke="#FFF"
+        >
+          <!-- 同じ形のパスを4本重ねて、透明度違いの「残像」効果を作る -->
+          <path
+            class="mainPath"
+            opacity="0.1"
+            d="M481.5,195.5H302	c-33,0-60.5,26.534-60.5,59.534v0.017c0,33,27.125,59.975,60.125,59.975l179.875,0.041c33,0,60.125,27.433,60.125,60.433h0.125	c0,33-27.25,59.567-60.25,59.567h-180c-33,0-59.875,27.433-59.875,60.433h0.125c0,33,26.75,59.567,59.75,59.567l180.125-0.042	c33,0,59.875,27.025,59.875,60.025v-0.017c0,33-26.5,60.466-59.5,60.466H301.5"
+          />
+          <path
+            class="mainPath"
+            opacity="0.3"
+            d="M481.5,195.5H302	c-33,0-60.5,26.534-60.5,59.534v0.017c0,33,27.125,59.975,60.125,59.975l179.875,0.041c33,0,60.125,27.433,60.125,60.433h0.125	c0,33-27.25,59.567-60.25,59.567h-180c-33,0-59.875,27.433-59.875,60.433h0.125c0,33,26.75,59.567,59.75,59.567l180.125-0.042	c33,0,59.875,27.025,59.875,60.025v-0.017c0,33-26.5,60.466-59.5,60.466H301.5"
+          />
+          <path
+            class="mainPath"
+            opacity="0.7"
+            d="M481.5,195.5H302	c-33,0-60.5,26.534-60.5,59.534v0.017c0,33,27.125,59.975,60.125,59.975l179.875,0.041c33,0,60.125,27.433,60.125,60.433h0.125	c0,33-27.25,59.567-60.25,59.567h-180c-33,0-59.875,27.433-59.875,60.433h0.125c0,33,26.75,59.567,59.75,59.567l180.125-0.042	c33,0,59.875,27.025,59.875,60.025v-0.017c0,33-26.5,60.466-59.5,60.466H301.5"
+          />
+          <path
+            class="mainPath"
+            d="M481.5,195.5H302	c-33,0-60.5,26.534-60.5,59.534v0.017c0,33,27.125,59.975,60.125,59.975l179.875,0.041c33,0,60.125,27.433,60.125,60.433h0.125	c0,33-27.25,59.567-60.25,59.567h-180c-33,0-59.875,27.433-59.875,60.433h0.125c0,33,26.75,59.567,59.75,59.567l180.125-0.042	c33,0,59.875,27.025,59.875,60.025v-0.017c0,33-26.5,60.466-59.5,60.466H301.5"
+          />
+        </g>
+        <!-- 波の上を転がる（跳ねる）3つの白いボール -->
+        <g id="ballGroup" fill="#FFF">
+          <circle class="ball" cx="345" cy="176" r="14" />
+
+          <circle class="ball" cx="400" cy="176" r="14" />
+          <circle class="ball" cx="455" cy="176" r="14" />
+        </g>
+      </g>
+    </svg>
+
+    <script>
+      const xmlns = "http://www.w3.org/2000/svg", // SVG名前空間（今回は未使用だが要素生成時に使う想定）
+        xlinkns = "http://www.w3.org/1999/xlink", // xlink名前空間（<use>のhref属性用）
+        select = function (s) {
+          return document.querySelector(s); // 単一要素を取得するヘルパー関数
+        },
+        selectAll = function (s) {
+          return document.querySelectorAll(s); // 複数要素を取得するヘルパー関数
+        },
+        mainSVG = select(".mainSVG"), // メインのSVG要素を選択
+        wholeGroup = select(".wholeGroup"), // 全体のグループを選択（最後に縦スクロールさせる対象）
+        ballGroup = select("#ballGroup"), // ボールをまとめたグループを選択
+        mainPath = nodeListToArray(selectAll(".mainPath")).reverse(), // メインパスを配列化して逆順にする（重なり順の関係で下から描画するため）
+        allBalls = selectAll(".ball"), // すべてのボール要素を選択
+        ball = selectAll(".ball"), //nodeListToArray(allBalls).reverse(), // ボール要素（コメントアウトされている逆順処理は未使用）
+        offset = 0.04; // staggerアニメーションの間隔（各要素が動き出すタイミングのズレ）
+
+        gsap.registerPlugin(DrawSVGPlugin); // DrawSVGプラグインを登録（パスを部分的に描画するアニメーション用）
+
+        gsap.set(ball, {
+          transformOrigin: "50% 100%", // ボールの変形基準点を底面中央に設定（潰れるアニメーションが自然に見えるように）
+        });
+
+        gsap.set("svg", {
+          visibility: "visible", // 準備が整ったのでSVG全体を表示状態にする
+        });
+
+        gsap.set(mainPath, {
+          drawSVG: "1% 9%", // パスの1%〜9%の区間だけを初期状態として表示する
+        });
+
+      // メインのタイムラインを作成
+      const tl = gsap.timeline({
+        delay: 1, // 開始まで1秒待つ
+        repeat: 0, // 繰り返し回数（0=繰り返しなし、下のonCompleteで手動ループ）
+        repeatDelay: 1, // 繰り返し時の待機時間
+        onComplete: function () {
+          tl.play(0); // タイムライン終了時に最初から再生し直す（無限ループ）
+        },
+      });
+      tl.staggerTo(
+        // 1段階目：波のパスを24%〜32%の位置まで描画する
+        mainPath,
+        1,
+        {
+          drawSVG: "24% 32%",
+          ease: "expo.inOut",
+        },
+        offset,
+      )
+        .staggerTo(
+          // ボールを下に落として跳ねさせる（1段階目）
+          nodeListToArray(selectAll(".ball")).reverse(),
+          1,
+          {
+            y: "+=120",
+            ease: "bounce.out",
+          },
+          offset,
+          "-=0.65", // 前のアニメーションと少し重ねて開始する
+        )
+        .staggerTo(
+          // ボールが着地する瞬間に潰れる（横に広がり、縦に縮む）演出
+          nodeListToArray(selectAll(".ball")).reverse(),
+          0.1,
+          {
+            scaleX: 1.2,
+            scaleY: 0.8,
+            ease: "power2.in",
+          },
+          offset,
+          "-=0.75",
+        )
+        .staggerTo(
+          // 潰れた形から元の形（正円）に戻す
+          nodeListToArray(selectAll(".ball")).reverse(),
+          0.1,
+          {
+            scaleX: 1,
+            scaleY: 1,
+          },
+          offset,
+          "-=0.6",
+        )
+
+        .staggerTo(
+          // 2段階目：波のパスを45.5%〜53.5%の位置まで描画する
+          mainPath,
+          1,
+          {
+            drawSVG: "45.5% 53.5%",
+            ease: "expo.inOut",
+          },
+          offset,
+        )
+        .staggerTo(
+          // ボールを再び落として跳ねさせる（2段階目）
+          ".ball",
+          1,
+          {
+            y: "+=120",
+            ease: "bounce.out",
+          },
+          offset,
+          "-=0.65",
+        )
+        .staggerTo(
+          // 着地時の潰れ演出（2段階目）
+          ".ball",
+          0.1,
+          {
+            scaleX: 1.2,
+            scaleY: 0.8,
+            ease: "power2.in",
+          },
+          offset,
+          "-=0.75",
+        )
+        .staggerTo(
+          // 元の形に戻す（2段階目）
+          ".ball",
+          0.1,
+          {
+            scaleX: 1,
+            scaleY: 1,
+          },
+          offset,
+          "-=0.6",
+        )
+
+        .staggerTo(
+          // 3段階目：波のパスを68.5%〜76.5%の位置まで描画する
+          mainPath,
+          1,
+          {
+            drawSVG: "68.5% 76.5%",
+            ease: "expo.inOut",
+          },
+          offset,
+        )
+        .staggerTo(
+          // ボールを落として跳ねさせる（3段階目）
+          nodeListToArray(selectAll(".ball")).reverse(),
+          1,
+          {
+            y: "+=120",
+            ease: "bounce.out",
+          },
+          offset,
+          "-=0.65",
+        )
+
+        .staggerTo(
+          // 着地時の潰れ演出（3段階目）
+          nodeListToArray(selectAll(".ball")).reverse(),
+          0.1,
+          {
+            scaleX: 1.2,
+            scaleY: 0.8,
+            ease: "power2.in",
+          },
+          offset,
+          "-=0.75",
+        )
+        .staggerTo(
+          // 元の形に戻す（3段階目）
+          nodeListToArray(selectAll(".ball")).reverse(),
+          0.1,
+          {
+            scaleX: 1,
+            scaleY: 1,
+          },
+          offset,
+          "-=0.6",
+        )
+        .staggerTo(
+          // 4段階目（最終）：波のパスを90%〜98%の位置まで描画する
+          mainPath,
+          1,
+          {
+            drawSVG: "90% 98%",
+            ease: "expo.inOut",
+          },
+          offset,
+        )
+        .staggerTo(
+          // ボールを落として跳ねさせる（4段階目）
+          ".ball",
+          1,
+          {
+            y: "+=120",
+            ease: "bounce.out",
+          },
+          offset,
+          "-=0.65",
+        )
+        .staggerTo(
+          // 着地時の潰れ演出（4段階目）
+          ".ball",
+          0.1,
+          {
+            scaleX: 1.2,
+            scaleY: 0.8,
+            ease: "power2.in",
+          },
+          offset,
+          "-=0.75",
+        )
+        .staggerTo(
+          // 元の形に戻す（4段階目）
+          ".ball",
+          0.1,
+          {
+            scaleX: 1,
+            scaleY: 1,
+          },
+          offset,
+          "-=0.6",
+        )
+
+        .to(
+          // 全体のグループを上方向にスクロールさせて、次のループへ自然につなげる
+          wholeGroup,
+          tl.duration(),
+          {
+            y: "-=480",
+            ease: "none",
+          },
+          "-=" + tl.duration(), // これまでの全アニメーションと同時進行させる
+        );
+
+      //ScrubGSAPTimeline(tl);
+
+      // NodeListを配列に変換するユーティリティ関数（reverse()などの配列メソッドを使うため）
+      function nodeListToArray(list) {
+        return Array.prototype.slice.call(list);
+      }
+
+      /* gsap.set(mainSVG, {
+  transformOrigin:'50% 50%',
+  scaleY:-1,
+  y:-600
+}) */
+    </script>
+  </body>
+</html>
