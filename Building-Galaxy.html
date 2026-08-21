@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building Galaxy</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        canvas {
+            display: block;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            pointer-events: none;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        }
+        .stat {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .stat-label {
+            color: #aaa;
+        }
+        .stat-value {
+            color: #fff;
+            font-weight: bold;
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #555;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="stat"><span class="stat-label">ENTROPY:</span> <span class="stat-value" id="entropy-val">0.00</span></div>
+        <div class="stat"><span class="stat-label">COHERENCE:</span> <span class="stat-value" id="coherence-val">0.00%</span></div>
+        <div class="stat"><span class="stat-label">ACCRETION DISK:</span> <span class="stat-value" id="mass-val">0.00</span></div>
+        <div class="stat"><span class="stat-label">STABLE ORBITS:</span> <span class="stat-value" id="life-val">0</span></div>
+    </div>
+
+    <div id="controls">
+        Click & Drag to Rotate View
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { alpha: false }); // Optimize for no transparency on backbuffer
+
+        let width, height;
+        let cx, cy;
+
+        // Simulation Parameters
+        const PARAMS = {
+            friction: 0.96,           // Velocity decay
+            gravity: 0.18,            // Increased central gravity
+            mutualAttraction: 0.04,   // Particle-particle attraction
+            repulsion: 0.1,           // Short-range repulsion to prevent singularity
+            burstRate: 4,             // Faster bursts
+            burstSize: 10,            // More particles
+            fov: 600,                 // Field of view for 3D projection
+            coherenceThreshold: 0.8,  // Higher threshold to catch more particles
+            coreRadius: 40            // Radius where matter solidifies
+        };
+        // State
+        let particles = []; let debris = [];
+        let frame = 0; let totalEntropy = 0;
+        let avgCoherence = 0;
+        let cameraRotation = { x: 0.2, y: 0 }; 
+        let mouseState = { x: 0, y: 0, isDown: false };
+        const COLORS = {
+            highEnergy: 190,
+            midEnergy: 260,  
+            innerRing: 30,  
+            midRing: 10,     
+            outerRing: 220   
+        };
+
+        // Resize Handler
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            cx = width / 2;
+            cy = height / 2;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Mouse Handlers for Camera Rotation
+        window.addEventListener('mousedown', e => {
+            mouseState.isDown = true;
+            mouseState.x = e.clientX;
+            mouseState.y = e.clientY;
+        });
+        window.addEventListener('mouseup', () => mouseState.isDown = false);
+        window.addEventListener('mousemove', e => {
+            if (mouseState.isDown) {
+                const dx = e.clientX - mouseState.x;
+                const dy = e.clientY - mouseState.y;
+                cameraRotation.y += dx * 0.005;
+                cameraRotation.x += dy * 0.005;
+                mouseState.x = e.clientX;
+                mouseState.y = e.clientY;
+            }
+        });
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                // Spawn in a spherical burst
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((Math.random() * 2) - 1);
+                const r = 250 + Math.random() * 150; 
+
+                this.x = r * Math.sin(phi) * Math.cos(theta);
+                this.y = r * Math.sin(phi) * Math.sin(theta);
+                this.z = r * Math.cos(phi);
+
+                const speed = 2 + Math.random() * 4;
+                this.vx = -(this.x / r) * speed + (Math.random() - 0.5);
+                this.vy = -(this.y / r) * speed + (Math.random() - 0.5);
+                this.vz = -(this.z / r) * speed + (Math.random() - 0.5);
+
+                this.life = 1.0;
+                this.decay = 0.003 + Math.random() * 0.003;
+                this.state = 'chaos'; 
+                this.size = 1.5 + Math.random();
+            }
+
+            update() {
+                // 1. Friction / Entropy Decay
+                this.vx *= PARAMS.friction;
+                this.vy *= PARAMS.friction;
+                this.vz *= PARAMS.friction;
+
+                // 2. Central Gravity 
+                const dSq = this.x*this.x + this.y*this.y + this.z*this.z;
+                const d = Math.sqrt(dSq);
+                
+                const gForce = PARAMS.gravity / Math.max(d, 10); 
+                this.vx -= (this.x / d) * gForce;
+                this.vy -= (this.y / d) * gForce;
+                this.vz -= (this.z / d) * gForce;
+
+                // 3. Position Update
+                this.x += this.vx;
+                this.y += this.vy;
+                this.z += this.vz;
+
+                // 4. State Management
+                const speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy + this.vz*this.vz);
+                
+                // ACCRETION LOGIC: 
+                // If moving slow enough and within range, start forming the disk
+                if (speed < PARAMS.coherenceThreshold && d < 350) {
+                    this.state = 'cohering';
+                    
+                    // Force flattening into the accretion disk (Y=0 plane)
+                    this.vy -= this.y * 0.05; // Strong pull to equator
+                    this.vx *= 0.98; // Stabilize orbit
+                    this.vz *= 0.98;
+
+                    // Recharge life! Do not fade if forming matter.
+                    this.life = Math.min(this.life + 0.02, 1.0);
+                    
+                    // If very stable and flat, become permanent debris
+                    if (Math.abs(this.y) < 5 && speed < 0.3) {
+                         return 'matter';
+                    }
+
+                } else {
+                    this.state = 'chaos';
+                    this.life -= this.decay;
+                }
+                
+                if (this.life <= 0) return 'dead';
+                
+                return 'alive';
+            }
+        }
+
+        class Debris {
+            constructor(x, y, z) {
+                this.x = x; 
+                this.y = y * 0.1; // Flatten instantly on lock
+                this.z = z;
+                this.size = 0.5 + Math.random() * 1.5;
+                
+                // Initial rotation state
+                this.angleOffset = Math.atan2(z, x);
+                this.radius = Math.sqrt(x*x + z*z);
+                
+                // Assign orbital band for coloring
+                // Inner (Magma): 0-60
+                // Mid (Rock): 60-140
+                // Outer (Ice/Gas): 140+
+                if (this.radius < 60) this.band = 'inner';
+                else if (this.radius < 140) this.band = 'mid';
+                else this.band = 'outer';
+                
+                // Slight variation in orbit speed based on radius (Kepler-ish)
+                this.orbitSpeed = 0.1 / Math.sqrt(this.radius || 1); 
+            }
+            
+            update() {
+                this.angleOffset += this.orbitSpeed;
+                this.x = Math.cos(this.angleOffset) * this.radius;
+                this.z = Math.sin(this.angleOffset) * this.radius;
+            }
+        }
+
+        // --- Physics Helpers ---
+
+        function applyMutualAttraction() {
+            // Optimization: Only check a subset of particles against each other per frame
+            // or just use a simplified accumulation
+            const len = particles.length;
+            if (len < 2) return;
+            
+            // Limit checks for performance
+            const checkLimit = 100; 
+            
+            for (let i = 0; i < len; i++) {
+                const p1 = particles[i];
+                if (p1.state === 'cohering') continue; // Locked particles don't pull as much chaos
+
+                for (let j = i + 1; j < Math.min(len, i + checkLimit); j++) {
+                    const p2 = particles[j];
+                    
+                    const dx = p2.x - p1.x;
+                    const dy = p2.y - p1.y;
+                    const dz = p2.z - p1.z;
+                    const distSq = dx*dx + dy*dy + dz*dz;
+
+                    if (distSq < 2000 && distSq > 10) { 
+                        const dist = Math.sqrt(distSq);
+                        const f = PARAMS.mutualAttraction / dist;
+                        const fx = (dx / dist) * f;
+                        const fy = (dy / dist) * f;
+                        const fz = (dz / dist) * f;
+
+                        p1.vx += fx; p1.vy += fy; p1.vz += fz;
+                        p2.vx -= fx; p2.vy -= fy; p2.vz -= fz;
+                    }
+                }
+            }
+        }
+
+        // --- Main Loop ---
+
+        function spawn() {
+            if (particles.length > 500) return; 
+            for(let i=0; i<PARAMS.burstSize; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function update() {
+            frame++;
+            if (frame % PARAMS.burstRate === 0) spawn();
+
+            applyMutualAttraction();
+
+            let entropySum = 0;
+            let coherenceCount = 0;
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                const status = p.update();
+
+                const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
+                entropySum += speed;
+                if (p.state === 'cohering') coherenceCount++;
+
+                if (status === 'dead') {
+                    particles.splice(i, 1);
+                } else if (status === 'matter') {
+                    debris.push(new Debris(p.x, p.y, p.z));
+                    particles.splice(i, 1);
+                }
+            }
+
+            // Update Debris 
+            debris.forEach(d => d.update());
+
+            // Limit debris (Max Accretion Size) - Much higher now
+            if (debris.length > 2500) debris.shift();
+
+            // Stats
+            totalEntropy = entropySum / (particles.length || 1);
+            avgCoherence = (coherenceCount / (particles.length || 1)) * 100;
+            
+            if (!mouseState.isDown) {
+                cameraRotation.y += 0.003;
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Slightly more trail
+            ctx.fillRect(0, 0, width, height);
+
+            const cosY = Math.cos(cameraRotation.y);
+            const sinY = Math.sin(cameraRotation.y);
+            const cosX = Math.cos(cameraRotation.x);
+            const sinX = Math.sin(cameraRotation.x);
+
+            function project(x, y, z) {
+                let rx = x * cosY - z * sinY;
+                let rz = x * sinY + z * cosY;
+                let ry = y * cosX - rz * sinX;
+                rz = y * sinX + rz * cosX;
+
+                const scale = PARAMS.fov / (PARAMS.fov + rz);
+                const x2d = rx * scale + cx;
+                const y2d = ry * scale + cy;
+                return { x: x2d, y: y2d, scale: scale, z: rz };
+            }
+
+            let renderList = [];
+
+            // Particles
+            particles.forEach(p => {
+                const proj = project(p.x, p.y, p.z);
+                if (proj.scale > 0) {
+                    renderList.push({ type: 'particle', x: proj.x, y: proj.y, z: proj.z, scale: proj.scale, obj: p });
+                }
+            });
+
+            // Debris
+            debris.forEach(d => {
+                const proj = project(d.x, d.y, d.z);
+                if (proj.scale > 0) {
+                    renderList.push({ type: 'debris', x: proj.x, y: proj.y, z: proj.z, scale: proj.scale, obj: d });
+                }
+            });
+
+            renderList.sort((a, b) => b.z - a.z);
+
+            ctx.globalCompositeOperation = 'lighter';
+
+            renderList.forEach(item => {
+                const scale = item.scale;
+                
+                if (item.type === 'particle') {
+                    const p = item.obj;
+                    const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
+                    
+                    let hue, sat, light, alpha;
+                    
+                    if (p.state === 'cohering') {
+                        // Accreting particles glow gold/orange
+                        hue = 40; 
+                        sat = '100%'; 
+                        light = '60%'; 
+                        alpha = p.life;
+                    } else {
+                        // Chaotic particles are Blue/Purple
+                        const speedFactor = Math.min(speed / 3, 1);
+                        hue = COLORS.midEnergy + (COLORS.highEnergy - COLORS.midEnergy) * (1 - speedFactor);
+                        sat = '80%';
+                        light = '50%';
+                        alpha = p.life * 0.6;
+                    }
+
+                    ctx.fillStyle = `hsla(${hue}, ${sat}, ${light}, ${alpha})`;
+                    const size = p.size * scale;
+                    ctx.beginPath();
+                    ctx.arc(item.x, item.y, size, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (item.type === 'debris') {
+                    const d = item.obj;
+                    let color;
+                    
+                    // Band Colors
+                    if (d.band === 'inner') color = `hsla(${COLORS.innerRing}, 100%, 60%, ${0.8 * scale})`; // Hot core
+                    else if (d.band === 'mid') color = `hsla(${COLORS.midRing}, 80%, 40%, ${0.6 * scale})`; // Rocky mantle
+                    else color = `hsla(${COLORS.outerRing}, 40%, 40%, ${0.4 * scale})`; // Icy outer
+
+                    ctx.fillStyle = color;
+                    const size = d.size * scale;
+                    ctx.beginPath();
+                    ctx.arc(item.x, item.y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // Core Glow
+            const coreProj = project(0,0,0);
+            if (coreProj.scale > 0) {
+                const coreSize = PARAMS.coreRadius * coreProj.scale;
+                const grad = ctx.createRadialGradient(coreProj.x, coreProj.y, 0, coreProj.x, coreProj.y, coreSize * 4);
+                grad.addColorStop(0, 'rgba(255, 240, 200, 0.9)');
+                grad.addColorStop(0.1, 'rgba(255, 100, 50, 0.5)');
+                grad.addColorStop(0.4, 'rgba(100, 0, 0, 0.1)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(coreProj.x, coreProj.y, coreSize * 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.globalCompositeOperation = 'source-over';
+        }
+
+        setInterval(() => {
+            document.getElementById('entropy-val').innerText = totalEntropy.toFixed(3);
+            document.getElementById('coherence-val').innerText = avgCoherence.toFixed(1) + '%';
+            document.getElementById('mass-val').innerText = debris.length;
+            document.getElementById('life-val').innerText = Math.floor(debris.length / 50);
+        }, 200);
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+
+    </script>
+</body>
+</html>
