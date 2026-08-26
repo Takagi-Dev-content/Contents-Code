@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Credits to the owner 👉 Masahito Leo Takeuchi -->
+
+    <title>Claw Machine</title>
+    <style>
+      *,
+      ::before,
+      ::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        padding: 0;
+        margin: 0;
+        font-family: sans-serif;
+        background-color: #84dfe2;
+        --brown: #57280f;
+        --blue: #33a5da;
+        --dark-blue: #3a94b7;
+        --machine-color: #32c2db;
+        --machine-width: 160px;
+        --m: 2;
+      }
+
+      .wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        min-height: 600px;
+        flex-direction: column;
+      }
+
+      .pix,
+      .pix::before,
+      .pix::after {
+        width: calc(var(--w) * var(--m));
+        height: calc(var(--h) * var(--m));
+        image-rendering: pixelated;
+        background-size: calc(var(--w) * var(--m)) calc(var(--h) * var(--m));
+      }
+
+      .pix::before,
+      .pix::after {
+        position: absolute;
+        content: "";
+      }
+
+      .claw-machine {
+        display: flex;
+        flex-direction: column;
+        border: 2px solid var(--brown);
+        overflow: hidden;
+      }
+
+      .collection-box {
+        --h: 32px;
+        width: calc(var(--m) * var(--machine-width));
+        margin: calc(var(--m) * var(--h) * -1 - 10px) 0 24px;
+        display: flex;
+        align-items: bottom;
+        justify-content: start;
+      }
+
+      .collection-box .toy-wrapper {
+        position: relative;
+        width: calc(100% / 6);
+        display: flex;
+        align-items: end;
+        justify-content: center;
+      }
+
+      .collection-box .toy-wrapper .toy::after {
+        top: auto;
+        bottom: 0;
+      }
+
+      .toy-wrapper.squeeze-in {
+        width: 0;
+        animation: squeeze-in forwards 0.4s;
+        animation-delay: 1.4s;
+      }
+
+      @keyframes squeeze-in {
+        0% {
+          width: 0;
+        }
+        100% {
+          width: calc(100% / 6);
+        }
+      }
+
+      @keyframes show-toy-2 {
+        0% {
+          opacity: 0;
+          transform: translateY(-100vh);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .toy-wrapper .toy {
+        opacity: 0;
+        transform: translateY(-100vh);
+        animation: forwards show-toy-2 0.8s;
+        animation-delay: 1s;
+      }
+
+      .claw-machine.show-overlay::after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        left: 0;
+        top: 0;
+        background-color: var(--machine-color);
+        opacity: 0.6;
+        z-index: 6;
+        pointer-events: none;
+      }
+
+      .box {
+        position: relative;
+        background-color: #7fcfed;
+        --w: var(--machine-width);
+        --h: 180px;
+      }
+
+      .box::before {
+        background-color: var(--brown);
+        top: calc(70px * var(--m));
+        width: 100%;
+        height: calc(var(--m) * 8px);
+        z-index: 5;
+      }
+
+      .box::after {
+        background-color: var(--machine-color);
+        top: calc(70px * var(--m));
+        right: 0px;
+        width: calc(var(--m) * 8px);
+        height: calc(var(--m) * 170px);
+        z-index: 2;
+      }
+
+      .machine-top,
+      .machine-bottom {
+        position: absolute;
+        width: 100%;
+        --h: 70px;
+        height: calc(var(--h) * var(--m));
+      }
+
+      .machine-top {
+        top: 0;
+        display: flex;
+        align-items: center;
+        z-index: 1;
+      }
+
+      .machine-top::after {
+        content: "";
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #70f7f372;
+        z-index: 1;
+      }
+
+      .machine-bottom {
+        bottom: 0;
+        background-color: #def7f6;
+      }
+
+      .collection-point {
+        position: absolute;
+        bottom: 0;
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAMCAYAAABm+U3GAAAAAXNSR0IArs4c6QAAADBJREFUOE9jtJqy/T8DFcGxHE9GkHGM1DYYZCjIcJoYTDMXjxqMkrZGIw8eHEMvKADnSiE1EAXSagAAAABJRU5ErkJggg==);
+        --w: 44px;
+        --h: 24px;
+        z-index: 0;
+      }
+
+      .rail {
+        top: 0;
+        left: 0;
+        transition: 0.3s;
+        border: solid var(--blue);
+      }
+
+      .rail.hori {
+        --h: 5px;
+        width: 100%;
+        background-color: #fff;
+        border-width: 2px 0;
+        z-index: 1;
+      }
+
+      .rail.vert {
+        position: absolute;
+        --h: 70px;
+        --w: 5px;
+        background-color: #fff;
+        border-width: 0 2px;
+      }
+
+      .arm-joint {
+        position: absolute;
+        top: 0;
+        left: 0;
+        --w: 5px;
+        --h: 5px;
+        transition: 0.3s;
+        z-index: -1;
+      }
+
+      .arm-joint::after {
+        position: absolute;
+        border: solid var(--blue) 2px;
+        background-color: #fff;
+        --w: 10px;
+        --h: 10px;
+        top: calc(var(--m) * var(--h) * -0.25);
+        left: calc(var(--m) * var(--w) * -0.25);
+      }
+
+      .arm::after {
+        position: absolute;
+        --w: 13px;
+        --h: 7px;
+        bottom: calc(var(--m) * -1px);
+        left: calc(var(--m) * -3px);
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA0AAAAHCAYAAADTcMcaAAAAAXNSR0IArs4c6QAAAElJREFUKFNjZGBgYDBeeus/iCYGnI1WY2QEaTgTpUqMerAak2W3GVA0RWgKMKy4/gHDAGRx6miCWQEyGQbQbcawiRiPgTWRE3oA5mIzfZr3jVYAAAAASUVORK5CYII=);
+      }
+
+      .arm.missed::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA0AAAAHCAYAAADTcMcaAAAAAXNSR0IArs4c6QAAAENJREFUKFNjZGBgYDBeeus/iCYGnI1WY2QEaTgTpUqMerAak2W3GSjTFKEpADZpxfUPGLYiy+G0CaYImyHkO4+c0AMAWBctfQPWfVQAAAAASUVORK5CYII=);
+      }
+
+      .control {
+        position: relative;
+        --h: 60px;
+        width: 100%;
+        text-align: right;
+        background-color: var(--dark-blue);
+      }
+
+      .cover {
+        position: absolute;
+        background-color: var(--machine-color);
+        --top-size: calc(var(--m) * 20px);
+        --bottom-size: calc(var(--m) * 10px);
+        z-index: 4;
+      }
+
+      .top {
+        top: 0;
+        width: 100%;
+        height: calc(var(--m) * 16px);
+      }
+
+      .collection-arrow {
+        position: absolute;
+        left: calc(var(--m) * 21px);
+        top: calc(var(--m) * 9px);
+        --w: 8px;
+        --h: 4px;
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAECAYAAACzzX7wAAAAAXNSR0IArs4c6QAAAClJREFUGFdjDDn86T8DHsAIksOlaI0tHyNYATZFIEmQOFwBsiKYJEgMAPTvDw1xBcM+AAAAAElFTkSuQmCC);
+        filter: sepia(1) brightness(0.5);
+      }
+
+      .bottom {
+        bottom: 0px;
+        width: 100%;
+        height: calc(var(--m) * 8px);
+        background-color: var(--brown);
+      }
+
+      .left {
+        bottom: 0px;
+        left: 0px;
+        height: calc(var(--m) * 170px);
+        width: calc(var(--m) * 8px);
+      }
+
+      .right {
+        top: 0;
+        right: 0px;
+        height: 100%;
+        width: calc(var(--m) * 116px);
+      }
+
+      .instruction {
+        position: absolute;
+        --w: 51px;
+        --h: 12px;
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADMAAAAMCAYAAADPjYVSAAAAAXNSR0IArs4c6QAAAPRJREFUSEvdVkESwkAIs0d9hv9/k8/Qow4d6aSZBKjjRfdSdltYIBC63B735+m9rufLkvuQ4/joHnVCRjsp531hG89w7+S0r3xdnc8X1RONOGfynL/lO1A/A8akOZ/4Xk7GhoQy6pBx2fwkmKOJZMQQ/Q0ZFzVHP0VIlUlVVlw+GKR6p/wYBTNFzSGjLu6SMk3iDhl04NfllbH+ZZUEUDWbqn9XjkgkWBaqlJh0eHQopkwwLDU7eu0a1fWHs9eRQqeHNF4OSYfMNFvVkHSzZ0oMqP9VZBytcy9O6JptTZGJ72SZqdrvJjT3Au6VgxVds+70t+cFkvdjifIP/BkAAAAASUVORK5CYII=);
+        top: calc(var(--m) * 34px);
+        right: calc(var(--m) * 11px);
+      }
+
+      .arm {
+        position: absolute;
+        --w: 7px;
+        --h: 28px;
+        background-color: #fff;
+        box-shadow: 0 0 0 2px var(--blue);
+        transition: 0.3s;
+        margin-top: calc(var(--m) * -1px);
+        margin-left: calc(var(--m) * -1px);
+      }
+
+      .claws {
+        position: absolute;
+        --w: 3px;
+        --h: 10px;
+        bottom: calc(var(--m) * -5px);
+        left: calc(var(--m) * 2.5px);
+      }
+
+      .claws::before,
+      .claws::after {
+        top: 0;
+        --w: 10px;
+        --h: 16px;
+        transition: 0.2s;
+      }
+
+      .claws::before {
+        left: calc(var(--m) * -10px);
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAQCAYAAAAvf+5AAAAAAXNSR0IArs4c6QAAAGRJREFUKFNjZMADwjX4/6+88ZERpARMYAMgRSuuf2CI0BRgACnGqhCmCGYASDGGQmyKMEzEpQjFjfgUwRUSUgRWSIwi0hSCVBNjKjx4CClGCUeiggcWC0QFOD7FlCUKZJNhyQwAi8VlK14hrsQAAAAASUVORK5CYII=);
+        --close-angle: 45deg;
+        transform-origin: top right;
+      }
+
+      .claws::after {
+        left: calc(var(--m) * 2.5px);
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAQCAYAAAAvf+5AAAAAAXNSR0IArs4c6QAAAFxJREFUKFNjZICCcA3+/ytvfGSE8dFpsARI0YrrHxgiNAUYcClmhCmCmYBLMYqJ+BTD3UTIZBTH41OM4UtcirEGBzbF5CskymqiPENU8BBSBIoI8qIQb6IgNpkBAEPjZSuK8jVuAAAAAElFTkSuQmCC);
+        --close-angle: -45deg;
+        transform-origin: top left;
+      }
+
+      .arm.open .claws::before,
+      .arm.open .claws::after {
+        rotate: var(--close-angle);
+      }
+
+      .arm-joint::before {
+        --w: 20px;
+        --h: 16px;
+        transform: scale(var(--scale));
+        margin-left: -15px;
+        margin-top: var(--shadow-pos);
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAQCAYAAAAWGF8bAAAAAXNSR0IArs4c6QAAAF5JREFUOE9jZMABXmQc+49LDiQuMcOKEZs8iiAhQ3BZgGw43EByDYNZAjMUbCClhiEbSn0DqeU6mCsZRw3El5aJkqN+GA7+dAgLGEqTD0rWo9RQrIUDehQScjGu4gsANVo6j8xbO6QAAAAASUVORK5CYII=);
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAQCAYAAAAWGF8bAAAAAXNSR0IArs4c6QAAAF5JREFUOE9jZMABrKZs/49LDiR+LMeTEZs8iiAhQ3BZgGw43EByDYNZAjMUbCClhiEbSn0DqeU6mCsZRw3El5aJkqN+GA7+dAgLGEqTD0rWo9RQrIUDehQScjGu4gsAxKQ3Ke4v44gAAAAASUVORK5CYII=);
+        z-index: -1;
+        opacity: 0.5;
+      }
+
+      button {
+        position: relative;
+        z-index: 5;
+        --w: 24px;
+        --h: 24px;
+        margin: 12px 12px 0 0;
+        border: 0;
+        background-color: transparent;
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAAXNSR0IArs4c6QAAAFRJREFUKFNjZICC/////4exsdGMjIyMIHEwQUgxzACQJkZsikOPfAarWW3Di2EZhgaYYphKdE0oGtAVY9ME14BLMbomypwEMo0kP9BGA8kRR2rSAACHREftd0fKPgAAAABJRU5ErkJggg==);
+        filter: sepia(1) brightness(0.4);
+        pointer-events: none;
+        cursor: pointer;
+      }
+
+      .hori-btn {
+        transform: rotate(90deg);
+      }
+
+      .active {
+        animation: pulse infinite 1s;
+        pointer-events: all;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          filter: sepia(0);
+        }
+        50% {
+          filter: sepia(1);
+        }
+      }
+
+      .toy.display {
+        transform: scale(3);
+        animation: forwards show-toy-1 0.8s;
+        animation-delay: 1s;
+      }
+
+      .toy {
+        position: absolute;
+        transition:
+          transform 1s,
+          left 0.3s,
+          top 0.3s;
+        --m: 2;
+        --w: 20px;
+        --h: 27px;
+        transform: rotate(var(--rotate-angle));
+        pointer-events: none;
+      }
+
+      .toy::after {
+        content: "";
+      }
+
+      .toy.bear::after {
+        --w: 24px;
+        --h: 30px;
+        top: calc(var(--m) * -2px);
+        left: calc(var(--m) * -2px);
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAeCAYAAAA2Lt7lAAAAAXNSR0IArs4c6QAAATNJREFUSEvtVssNwjAMbcUZwQLcYQfWQLAAU7FAEWuwA9xZAMQZgRzpRY7rOEkbTtALtLHfc54/ctuwZ7ucvfF6vD5afpb6H/P1IGTwOtw8zmS/aHJJLF9HoBmkItbOtQADAoqanu5yH4Lf7FZz50dEUCCQaCiwjIaIIK+/QS1wkIHk+wSU4NrR81u0GgGSlUscs6fvP0awOT+dvKf1NKjMYokGdZni5HKAUWEllAzlufaNcxT3AWQASKrCAoKcW5TI1hsVcK7RdByccH0OMAXpF1O1JGrNnwaeazQ+x0tBLXsK1CRAvaP+JVjqPEmgNZUkiZFD6iyJZOeCxAL3BChRnqSxeUCRuCRzsBoJl9vIn6CXrlESIXlWY5oEqCgNgDvGikFbN9UFly+y0EDuqTk25PsBag8IsJphwl4AAAAASUVORK5CYII=);
+      }
+
+      .toy.bear.grabbed::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAeCAYAAAA2Lt7lAAAAAXNSR0IArs4c6QAAAUNJREFUSEvllr0NAjEMhe9EjWABetiBNRAswFQsAGINdoCeBUDUCORIL3KM48RHqLiGn8T+bD87l75jz3o+eeHn4XLv+Vrpe842OqENz901+hltZ10txLINAG1DKWJtXQswAVDU9OzPtyH+u81iGuwIhAokJRrqWEZDIJQ3ZtDKOWCA/B5AAreOnmfRawBKzwvVbOg/FUAReCC5vSagFmIF4s5gdXqE8h6X46Qz3Rl4ysMFlbqFDHBUWKLmBCzZ0LBVAaAHr0upy5JBq8nCczh9HBUwbjF03Dn5jSXCKUifOFU9UWv2QQP5LvA6tfZToCYA/Y7+l85K60WANlQSkoOj1FUlkpMLiOU8AtCiXKRvdUCTxEHjbcpf3ENA8jaS3H1adNSfAyCepZNZInSU5oAb5rTSrpvqBZdfZNFJ8p5as4ds30LPDrDvwGtOAAAAAElFTkSuQmCC);
+      }
+
+      .toy-wrapper .toy.bear::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAeCAYAAAA2Lt7lAAAAAXNSR0IArs4c6QAAATVJREFUSEvtVsutwkAMTMQZQQPvDj3QBoIGqOo1AKINeoA7DYA4I9CsNCuv5f2FhQvkkpC1ZxyPbdx34lrNJg/+3J2uvTzLPcd8PQgM7v9njzPa/HWlJClfR2AZ5CK2zq0AAwJEjWt7vAzB79bzqfMDETMQpGgosI4GREyv/4JW4CQjyfsJIHDr6OVX9BYBxSoljtnj/ZcRLA83l979YhxUZnWKBnWZ4eQ04KhICQpD6zz2HpjVfcA0yEBzQaGbPzMqGFWLppNzCLheA05B3DlVa8XmuKa/S5H+L6gFTdmDKEnAemf9a7DceZbAaipNEiNnqotSpDuXJClwT8BGkyK/qkMgsgRrIbjeRoLd50dAYeXCVpUiiicXLF0QSQ1YURaAdIxpZa2b5oIrF1lGqPfUEhv4PgFUUwiwSYZ9UgAAAABJRU5ErkJggg==);
+      }
+
+      .toy.bunny {
+        --w: 20px;
+        --h: 29px;
+      }
+
+      .toy.bunny::after {
+        --w: 24px;
+        --h: 32px;
+        top: calc(var(--m) * -2px);
+        left: calc(var(--m) * -2px);
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAYAAAAIXrg4AAAAAXNSR0IArs4c6QAAAN1JREFUSEvtVtsNgzAMTCYoY9CJ2hHpRDBGO0Grq2TkOg4+KlAfSv4wjs+cH1xO5pz6w93aLtMtWxueGd+Xi7gwjNci1vnYJQvC+s4AtQuCpkHW+DYAr/ZJ09ko2o4iRAK3ON6saKSiBlFfu2kGRgHJewTXw/kZAJZrnalXG8Rxv6ABrC4yKLO979ls51Zr4LW41EXeRcMmg/lcdnvMwjxoktGWIH+8KpjOiBafjlF00W8CWIXG9PcSTXpeINYoZRfxXvubwf5dAMwatzq2UM2MqGV8hLa3ZTkj3QHyACJNPMzl3sUuAAAAAElFTkSuQmCC);
+      }
+
+      .toy.bunny.grabbed::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAYAAAAIXrg4AAAAAXNSR0IArs4c6QAAAOxJREFUSEvtVsENwjAMTCaAMWAiGBEmgjFgAqpDcmUcp76UVAWpfbVR7LMv5/RyMs/psHvZtev9me0avpm9H4EIuNweRa7zcZ8sCLt3BKgFCJoGadm7AXhnnzSdG0X9KEImcIvHmxWNVJxBpGu3zGBRQPISyfVwrgPAch1RhzxuB60Atf1dAJBEVKXfRXVdOqhRVe3ABtjKpDpmHmgVCc8CHiUfKZJfHxMQqcabZvo2nZMcMW+AJaZ5navCU0sLNVZdhUz/E8A6tG/lqucFZo1ydi3nYF3gbwEw1/hkB1NDx3hTzyTPtuWMdUfBA5gROcxJDOyoAAAAAElFTkSuQmCC);
+      }
+
+      .toy-wrapper .toy.bunny::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAYAAAAIXrg4AAAAAXNSR0IArs4c6QAAAOZJREFUSEvtVtsNgzAMTCZox6ATtSO2E5Ux2gmorpKRcZz4QCC1CL7Asn3J+cHlZJ5rdxqs7dG/s7Xhm/GdBCLg/nwVuW6Xc7IgrO8IUAsQNA0yx/cA8GqfNJ0HRetRhEzgFo83KxqpqEHU1+4xA6OA5C2S6+HcKQBbTE2FV3zkKSiCUbpEv9dq2vJ3AZZ0TAucKrJ3E/Z2FIAeMjltNGwS8112W8zCOGhyojVBdrwqmM6I2tjOxaSL/hPAKjSmv1s0yR6DD8Qapewi3mt/M9h/C4BZ41bHFqqZEbWMj9C2WJYz0h0gH33VNsxxz+QWAAAAAElFTkSuQmCC);
+      }
+
+      .toy.golem::after {
+        --w: 26px;
+        --h: 30px;
+        top: calc(var(--m) * -1px);
+        left: calc(var(--m) * -3px);
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAeCAYAAAAy2w7YAAAAAXNSR0IArs4c6QAAAQpJREFUSEtjZEAC4Rr8/5H5K298ZKSWPNwgkCVFtRXI5jL0NXcwwCyjVB7FooXbVqFYFO8VhmIRJfJgi0CuRTcEZiPIMhCgRB4UKoz4LEHxHgUckGNHiEWE4gVXKOLShzPoRi0ilBUGZ6qDxRt6QsCVkZHV0ddHhIogCgoEsFZYeYm3UKWWJSBzMOob9KqCXMuQqxi4RbAKj5iIJcViWAIiWHpfPH4ObK6+pRHcfGLFSEp1xBqKTd3gtIiU+MCnFpxhYfkIX3VNroUoiQG9OUWtlIfcsMGaj0aeRcTWvhQFHaEGJXreQW5So5R1sBSIq7wj1ESGWYRezmEkBphC9MY+TJxQox+XOpA4AFO+HuQ4QuSjAAAAAElFTkSuQmCC);
+      }
+
+      .toy.golem.grabbed::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAeCAYAAAAy2w7YAAAAAXNSR0IArs4c6QAAARhJREFUSEtjZEAC4Rr8/5H5K298ZKSWPNwgkCVFtRXI5jL0NXcwwCyjVB7FooXbVqFYFO8VhmIRJfJgi0CuRTcEZiPIMhCgRB4UKoz4LEHxHgUckGNHgEWwOIGFFK64QQ9JfPqwBt2oRejZAFuQk5zqKAlWkpL30LCIUBFEQYEA1gorL/EWqtSyBGQORn2DXlWQaxlyFQO3CFbhEVsKEGs5LPEQLL0vHj8HNlPf0ghuNrFiyI4hmI+INRSbusFpEbFxQUgdOOhg+QhfdU3IIFzyKIkBWRE1q3Xkhg3WfEStJD50LCLU/EKun5BbuhhFEL6gI9SgRM87OC2CpUBc5R2hJjLMIvRyDiMxwBSiN/Zh4oQa/bjUgcQBMesk5BS8p3gAAAAASUVORK5CYII=);
+      }
+
+      .toy-wrapper .toy.golem::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAeCAYAAAAy2w7YAAAAAXNSR0IArs4c6QAAAR1JREFUSEtjZEAC4Rr8/5H5K298ZKSWPNwgkCVFtRXI5jL0NXcwwCyjVB7FooXbVqFYFO8VhmIRJfJgi0CuRTcEZiPIMhCgRB4UKoz4LEHxHgUckGNHLSIrALEGHSzyYSbiSgToNuLTN7AWkRU2BDSRlOpAirFlWGKCliSLQI6mJP7ol48IFUGUxhmsvMRbqFLLEpA5GPUNelVBrmXIVQzcIliFR0wKIsViWOIhWHpfPH4ObK6+pRHcfGLFkB1EMHkTayg2dYPTIlLiA59acNDB8hG+6ppcC1ESA3pzilopD7lhgzUfjTyLCDW/kJtpyC1djCIIX9ARalCi5x2cFsFSIK7yjlATGWYRejmHkRhgCtEb+zBxQo1+XOpA4gCEWBjkRLE8iwAAAABJRU5ErkJggg==);
+      }
+
+      .toy.cucumber {
+        --w: 16px;
+        --h: 28px;
+      }
+
+      .toy.cucumber::after {
+        --w: 16px;
+        --h: 30px;
+        top: calc(var(--m) * 1px);
+        left: 0;
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAeCAYAAAAl+Z4RAAAAAXNSR0IArs4c6QAAAIVJREFUSEtjZEAD4Rr8/9HFkPkrb3xkRObDOTCNzFvP4NPP8NfbBCwPMwhsAEgzIY3opoIMAhnCSI5mmGEgQ1AMgDkPl2vQ5QehAXiDH4skhheQ1cD8CxPDFi54DSDGNaMGMIDzBXWTMjEhjx7Voy4YjYXhkhIprlhgmYOiqg05h5FauQIAKIamV0t/KUgAAAAASUVORK5CYII=);
+      }
+
+      .toy.cucumber.grabbed::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAeCAYAAAAl+Z4RAAAAAXNSR0IArs4c6QAAAIdJREFUSEtjZEAD4Rr8/9HFkPkrb3xkRObDOTCNzFvP4NPP8NfbBCwPMwhsAEgzIY3opoIMAhnCSI5mmGEgQ1AMgDkPl2vQ5QehAbiCH+RUbN7C8AKyATD/gsTwhQl1YwFvCsIiidcLxBg2agADOGeORuNoGAyXdEBxxQIrOCiq2pBLH1IrVwA8halXrQxpsQAAAABJRU5ErkJggg==);
+      }
+
+      .toy-wrapper .toy.cucumber::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAeCAYAAAAl+Z4RAAAAAXNSR0IArs4c6QAAAIVJREFUSEtjZEAD4Rr8/9HFkPkrb3xkRObDOTCNzFvP4NPP8NfbBCwPMwhsAEgzIY3opoIMAhnCSI5mmGEgQ1AMgDkPl2vQ5QehAcgBBXIezCvIbHQ1eAORmDChbizgTUFYJDFiYdQAUkOAAZwzR6NxNAyGSzqguGKBZSGKqjbkfEhq5QoAaISsV8DV840AAAAASUVORK5CYII=);
+      }
+
+      .toy.penguin {
+        --w: 24px;
+        --h: 22px;
+      }
+
+      .toy.penguin::after {
+        --w: 26px;
+        --h: 24px;
+        top: calc(var(--m) * -1px);
+        left: calc(var(--m) * -1px);
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAYCAYAAADkgu3FAAAAAXNSR0IArs4c6QAAAPBJREFUSEtjZMACwjX4/2MTJ1Zs5Y2PjOhqUQRgFvyd/ZhYM7GqY06VBYsjWwi3CGQJpRag2wqyEGYZ2CJaWAKzFGYZIy0tQbYMq0WwMCY1KHHpA4mPYItgwYKespCDl+Sgw5ZMF25bhTXPxHuFMRCKS5xxNGAWgSwmJuhwFScEfbTahpekoij0yGecRRJK8kZ29YrrH0iyBKY4QlMArg8Wd3h9BJIk1TKQJdgSxqhFBOOM6KCja2IgNUnj8iZyUgcnBmwVH6WWoVsCqmXpV8PCvA6qaXEVnDA1oAIU1gYgVT3WVhCucEdvRhFqliGrBwDOBdzprDO9jAAAAABJRU5ErkJggg==);
+      }
+
+      .toy.penguin.grabbed::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAYCAYAAADkgu3FAAAAAXNSR0IArs4c6QAAAP9JREFUSEtjZMACwjX4/2MTJ1Zs5Y2PjOhqUQRgFvyd/ZhYM7GqY06VBYsjWwi3CGQJpRag2wqyEGYZ2CJaWAKzFGYZIy0tQbZsYC2CRSapcYZLH0gcw0cgQZgFyGxCyRCfPqwW4TIQ5lp0eWJ8TbRFIIULt63C6oZ4rzB4COBzJFGJgW4WgVxK06BbbcNLKA2gyIce+YyzSEIJOmRXr7j+gSRLYIojNAXg+pBTL844AllKqmUgS7ClQrypbtQiUMQQHXR0TQykJmlcSRM5qYMTA7aKj1LL0C0B1bL0q2FhXgfVtLgKTpgaUAEKawOQqh5rKwhXuKM3owg1y5DVAwDi4Nbp/c5ePwAAAABJRU5ErkJggg==);
+      }
+
+      .toy-wrapper .toy.penguin::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAYCAYAAADkgu3FAAAAAXNSR0IArs4c6QAAAPxJREFUSEtjZMACwjX4/2MTJ1Zs5Y2PjOhqUQRgFvyd/ZhYM7GqY06VBYsjWwi3CGQJpRag2wqyEGYZ2CJaWAKzFGYZIy0tQbZsBFgEClNYokBmE0qG+PSB5LAGHSx5IqdCmBi6hdjUoKdenBZhS6YLt63C6ql4rzB4CODy9eCzCORSYoKObB+ttuEllAZQ5EOPfMZZJKEkBmRXr7j+gSRLYIojNAXg+pBTL84MC7KUVMtAlmArL/EmhlGLQBFDdNDRNTGQmqRxJU3kpA5ODNgqPkotQ7cEVMvSr4aFeR1U0+IqOGFqQAUorA1AqnqsrSBc4Y7ejCLULENWDwD2ldbpo7PPMQAAAABJRU5ErkJggg==);
+      }
+
+      .toy.robot {
+        --w: 20px;
+        --h: 30px;
+      }
+
+      .toy.robot::after {
+        --w: 24px;
+        --h: 32px;
+        top: calc(var(--m) * -1px);
+        left: calc(var(--m) * -2px);
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAYAAAAIXrg4AAAAAXNSR0IArs4c6QAAAO5JREFUSEtjZMADwjX4/+OTh8mtvPGREZc6nBIgw1dc/0CM+QwRmgIMuCwBW0CsS4myDUkRyFJGkOFFtRWk6iVKfV9zB8OoBXiDamCCCGQrCJAa8dj0YfXBqAXIQTswkYye7mBxgis94ksMg8MHRBU6OBSBfUDz0hRmOTVLVZDLYfUDvMKhqQWwCgeWIsyiyKsfTi2DFDOwlAevcEBVI6jao6YFMDPBFc6oBbCUiBwH8CBCzgfUjAOQueBIHh75ABZMpFaTuMop+udk5HigpPTE1hjGaPziavQiN3CJUQOzDGvrGltjGL31TIwakCUAkfj3fsmx0PsAAAAASUVORK5CYII=);
+      }
+
+      .toy.robot.grabbed::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAYAAAAIXrg4AAAAAXNSR0IArs4c6QAAAPtJREFUSEtjZMADwjX4/+OTh8mtvPGREZc6nBIgw1dc/0CM+QwRmgIMuCwBW0CsS4myDUkRyFJGkOFFtRWk6iVKfV9zB8OoBXiDahgGEchLyIDY1IVLH0YQ0dwCohI3CYqIimSQIlxBhU8O5A6iLIApxOZwQnFEtAUkhAqKUvpYQPPSFOYnapaqoKCB1Q/wCoemFsAqHFiqMIsir344tQxSEsAyLLzCAVWNoGqPmhbAzARXOKMWwFIichzAgwg5H1AzDkDmgiN5eOQDWDARKh2JLfTon5OR44FYV+JTh9xOxWj84mr0IjdwiVEDcwDW1jW2xjB665kYNSBLAOSw8X4zbpm3AAAAAElFTkSuQmCC);
+      }
+
+      .toy-wrapper .toy.robot::after {
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAYAAAAIXrg4AAAAAXNSR0IArs4c6QAAAPlJREFUSEtjZMADwjX4/+OTh8mtvPGREZc6nBIgw1dc/0CM+QwRmgIMuCwBW0CsS4myDUkRyFJGkOFFtRWk6iVKfV9zB8OoBXiDamCCCGQrCJAa8dj0YfXBqAXIQUtUJIMU4YoPfHKgeCTKAphCbOmRUEIg2gKiygUsiuhjAc1LU5jPqFmqgoIGVj/AKxyaWgCrcGCpwiyKvPrh1DJIMQMrDeAVDqhqBFV71LQAZia4whm1AJYSkeMAHkTI+YCacQAyFxzJwyMfwIKJUOlIbKFH/5yMHA/EuhKfOuR2KkbjF1ejF7mBS4wamAOwtq6xNYbRW8/EqAFZAgDgjP1+jrGWQwAAAABJRU5ErkJggg==);
+      }
+
+      .toy.selected {
+        pointer-events: all;
+      }
+
+      @keyframes show-toy-1 {
+        0% {
+          opacity: 1;
+          transform: scale(3) translateY(0);
+        }
+        30% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+          transform: scale(1) translateY(-100vh);
+        }
+      }
+
+      .control .collection-point {
+        filter: brightness(0.8);
+        bottom: calc(var(--m) * 8px);
+      }
+
+      .sign {
+        position: fixed;
+        color: var(--brown);
+        bottom: 10px;
+        right: 10px;
+        font-size: 10px;
+      }
+
+      a {
+        color: var(--brown);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="collection-box pix"></div>
+      <div class="claw-machine">
+        <div class="box pix">
+          <div class="machine-top pix">
+            <div class="arm-joint pix">
+              <div class="arm pix">
+                <div class="claws pix"></div>
+              </div>
+            </div>
+            <div class="rail vert pix"></div>
+            <div class="rail hori pix"></div>
+          </div>
+          <div class="machine-bottom pix">
+            <div class="collection-point pix"></div>
+          </div>
+        </div>
+        <div class="control pix">
+          <div class="cover left"></div>
+          <button type="button" class="hori-btn pix">"</button>
+          <button type="button" class="vert-btn pix">"</button>
+          <div class="cover right">
+            <div class="instruction pix"></div>
+          </div>
+          <div class="cover bottom"></div>
+          <div class="cover top">
+            <div class="collection-arrow pix"></div>
+          </div>
+          <div class="collection-point pix"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const elements = {
+        clawMachine: document.querySelector(".claw-machine"),
+        box: document.querySelector(".box"),
+        collectionBox: document.querySelector(".collection-box"),
+        collectionArrow: document.querySelector(".collection-arrow"),
+        toys: [],
+      };
+
+      const settings = {
+        targetToy: null,
+        collectedNumber: 0,
+      };
+
+      const m = 2;
+      const toys = {
+        bear: {
+          w: 20 * m,
+          h: 27 * m,
+        },
+        bunny: {
+          w: 20 * m,
+          h: 29 * m,
+        },
+        golem: {
+          w: 20 * m,
+          h: 27 * m,
+        },
+        cucumber: {
+          w: 16 * m,
+          h: 28 * m,
+        },
+        penguin: {
+          w: 24 * m,
+          h: 22 * m,
+        },
+        robot: {
+          w: 20 * m,
+          h: 30 * m,
+        },
+      };
+
+      const sortedToys = [...Object.keys(toys), ...Object.keys(toys)].sort(
+        () => 0.5 - Math.random(),
+      );
+
+      const cornerBuffer = 16;
+
+      const machineBuffer = {
+        x: 36,
+        y: 16,
+      };
+
+      const radToDeg = (rad) => Math.round(rad * (180 / Math.PI));
+      const calcX = (i, n) => i % n;
+      const calcY = (i, n) => Math.floor(i / n);
+
+      const {
+        width: machineWidth,
+        height: machineHeight,
+        top: machineTop,
+      } = document.querySelector(".claw-machine").getBoundingClientRect();
+
+      const { height: machineTopHeight } = document
+        .querySelector(".machine-top")
+        .getBoundingClientRect();
+
+      const { height: machineBottomHeight, top: machineBottomTop } = document
+        .querySelector(".machine-bottom")
+        .getBoundingClientRect();
+
+      const maxArmLength = machineBottomTop - machineTop - machineBuffer.y;
+
+      const adjustAngle = (angle) => {
+        const adjustedAngle = angle % 360;
+        return adjustedAngle < 0 ? adjustedAngle + 360 : adjustedAngle;
+      };
+
+      const randomN = (min, max) => {
+        return Math.round(min - 0.5 + Math.random() * (max - min + 1));
+      };
+
+      //* classes *//
+
+      class Button {
+        constructor({
+          className,
+          action,
+          isLocked,
+          pressAction,
+          releaseAction,
+        }) {
+          Object.assign(this, {
+            el: document.querySelector(`.${className}`),
+            isLocked,
+          });
+          this.el.addEventListener("click", action);
+          ["mousedown", "touchstart"].forEach((action) =>
+            this.el.addEventListener(action, pressAction),
+          );
+          ["mouseup", "touchend"].forEach((action) =>
+            this.el.addEventListener(action, releaseAction),
+          );
+
+          if (!isLocked) this.activate();
+        }
+        activate() {
+          this.isLocked = false;
+          this.el.classList.add("active");
+        }
+        deactivate() {
+          this.isLocked = true;
+          this.el.classList.remove("active");
+        }
+      }
+
+      class WorldObject {
+        constructor(props) {
+          Object.assign(this, {
+            x: 0,
+            y: 0,
+            z: 0,
+            angle: 0,
+            transformOrigin: { x: 0, y: 0 },
+            interval: null,
+            default: {},
+            moveWith: [],
+            el:
+              props.className && document.querySelector(`.${props.className}`),
+            ...props,
+          });
+          this.setStyles();
+          if (props.className) {
+            const { width, height } = this.el.getBoundingClientRect();
+            this.w = width;
+            this.h = height;
+          }
+          ["x", "y", "w", "h"].forEach((key) => {
+            this.default[key] = this[key];
+          });
+        }
+        setStyles() {
+          Object.assign(this.el.style, {
+            left: `${this.x}px`,
+            top: !this.bottom && `${this.y}px`,
+            bottom: this.bottom,
+            width: `${this.w}px`,
+            height: `${this.h}px`,
+            transformOrigin: this.transformOrigin,
+          });
+          this.el.style.zIndex = this.z;
+        }
+        setClawPos(clawPos) {
+          this.clawPos = clawPos;
+        }
+        setTransformOrigin(transformOrigin) {
+          this.transformOrigin =
+            transformOrigin === "center"
+              ? "center"
+              : `${transformOrigin.x}px ${transformOrigin.y}px`;
+          this.setStyles();
+        }
+        handleNext(next) {
+          clearInterval(this.interval);
+          if (next) next();
+        }
+        resumeMove({ moveKey, target, moveTime, next }) {
+          this.interval = null;
+          this.move({ moveKey, target, moveTime, next });
+        }
+        resizeShadow() {
+          elements.box.style.setProperty(
+            "--scale",
+            0.5 + this.h / maxArmLength / 2,
+          );
+        }
+        move({ moveKey, target, moveTime, next }) {
+          if (this.interval) {
+            this.handleNext(next);
+          } else {
+            const moveTarget = target || this.default[moveKey];
+            this.interval = setInterval(() => {
+              const distance =
+                Math.abs(this[moveKey] - moveTarget) < 10
+                  ? Math.abs(this[moveKey] - moveTarget)
+                  : 10;
+              const increment =
+                this[moveKey] > moveTarget ? -distance : distance;
+              if (
+                increment > 0
+                  ? this[moveKey] < moveTarget
+                  : this[moveKey] > moveTarget
+              ) {
+                this[moveKey] += increment;
+                this.setStyles();
+                if (moveKey === "h") this.resizeShadow();
+                if (this.moveWith.length) {
+                  this.moveWith.forEach((obj) => {
+                    if (!obj) return;
+                    obj[moveKey === "h" ? "y" : moveKey] += increment;
+                    obj.setStyles();
+                  });
+                }
+              } else {
+                this.handleNext(next);
+              }
+            }, moveTime || 100);
+          }
+        }
+        distanceBetween(target) {
+          return Math.round(
+            Math.sqrt(
+              Math.pow(this.x - target.x, 2) + Math.pow(this.y - target.y, 2),
+            ),
+          );
+        }
+      }
+
+      class Toy extends WorldObject {
+        constructor(props) {
+          const toyType = sortedToys[props.index];
+          const size = toys[toyType];
+          super({
+            el: Object.assign(document.createElement("div"), {
+              className: `toy pix ${toyType}`,
+            }),
+            x:
+              cornerBuffer +
+              calcX(props.index, 4) * ((machineWidth - cornerBuffer * 3) / 4) +
+              size.w / 2 +
+              randomN(-6, 6),
+            y:
+              machineBottomTop -
+              machineTop +
+              cornerBuffer +
+              calcY(props.index, 4) *
+                ((machineBottomHeight - cornerBuffer * 2) / 3) -
+              size.h / 2 +
+              randomN(-2, 2),
+            z: 0,
+            toyType,
+            ...size,
+            ...props,
+          });
+          elements.box.append(this.el);
+          const toy = this;
+
+          this.el.addEventListener("click", () => this.collectToy(toy));
+          elements.toys.push(this);
+        }
+        collectToy(toy) {
+          toy.el.classList.remove("selected");
+          toy.x = machineWidth / 2 - toy.w / 2;
+          toy.y = machineHeight / 2 - toy.h / 2;
+          toy.z = 7;
+          toy.el.style.setProperty("--rotate-angle", "0deg");
+          toy.setTransformOrigin("center");
+          toy.el.classList.add("display");
+          elements.clawMachine.classList.add("show-overlay");
+          settings.collectedNumber++;
+          elements.collectionBox.appendChild(
+            Object.assign(document.createElement("div"), {
+              className: `toy-wrapper ${
+                settings.collectedNumber > 6 ? "squeeze-in" : ""
+              }`,
+              innerHTML: `<div class="toy pix ${toy.toyType}"></div>`,
+            }),
+          );
+          setTimeout(() => {
+            elements.clawMachine.classList.remove("show-overlay");
+            if (!document.querySelector(".selected"))
+              elements.collectionArrow.classList.remove("active");
+          }, 1000);
+        }
+        setRotateAngle() {
+          const angle =
+            radToDeg(
+              Math.atan2(
+                this.y + this.h / 2 - this.clawPos.y,
+                this.x + this.w / 2 - this.clawPos.x,
+              ),
+            ) - 90;
+          const adjustedAngle = Math.round(adjustAngle(angle));
+          this.angle =
+            adjustedAngle < 180 ? adjustedAngle * -1 : 360 - adjustedAngle;
+          this.el.style.setProperty("--rotate-angle", `${this.angle}deg`);
+        }
+      }
+
+      //* set up *//
+      elements.box.style.setProperty("--shadow-pos", `${maxArmLength}px`);
+
+      const armJoint = new WorldObject({
+        className: "arm-joint",
+      });
+
+      const vertRail = new WorldObject({
+        className: "vert",
+        moveWith: [null, armJoint],
+      });
+
+      const arm = new WorldObject({
+        className: "arm",
+      });
+
+      armJoint.resizeShadow();
+
+      armJoint.move({
+        moveKey: "y",
+        target: machineTopHeight - machineBuffer.y,
+        moveTime: 50,
+        next: () =>
+          vertRail.resumeMove({
+            moveKey: "x",
+            target: machineBuffer.x,
+            moveTime: 50,
+            next: () => {
+              Object.assign(armJoint.default, {
+                y: machineTopHeight - machineBuffer.y,
+                x: machineBuffer.x,
+              });
+              Object.assign(vertRail.default, {
+                x: machineBuffer.x,
+              });
+              activateHoriBtn();
+            },
+          }),
+      });
+
+      const doOverlap = (a, b) => {
+        return b.x > a.x && b.x < a.x + a.w && b.y > a.y && b.y < a.y + a.h;
+      };
+
+      const getClosestToy = () => {
+        const claw = {
+          y: armJoint.y + maxArmLength + machineBuffer.y + 7,
+          x: armJoint.x + 7,
+          w: 40,
+          h: 32,
+        };
+        const overlappedToys = elements.toys.filter((t) => {
+          return doOverlap(t, claw);
+        });
+
+        if (overlappedToys.length) {
+          const toy = overlappedToys.sort((a, b) => b.index - a.index)[0];
+          toy.setTransformOrigin({
+            x: claw.x - toy.x,
+            y: claw.y - toy.y,
+          });
+          toy.setClawPos({
+            x: claw.x,
+            y: claw.y,
+          });
+          settings.targetToy = toy;
+        }
+      };
+
+      new Array(12).fill("").forEach((_, i) => {
+        if (i === 8) return;
+        new Toy({ index: i });
+      });
+
+      const stopHoriBtnAndActivateVertBtn = () => {
+        armJoint.interval = null;
+        horiBtn.deactivate();
+        vertBtn.activate();
+      };
+
+      const activateHoriBtn = () => {
+        horiBtn.activate();
+        [vertRail, armJoint, arm].forEach((c) => (c.interval = null));
+      };
+
+      const dropToy = () => {
+        arm.el.classList.add("open");
+        if (settings.targetToy) {
+          settings.targetToy.z = 3;
+          settings.targetToy.move({
+            moveKey: "y",
+            target: machineHeight - settings.targetToy.h - 30,
+            moveTime: 50,
+          });
+          [vertRail, armJoint, arm].forEach((obj) => (obj.moveWith[0] = null));
+        }
+        setTimeout(() => {
+          arm.el.classList.remove("open");
+          activateHoriBtn();
+          if (settings.targetToy) {
+            settings.targetToy.el.classList.add("selected");
+            elements.collectionArrow.classList.add("active");
+            settings.targetToy = null;
+          }
+        }, 700);
+      };
+
+      const grabToy = () => {
+        if (settings.targetToy) {
+          [vertRail, armJoint, arm].forEach(
+            (obj) => (obj.moveWith[0] = settings.targetToy),
+          );
+          settings.targetToy.setRotateAngle();
+          settings.targetToy.el.classList.add("grabbed");
+        } else {
+          arm.el.classList.add("missed");
+        }
+      };
+
+      const horiBtn = new Button({
+        className: "hori-btn",
+        isLocked: true,
+        pressAction: () => {
+          arm.el.classList.remove("missed");
+          vertRail.move({
+            moveKey: "x",
+            target: machineWidth - armJoint.w - machineBuffer.x,
+            next: stopHoriBtnAndActivateVertBtn,
+          });
+        },
+        releaseAction: () => {
+          clearInterval(vertRail.interval);
+          stopHoriBtnAndActivateVertBtn();
+        },
+      });
+
+      const vertBtn = new Button({
+        className: "vert-btn",
+        isLocked: true,
+        pressAction: () => {
+          if (vertBtn.isLocked) return;
+          armJoint.move({
+            moveKey: "y",
+            target: machineBuffer.y,
+          });
+        },
+        releaseAction: () => {
+          clearInterval(armJoint.interval);
+          vertBtn.deactivate();
+          getClosestToy();
+          setTimeout(() => {
+            arm.el.classList.add("open");
+            arm.move({
+              moveKey: "h",
+              target: maxArmLength,
+              next: () =>
+                setTimeout(() => {
+                  arm.el.classList.remove("open");
+                  grabToy();
+                  arm.resumeMove({
+                    moveKey: "h",
+                    next: () => {
+                      vertRail.resumeMove({
+                        moveKey: "x",
+                        next: () => {
+                          armJoint.resumeMove({
+                            moveKey: "y",
+                            next: dropToy,
+                          });
+                        },
+                      });
+                    },
+                  });
+                }, 500),
+            });
+          }, 500);
+        },
+      });
+    </script>
+  </body>
+</html>
