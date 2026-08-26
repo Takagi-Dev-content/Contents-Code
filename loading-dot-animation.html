@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loading Dot Animation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.19.1/TweenMax.min.js"></script>
+    <script src="//s3-us-west-2.amazonaws.com/s.cdpn.io/16327/MorphSVGPlugin.min.js"></script>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+      body {
+        background: #fff;
+      }
+      #wrapper {
+        position: relative;
+        height: 100%;
+      }
+      #dots {
+        height: 200px;
+        width: 200px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      #dot-1 {
+        fill: #4285f4;
+      }
+      #dot-2 {
+        fill: #34a853;
+      }
+      #dot-3 {
+        fill: #fbbc05;
+      }
+      #dot-4 {
+        fill: #ea4335;
+      }
+      path {
+        fill: none;
+        stroke: none;
+        stroke-miterlimit: 10;
+      }
+      h1 {
+        position: fixed;
+        top: 22%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 4rem;
+      }
+      #wrapper {
+        scale: 2;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Loading</h1>
+    <div id="wrapper">
+      <svg
+        version="1.1"
+        id="dots"
+        xmlns="http://www.w3.org/2000/svg"
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+        x="0px"
+        y="0px"
+        viewBox="0 0 200 200"
+        style="enable-background: new 0 0 200 200"
+        xml:space="preserve"
+      >
+        <circle id="dot-1" cx="40" cy="100" r="10" />
+        <circle id="dot-2" cx="80" cy="100" r="10" />
+        <circle id="dot-3" cx="120" cy="100" r="10" />
+        <circle id="dot-4" cx="160" cy="100" r="10" />
+        <path
+          id="dot-path-1"
+          d="M0,0c0-11,9-30,20-30S40-11,40,0c0-11,9-30,20-30S80-11,80,0c0-11,9-30,20-30s20,19,20,30H0z"
+        />
+        <path
+          id="dot-path-2"
+          d="M0,0h-40c0-11,9-30,20-30S0-11,0,0c0-11,9-30,20-30S40-11,40,0c0-11,9-30,20-30S80-11,80,0H0"
+        />
+        <path
+          id="dot-path-3"
+          d="M0,0h-80c0-11,9-30,20-30s20,19,20,30c0-11,9-30,20-30S0-11,0,0c0-11,9-30,20-30S40-11,40,0H0"
+        />
+        <path
+          id="dot-path-4"
+          d="M0,0h-120c0-11,9-30,20-30s20,19,20,30c0-11,9-30,20-30s20,19,20,30c0-11,9-30,20-30S0-11,0,0L0,0"
+        />
+      </svg>
+    </div>
+
+    <script>
+      const app = {
+        animation: {
+          init: function () {
+            // Master timeline
+            const masterTl = new TimelineMax();
+
+            masterTl
+              .set("#dots circle", { y: "-=50", autoAlpha: 0 })
+              .staggerTo("#dots circle", 0.3, { autoAlpha: 1 }, 0.2)
+              .staggerTo(
+                "#dots circle",
+                0.7,
+                { y: "0", ease: Bounce.easeOut },
+                0.2,
+                "-=0.5",
+              )
+              .add(function () {
+                app.animation.bounce();
+              });
+          },
+
+          bounce: function () {
+            const bounceTl = new TimelineMax({ repeat: -1 });
+            const path1 = MorphSVGPlugin.pathDataToBezier("#dot-path-1");
+            const path2 = MorphSVGPlugin.pathDataToBezier("#dot-path-2");
+            const path3 = MorphSVGPlugin.pathDataToBezier("#dot-path-3");
+            const path4 = MorphSVGPlugin.pathDataToBezier("#dot-path-4");
+
+            bounceTl
+              .to("#dot-1", 2, {
+                bezier: { values: path1, type: "cubic" },
+                ease: Linear.easeNone,
+              })
+              .to(
+                "#dot-2",
+                2,
+                {
+                  bezier: { values: path2, type: "cubic" },
+                  ease: Linear.easeNone,
+                },
+                "-=1.75",
+              )
+              .to(
+                "#dot-3",
+                2,
+                {
+                  bezier: { values: path3, type: "cubic" },
+                  ease: Linear.easeNone,
+                },
+                "-=1.75",
+              )
+              .to(
+                "#dot-4",
+                2,
+                {
+                  bezier: { values: path4, type: "cubic" },
+                  ease: Linear.easeNone,
+                },
+                "-=1.7",
+              );
+          },
+        },
+      };
+
+      $(document).ready(function () {
+        app.animation.init();
+      });
+    </script>
+  </body>
+</html>
