@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <title>Social Nav</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap");
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Poppins", sans-serif;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        width: 100%;
+
+        background: #c1c1c1;
+      }
+
+      .wrapper {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        flex-direction: row;
+        position: relative;
+        width: 500px;
+        padding: 10px 0;
+        margin: 0 20px;
+        border-radius: 50px;
+
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .holder {
+        position: relative;
+      }
+
+      .icon {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 2em;
+        width: 2em;
+        padding: 10px;
+        border-radius: 50%;
+        font-size: 2em;
+
+        transition: all 0.5s ease;
+      }
+
+      .tooltip {
+        position: absolute;
+        padding: 5px 20px;
+        top: 0%;
+        left: 0%;
+        transform: translate(-25%, -35px);
+        font-size: 1em;
+        border-radius: 50px;
+        color: #fff;
+        z-index: 1;
+        transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        opacity: 0;
+      }
+
+      .tooltip::before {
+        content: "";
+        display: flex;
+        position: absolute;
+        width: 15px;
+        height: 15px;
+        transform: translate(2rem, 15px) rotate(45deg);
+        z-index: -2;
+        outline: none;
+        border: none;
+        transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      }
+
+      .twitter .tooltip::before,
+      .reddit .tooltip::before {
+        transform: translate(1.7rem, 15px) rotate(45deg);
+      }
+
+      .github .tooltip::before {
+        transform: translate(1.6rem, 15px) rotate(45deg);
+      }
+
+      .icon:hover ~ .tooltip {
+        transform: translate(-25%, -60px);
+        opacity: 1;
+      }
+
+      .icon:hover {
+        color: #fff;
+      }
+
+      .facebook .icon:hover,
+      .facebook .icon:hover ~ .tooltip,
+      .facebook .icon:hover ~ .tooltip::before {
+        background: #3b5999;
+      }
+
+      .twitter .icon:hover,
+      .twitter .icon:hover ~ .tooltip,
+      .twitter .icon:hover ~ .tooltip::before {
+        background: #46c1f6;
+      }
+
+      .instagram .icon:hover,
+      .instagram .icon:hover ~ .tooltip,
+      .instagram .icon:hover ~ .tooltip::before {
+        background: #e1306c;
+      }
+
+      .github .icon:hover ~ .tooltip,
+      .github .icon:hover ~ .tooltip::before,
+      .github .icon:hover {
+        background: #333;
+      }
+
+      .reddit .icon:hover,
+      .reddit .icon:hover ~ .tooltip,
+      .reddit .icon:hover ~ .tooltip::before {
+        background: #ff4500;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="facebook holder">
+        <span class="icon"><i class="fa-brands fa-facebook-f"></i></span>
+        <span class="tooltip">Facebook</span>
+      </div>
+      <div class="twitter holder">
+        <span class="icon"><i class="fa-brands fa-twitter"></i></span>
+        <span class="tooltip">Twitter</span>
+      </div>
+      <div class="instagram holder">
+        <span class="icon"><i class="fa-brands fa-instagram"></i></span>
+        <span class="tooltip">Instagram</span>
+      </div>
+      <div class="github holder">
+        <span class="icon"><i class="fa-brands fa-github"></i></span>
+        <span class="tooltip">Github</span>
+      </div>
+      <div class="reddit holder">
+        <span class="icon"><i class="fa-brands fa-reddit-alien"></i></span>
+        <span class="tooltip">Reddit</span>
+      </div>
+    </div>
+  </body>
+</html>
