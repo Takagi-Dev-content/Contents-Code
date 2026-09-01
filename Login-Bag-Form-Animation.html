@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Interactive Login Bag Form</title>
 
     <style>
@@ -34,10 +34,658 @@
   </head>
 
   <body>
-    <div class="visme_d" data-title="Email Capture Form Template"
-      data-url="7vgjrgxy-email-capture-form-template?fullPage=true" data-domain="forms" data-full-page="true"
-      data-min-height="100vh" data-form-id="192189">
-    </div>
-    <script src="https://static-bundles.visme.co/forms/vismeforms-embed.js"></script>
+    <div
+      class="visme_d"
+      data-title="Email Capture Form Template"
+      data-url="7vgjrgxy-email-capture-form-template?fullPage=true"
+      data-domain="forms"
+      data-full-page="true"
+      data-min-height="100vh"
+      data-form-id="192189"
+    ></div>
+    <script>
+      (function () {
+        "use strict";
+
+        if (
+          typeof window === "undefined" ||
+          typeof window.vismeForms !== "undefined"
+        ) {
+          return;
+        }
+
+        const vismeForms = {
+          constants: {
+            mode: {
+              INLINE: "inline",
+              FULL_PAGE: "fullPage",
+            },
+          },
+
+          iframeId: 1,
+          forms: [],
+
+          flags: {
+            isInitialized: false,
+            isInitOnReadyFired: false,
+            shouldBeShown: false,
+            shouldBePreloaded: false,
+          },
+
+          // ---------------------------------------------------------------------
+          // Bootstrapping
+          // ---------------------------------------------------------------------
+
+          initOnReady() {
+            if (!vismeForms.flags.isInitOnReadyFired) {
+              vismeForms.onInit(window, vismeForms.init);
+            }
+          },
+
+          onInit(target, callback) {
+            // If the document is already loaded, just run immediately.
+            if (
+              target.document &&
+              (target.document.readyState === "complete" ||
+                target.document.readyState === "interactive")
+            ) {
+              callback();
+              return;
+            }
+
+            vismeForms.addEvent(target, "load", callback);
+
+            if (!target.document) return;
+
+            vismeForms.addEvent(target.document, "DOMContentLoaded", callback);
+
+            const onReadyStateChange = () => {
+              if (target.document.readyState === "complete") {
+                callback();
+              }
+            };
+            vismeForms.addEvent(
+              target.document,
+              "readystatechange",
+              onReadyStateChange,
+            );
+          },
+
+          init() {
+            if (vismeForms.flags.isInitialized) return;
+
+            vismeForms.flags.isInitialized = true;
+            vismeForms.setupVisme();
+            vismeForms.addEvent(
+              window,
+              "message",
+              vismeForms.onMessageHandler,
+              false,
+            );
+          },
+
+          // ---------------------------------------------------------------------
+          // Sizing / styling helpers
+          // ---------------------------------------------------------------------
+
+          getWidth() {
+            return "100%";
+          },
+
+          getHeight(isFullPage) {
+            return isFullPage ? "100vh" : "100%";
+          },
+
+          getStyle(isFullPage) {
+            let style = "border: none; max-width: 100%; ";
+
+            if (isFullPage) {
+              style +=
+                "position: fixed; z-index: 999999; top: 0; left: 0; background: rgba(255, 255, 255, 0.78); ";
+            }
+
+            return style;
+          },
+
+          // ---------------------------------------------------------------------
+          // Popup trigger settings
+          // ---------------------------------------------------------------------
+
+          async getSettings({ vismeDiv, formId, origin }) {
+            if (formId && origin) {
+              const query =
+                vismeDiv.getAttribute("data-full-page") === "true"
+                  ? "?type=fullPage"
+                  : "";
+
+              try {
+                const response = await fetch(
+                  `${origin}/ajax/forms/settings/${formId}${query}`,
+                );
+                const data = await response.json();
+
+                if (data?.settings) {
+                  return JSON.parse(data.settings);
+                }
+              } catch (error) {
+                console.warn(
+                  "VISME_FORMS: Error fetching popup settings.",
+                  error,
+                );
+              }
+            } else {
+              console.warn(
+                "VISME_FORMS: Popup settings are not loaded. Please update your embed code.",
+              );
+            }
+
+            // Fall back to trigger settings declared directly on the embed div.
+            if (vismeDiv.getAttribute("data-trigger-page-load")) {
+              return { afterPageLoad: true };
+            }
+
+            if (vismeDiv.getAttribute("data-trigger-user-interaction")) {
+              return { afterUserInteraction: true };
+            }
+
+            const scrollTrigger = parseInt(
+              vismeDiv.getAttribute("data-trigger-scroll"),
+              10,
+            );
+            if (!Number.isNaN(scrollTrigger)) {
+              return { afterScrollDown: scrollTrigger };
+            }
+
+            if (vismeDiv.getAttribute("data-trigger-leave")) {
+              return { beforeLeave: true };
+            }
+
+            const timeTrigger = parseInt(
+              vismeDiv.getAttribute("data-trigger-timer"),
+              10,
+            );
+            return Number.isNaN(timeTrigger)
+              ? null
+              : { afterTime: timeTrigger };
+          },
+
+          addOnUserInteractionListener(callback, flagName) {
+            const interactionEvents = [
+              "keydown",
+              "mousedown",
+              "mousemove",
+              "touchmove",
+              "touchstart",
+              "touchend",
+              "wheel",
+            ];
+
+            const handleInteraction = () => {
+              if (vismeForms.flags[flagName]) {
+                console.warn(
+                  "VISME_FORMS: onUserInteraction callback already fired",
+                );
+                return;
+              }
+              callback();
+              vismeForms.flags[flagName] = true;
+            };
+
+            interactionEvents.forEach((eventName) => {
+              document.addEventListener(eventName, handleInteraction, {
+                once: true,
+              });
+            });
+          },
+
+          popupHandlers: {
+            onAfterTime(seconds, callback) {
+              setTimeout(callback, seconds * 1000);
+            },
+
+            onPageScroll(scrollPercent, callback) {
+              const scrollableHeight =
+                document.documentElement.scrollHeight - window.innerHeight;
+
+              // Nothing to scroll — trigger immediately.
+              if (scrollableHeight <= 0) {
+                callback();
+                return;
+              }
+
+              const triggerAtPercent = (percent) => {
+                const triggerY = scrollableHeight * (percent / 100);
+
+                const onScroll = () => {
+                  if (window.scrollY >= triggerY) {
+                    callback();
+                    window.removeEventListener("scroll", onScroll);
+                  }
+                };
+                window.addEventListener("scroll", onScroll);
+              };
+
+              triggerAtPercent(scrollPercent);
+            },
+
+            onUserInteraction(callback) {
+              vismeForms.addOnUserInteractionListener(
+                callback,
+                "shouldBeShown",
+              );
+            },
+
+            onPageLeave(callback) {
+              document.body.addEventListener("mouseleave", callback, {
+                once: true,
+              });
+            },
+          },
+
+          setPopupListener(form, callback) {
+            const settings = form.settings;
+
+            if (settings?.afterPageLoad || !settings) {
+              callback();
+              return;
+            }
+
+            const {
+              afterUserInteraction,
+              afterScrollDown,
+              beforeLeave,
+              afterTime,
+            } = settings;
+            const {
+              onAfterTime,
+              onPageScroll,
+              onUserInteraction,
+              onPageLeave,
+            } = vismeForms.popupHandlers;
+
+            if (afterTime) {
+              onAfterTime(afterTime, callback);
+            } else if (afterScrollDown) {
+              onPageScroll(afterScrollDown, callback);
+            } else if (afterUserInteraction) {
+              onUserInteraction(callback);
+            } else if (beforeLeave) {
+              onPageLeave(callback);
+            }
+          },
+
+          // ---------------------------------------------------------------------
+          // Embed mode / viewport helpers
+          // ---------------------------------------------------------------------
+
+          defineEmbedMode(vismeDiv) {
+            const { INLINE, FULL_PAGE } = vismeForms.constants.mode;
+            return vismeDiv.getAttribute("data-full-page") === "true"
+              ? FULL_PAGE
+              : INLINE;
+          },
+
+          isDivTopEdgeInViewport(vismeDiv) {
+            const viewportHeight =
+              window.innerHeight || document.documentElement.clientHeight;
+            const rect = vismeDiv.getBoundingClientRect();
+            return rect.top >= 0 && rect.top <= viewportHeight;
+          },
+
+          // ---------------------------------------------------------------------
+          // Popup lifecycle
+          // ---------------------------------------------------------------------
+
+          loadPopup(formConfig) {
+            // Preload the iframe (hidden) so it's ready the moment the trigger fires.
+            vismeForms.createIframe(formConfig, true);
+
+            const showPopup = () => {
+              const form = vismeForms.getFormByIframeId(formConfig.iframeId);
+
+              if (!form.ref) {
+                console.warn("VISME_FORMS: form.ref not found");
+                return;
+              }
+
+              form.ref.style.opacity = 1;
+              form.ref.style.zIndex = 999999;
+              form.ref.contentWindow.postMessage(
+                { type: "vismeForms:play", id: formConfig.formId },
+                "*",
+              );
+
+              vismeForms.increaseNumberOfVisits(formConfig.formId);
+              vismeForms.updateLastVisit(formConfig.formId);
+            };
+
+            vismeForms.setPopupListener(formConfig, showPopup);
+          },
+
+          // ---------------------------------------------------------------------
+          // Setup
+          // ---------------------------------------------------------------------
+
+          async getVismeDivsForSetup() {
+            const vismeDivs = document.getElementsByClassName("visme_d");
+            const configs = [];
+
+            for (const vismeDiv of vismeDivs) {
+              const formId = vismeDiv.getAttribute("data-form-id") || "";
+              const isFullPage =
+                vismeDiv.getAttribute("data-full-page") === "true";
+              const origin = vismeForms.getOrigin(vismeDiv);
+              const mode = vismeForms.defineEmbedMode(vismeDiv);
+
+              const config = {
+                vismeDiv,
+                width: vismeForms.getWidth(),
+                height: vismeForms.getHeight(isFullPage),
+                style: vismeForms.getStyle(isFullPage),
+                origin,
+                formId,
+                mode,
+                iframeId: vismeForms.iframeId,
+                settings: null,
+              };
+
+              // Skip duplicate full-page forms for the same formId — only one full-page
+              // instance of a given form should be set up per page.
+              const isDuplicateFullPage =
+                configs.some((c) => c.formId === formId) &&
+                mode === vismeForms.constants.mode.FULL_PAGE;
+
+              if (formId && !isDuplicateFullPage) {
+                configs.push(config);
+                vismeForms.forms.push({
+                  formId,
+                  ref: null,
+                  mode,
+                  iframeId: vismeForms.iframeId,
+                  minHeight: vismeDiv.getAttribute("data-min-height"),
+                });
+                vismeForms.iframeId++;
+              }
+            }
+
+            // Fetch trigger/popup settings for every form in parallel.
+            for (const config of configs) {
+              const { vismeDiv, formId, origin } = config;
+              const settings = await vismeForms.getSettings({
+                vismeDiv,
+                formId,
+                origin,
+              });
+              config.settings = settings || null;
+            }
+
+            return configs;
+          },
+
+          async setupVisme() {
+            const configs = await vismeForms.getVismeDivsForSetup();
+
+            configs.forEach(async (config) => {
+              const isFullPage =
+                config.mode === vismeForms.constants.mode.FULL_PAGE;
+              let shouldShow = true;
+
+              if (config.settings?.showing) {
+                switch (config.settings.showing.type) {
+                  case "everySession": {
+                    shouldShow = !window.sessionStorage.getItem(
+                      `vismeforms_${config.formId}_closed`,
+                    );
+                    break;
+                  }
+
+                  case "submission": {
+                    shouldShow = !window.localStorage.getItem(
+                      `vismeforms_${config.formId}_submitted`,
+                    );
+                    break;
+                  }
+
+                  case "closingForm": {
+                    shouldShow = !window.localStorage.getItem(
+                      `vismeforms_${config.formId}_closed`,
+                    );
+                    break;
+                  }
+
+                  case "visit": {
+                    shouldShow =
+                      vismeForms.getNumberOfVisits(config.formId) <
+                      config.settings.showing.value;
+                    break;
+                  }
+
+                  case "onceEvery": {
+                    const unitInMs = {
+                      hours: 3600000,
+                      days: 86400000,
+                      weeks: 604800000,
+                    };
+                    const lastVisit =
+                      parseInt(
+                        window.localStorage.getItem(
+                          `vismeforms_${config.formId}_lastVisit`,
+                        ),
+                        10,
+                      ) || 0;
+                    const [amount, unit] =
+                      config.settings.showing.value.split("*");
+
+                    if (lastVisit && amount && unit) {
+                      shouldShow =
+                        Date.now() >
+                        lastVisit + parseInt(amount, 10) * unitInMs[unit];
+                    }
+                    break;
+                  }
+
+                  case "everyVisit":
+                  case "always":
+                  default:
+                    break;
+                }
+              }
+
+              if (isFullPage && !shouldShow) {
+                console.warn(
+                  "VISME_FORMS: Full page form not shown because of showing settings",
+                );
+                return;
+              }
+
+              if (config.settings?.afterPageLoad) {
+                isFullPage
+                  ? vismeForms.loadPopup(config)
+                  : vismeForms.createIframe(config);
+                return;
+              }
+
+              if (isFullPage) {
+                vismeForms.addOnUserInteractionListener(
+                  () => vismeForms.loadPopup(config),
+                  `shouldBePreloaded-${config.mode}-${config.iframeId}`,
+                );
+                return;
+              }
+
+              if (vismeForms.isDivTopEdgeInViewport(config.vismeDiv)) {
+                vismeForms.createIframe(config);
+                return;
+              }
+
+              vismeForms.addOnUserInteractionListener(
+                () => vismeForms.createIframe(config),
+                `shouldBePreloaded-${config.mode}-${config.iframeId}`,
+              );
+            });
+          },
+
+          // ---------------------------------------------------------------------
+          // General helpers
+          // ---------------------------------------------------------------------
+
+          getOrigin(vismeDiv) {
+            return `https://${vismeDiv.getAttribute("data-domain") || "my"}.visme.co`;
+          },
+
+          addEvent(target, eventName, handler) {
+            target.addEventListener(eventName, handler, false);
+          },
+
+          getFormByIframeId(iframeId) {
+            return vismeForms.forms.find((form) => form.iframeId === iframeId);
+          },
+
+          getFormByIdAndMode(formId, mode) {
+            return vismeForms.forms.find(
+              (form) => form.formId === formId && form.mode === mode,
+            );
+          },
+
+          // ---------------------------------------------------------------------
+          // Iframe creation
+          // ---------------------------------------------------------------------
+
+          createIframe(
+            { vismeDiv, width, height, style, iframeId, mode, origin, formId },
+            isPreload = false,
+          ) {
+            const form = vismeForms.getFormByIframeId(iframeId);
+
+            // Nothing to attach to, or already created — bail out.
+            if (!form || form.ref) return;
+
+            const iframe = document.createElement("IFRAME");
+            const embedPath = `/formsPlayer/_embed/${vismeDiv.getAttribute("data-url")}?embedIframeId=${iframeId}`;
+
+            iframe.style.cssText = style;
+            iframe.style.minHeight = form.minHeight ?? "100%";
+            iframe.style.width = width;
+            iframe.style.height = height;
+            iframe.style.border = "none";
+
+            if (isPreload) {
+              iframe.style.transition = "opacity 0.2s";
+              iframe.style.opacity = 0;
+              iframe.style.zIndex = -999;
+            }
+
+            iframe.setAttribute("webkitallowfullscreen", true);
+            iframe.setAttribute("mozallowfullscreen", true);
+            iframe.setAttribute("allowfullScreen", true);
+            iframe.setAttribute("scrolling", "no");
+            iframe.setAttribute("src", origin + embedPath);
+            iframe.setAttribute("title", vismeDiv.getAttribute("data-title"));
+
+            if (mode === vismeForms.constants.mode.INLINE) {
+              iframe.setAttribute("loading", "lazy");
+            }
+
+            iframe.className = "vismeForms";
+            vismeDiv.parentNode.replaceChild(iframe, vismeDiv);
+
+            iframe.addEventListener("load", () => {
+              const customData = vismeDiv.getAttribute("data-user-custom-data");
+              if (customData) {
+                iframe.contentWindow?.postMessage(
+                  {
+                    type: "vismeForms:setUserCustomData",
+                    id: formId,
+                    data: customData,
+                  },
+                  "*",
+                );
+              }
+            });
+
+            form.ref = iframe;
+          },
+
+          // ---------------------------------------------------------------------
+          // Cross-window messaging
+          // ---------------------------------------------------------------------
+
+          onMessageHandler(event) {
+            if (event.origin.indexOf("visme") === -1) return;
+
+            const { type, id } = event.data;
+
+            if (type === "vismeForms:shouldClose") {
+              const fullPageForm = vismeForms.getFormByIdAndMode(
+                id,
+                vismeForms.constants.mode.FULL_PAGE,
+              );
+              fullPageForm?.ref.parentNode.removeChild(fullPageForm.ref);
+
+              window.sessionStorage.setItem(`vismeforms_${id}_closed`, "true");
+              window.localStorage.setItem(`vismeforms_${id}_closed`, "true");
+            }
+
+            if (type === "vismeForms:submitSuccess") {
+              window.localStorage.setItem(`vismeforms_${id}_submitted`, "true");
+            }
+
+            if (type === "vismeForms:formRectUpdated") {
+              const form = vismeForms.getFormByIframeId(
+                parseInt(event.data.iframeId, 10),
+              );
+
+              if (!form || form.iframeSizeAdjusted || !form.minHeight) return;
+
+              const formRect = JSON.parse(event.data.data.formRect);
+              const minHeight = parseInt(form.minHeight, 10) ?? 500;
+              const maxHeight = 600;
+
+              const clampedHeight = Math.min(
+                Math.max(formRect.height, minHeight),
+                maxHeight,
+              );
+              form.ref.style.minHeight = `${clampedHeight + Number(event.data.data.badgeHeight)}px`;
+              form.iframeSizeAdjusted = true;
+            }
+
+            if (type === "vismeForms:redirectUser") {
+              window.location.href = event.data.url;
+            }
+          },
+
+          // ---------------------------------------------------------------------
+          // Visit tracking (localStorage)
+          // ---------------------------------------------------------------------
+
+          getNumberOfVisits(formId) {
+            return (
+              parseInt(
+                window.localStorage.getItem(`vismeforms_${formId}_visits`),
+                10,
+              ) || 0
+            );
+          },
+
+          increaseNumberOfVisits(formId) {
+            const visits = vismeForms.getNumberOfVisits(formId);
+            window.localStorage.setItem(
+              `vismeforms_${formId}_visits`,
+              visits + 1,
+            );
+          },
+
+          updateLastVisit(formId) {
+            window.localStorage.setItem(
+              `vismeforms_${formId}_lastVisit`,
+              Date.now(),
+            );
+          },
+        };
+
+        window.vismeForms = vismeForms;
+        vismeForms.initOnReady();
+      })();
+    </script>
   </body>
 </html>
