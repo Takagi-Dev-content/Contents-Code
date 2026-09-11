@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <title>Demon Slayer Cards</title>
+    <style>
+      body {
+        margin: 0;
+        background-color: black;
+        color: #fff;
+        font-family: "Montserrat";
+        overflow: hidden;
+      }
+
+      h1 {
+        text-align: center;
+      }
+      img {
+        margin: 0;
+        display: flex;
+        width: 100px;
+      }
+
+      /*tanjiro-card1*/
+      .tanjiro_1 {
+        position: relative;
+        width: 250px;
+        transition: all 0.5s ease;
+      }
+      .tanjiro_1 img:first-child {
+        box-shadow: 0 60px 60px -60 rgba(0, 30, 255, 0.5);
+        border-radius: 10px;
+        object-fit: cover;
+        width: 100%;
+      }
+
+      .tanjiro_1 img:last-child {
+        position: absolute;
+        width: 200px;
+        bottom: 50px;
+        left: 0;
+        right: 0;
+        margin: auto;
+        transform: translateY(25%);
+        transition: 0.3 ease;
+        opacity: 0;
+        background-color: transparent;
+        border-radius: 15px;
+      }
+
+      .tanjiro_1:hover {
+        transform: perspective(250px) rotateX(10deg) translateY(-5%)
+          translateZ(0);
+      }
+
+      .tanjiro_1::before {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        height: 100%;
+        width: 100%;
+        background-image: linear-gradient(
+          to bottom,
+          transparent 10% rgba(0, 0, 0, 0.5) 50%,
+          rgba(0, 0, 0) 95%
+        );
+        opacity: 0;
+        transition: all 0.5s ease;
+      }
+
+      .tanjiro_1:hover::before {
+        opacity: 1;
+      }
+
+      .tanjiro_1:hover img:last-child {
+        opacity: 1;
+        transform: translateY(10%);
+      }
+
+      /*zenitsu-card2*/
+      .zenitsu_2 {
+        position: relative;
+        width: 250px;
+        transition: all 0.5s ease;
+      }
+      .zenitsu_2 img:first-child {
+        box-shadow: 0 60px 60px -60 rgba(0, 30, 255, 0.5);
+        border-radius: 10px;
+        object-fit: cover;
+        width: 100%;
+      }
+
+      .zenitsu_2 img:last-child {
+        position: absolute;
+        width: 200px;
+        bottom: 50px;
+        left: 0;
+        right: 0;
+        margin: auto;
+        transform: translateY(25%);
+        transition: 0.5 ease;
+        opacity: 0;
+        background-color: transparent;
+        border-radius: 15px;
+      }
+
+      .zenitsu_2:hover {
+        transform: perspective(250px) rotateX(10deg) translateY(-5%)
+          translateZ(0);
+      }
+
+      .zenitsu_2::before {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        height: 100%;
+        width: 100%;
+        background-image: linear-gradient(
+          to bottom,
+          transparent 10% rgba(0, 0, 0, 0.5) 50%,
+          rgba(0, 0, 0) 95%
+        );
+        opacity: 0;
+        transition: all 0.5s ease;
+      }
+
+      .zenitsu_2:hover::before {
+        opacity: 1;
+      }
+
+      .zenitsu_2:hover img:last-child {
+        opacity: 1;
+        transform: translateY(10%);
+      }
+
+      /*inosuke-card3*/
+      .inosuke_3 {
+        position: relative;
+        width: 250px;
+        transition: all 0.5s ease;
+      }
+      .inosuke_3 img:first-child {
+        box-shadow: 0 60px 60px -60 rgba(0, 30, 255, 0.5);
+        border-radius: 10px;
+        object-fit: cover;
+        width: 100%;
+      }
+
+      .inosuke_3 img:last-child {
+        position: absolute;
+        width: 200px;
+        bottom: 50px;
+        left: 0;
+        right: 0;
+        margin: auto;
+        transform: translateY(25%);
+        transition: 0.5 ease;
+        opacity: 0;
+        background-color: transparent;
+        border-radius: 15px;
+      }
+
+      .inosuke_3:hover {
+        transform: perspective(250px) rotateX(10deg) translateY(-5%)
+          translateZ(0);
+      }
+
+      .inosuke_3::before {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        height: 100%;
+        width: 100%;
+        background-image: linear-gradient(
+          to bottom,
+          transparent 10% rgba(0, 0, 0, 0.5) 50%,
+          rgba(0, 0, 0) 95%
+        );
+        opacity: 0;
+        transition: all 0.6s ease;
+      }
+
+      .inosuke_3:hover::before {
+        opacity: 1;
+      }
+
+      .inosuke_3:hover img:last-child {
+        opacity: 1;
+        transform: translateY(10%);
+      }
+
+      .cards-container{
+        display: flex;
+        width: 100%;
+        justify-content: center;
+        gap: 25px
+      }
+      .tanjiro_1,
+      .zenitsu_2,
+      .inosuke_3 {
+        display: inline-block;
+      }
+
+      .card {
+        scale: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Demon Slayer: Kimetsu no Yaiba</h1>
+    <img
+      src="https://raw.githubusercontent.com/pepo2005/cards-demonslayer/b9068946d4692a1726a3657131f0e01584a7669b/imagenes/Demon-Slayer-8-8-2024.png"
+    />
+
+    <div class="cards-container">
+      <div class="tanjiro_1 card">
+        <img
+          src="https://raw.githubusercontent.com/pepo2005/cards-demonslayer/b9068946d4692a1726a3657131f0e01584a7669b/imagenes/tanjiro1.jpeg"
+        />
+        <img
+          src="https://raw.githubusercontent.com/pepo2005/cards-demonslayer/b9068946d4692a1726a3657131f0e01584a7669b/imagenes/sin%20fondo/tanjiro.png"
+        />
+      </div>
+
+      <div class="zenitsu_2 card">
+        <img
+          src="https://raw.githubusercontent.com/pepo2005/cards-demonslayer/b9068946d4692a1726a3657131f0e01584a7669b/imagenes/zenitsu2.jpeg"
+        />
+        <img
+          src="https://raw.githubusercontent.com/pepo2005/cards-demonslayer/b9068946d4692a1726a3657131f0e01584a7669b/imagenes/sin%20fondo/zenitsu.png"
+        />
+      </div>
+
+      <div class="inosuke_3 card">
+        <img
+          src="https://raw.githubusercontent.com/pepo2005/cards-demonslayer/b9068946d4692a1726a3657131f0e01584a7669b/imagenes/inosuke3.jpeg"
+        />
+        <img
+          src="https://raw.githubusercontent.com/pepo2005/cards-demonslayer/b9068946d4692a1726a3657131f0e01584a7669b/imagenes/sin%20fondo/inosuke.png"
+        />
+      </div>
+    </div>
+  </body>
+</html>
