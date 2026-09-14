@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Draw With Flowers!</title>
+    <style>
+      html,
+      body {
+        overflow: hidden;
+        padding: 0;
+        margin: 0;
+      }
+
+      .container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        /*justify-content: center;*/
+        align-items: end;
+      }
+
+      .title {
+        z-index: 1;
+        font-family: sans-serif;
+        font-size: 15px;
+        color: white;
+        text-shadow: 0 0 10px #000000;
+        user-select: none;
+        padding: 20px;
+      }
+
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: block;
+      }
+
+      #screenshot {
+        background-color: transparent;
+        outline: none;
+        border: none;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- partial:index.partial.html -->
+    <div class="container">
+      <canvas id="canvas"></canvas>
+      <div class="title"></div>
+      <div class="title"></div>
+      <button class="title" id="screenshot" type="button">Save...</button>
+    </div>
+
+    <script type="x-shader/x-fragment" id="fragmentShader">
+      #define PI 3.14159265359
+
+      uniform float u_ratio;
+      uniform float u_moving;
+      uniform float u_stop_time;
+      uniform float u_speed;
+      uniform vec2 u_stop_randomizer;
+      uniform float u_clean;
+      uniform vec2 u_point;
+      uniform sampler2D u_texture;
+      varying vec2 vUv;
+
+      float rand(vec2 n) {
+          return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+      }
+      float noise(vec2 n) {
+          const vec2 d = vec2(0.0, 1.0);
+          vec2 b = floor(n), f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
+          return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(b + d.yy), f.x), f.y);
+      }
+
+      float flower_shape(vec2 _point, float _size, float _outline, float _tickniess, float _noise, float _angle_offset) {
+          float random_by_uv = noise(vUv);
+
+          float petals_thickness = .5;
+          float petals_number = 5. + floor(u_stop_randomizer[0] * 4.);
+          float angle_animated_offset = .7 * (random_by_uv - .5) / (.2 + 30. * u_stop_time);
+          float flower_angle = atan(_point.y, _point.x) - angle_animated_offset;
+          float flower_sectoral_shape = abs(sin(flower_angle * .5 * petals_number + _angle_offset)) + _tickniess * petals_thickness;
+
+          vec2 flower_size_range = vec2(4., 18.);
+          float flower_radial_shape = length(_point) * (flower_size_range[0] + flower_size_range[1] * u_stop_randomizer[0]);
+          float radius_noise = sin(flower_angle * 13. + 15. * random_by_uv);
+          flower_radial_shape += _noise * radius_noise;
+
+          float flower_radius_grow = min(20000. * u_stop_time, 1.);
+          flower_radius_grow = 1. / flower_radius_grow;
+
+          float flower_shape = 1. - smoothstep(0., _size * flower_sectoral_shape, _outline * flower_radius_grow * flower_radial_shape);
+          flower_shape *= (1. - u_moving);
+
+          flower_shape *= (1. - step(1., u_stop_time));
+
+          return flower_shape;
+      }
+
+      void main() {
+
+          vec3 base = texture2D(u_texture, vUv).xyz;
+          vec2 cursor = vUv - u_point.xy;
+          cursor.x *= u_ratio;
+
+          // ========================================
+          // STEM
+
+          vec3 stem_color = vec3(0., 2., 2.);
+          float stem_radius = .005 * u_speed * u_moving;
+          float stem_shape = 1. - pow(smoothstep(0., stem_radius, dot(cursor, cursor)), .03);
+          vec3 stem = stem_shape * stem_color;
+
+          // ========================================
+          // FLOWER
+
+          // flower_shape:
+          // - center
+          // - size coefficient
+          // - bright outline width
+          // - extra sectoral weight
+          // - noise power
+          // - angle offset
+
+          vec3 flower_color = vec3(.7 + u_stop_randomizer[1], .8 * u_stop_randomizer[1], 2.9 + u_stop_randomizer[0] * .6);
+
+          vec3 flower_new = flower_color * flower_shape(cursor, 1., .96, 1., .15, 0.);
+          vec3 flower_mask = 1. - vec3(flower_shape(cursor, 1.05, 1.07, 1., .15, 0.));
+          vec3 flower_mid = vec3(-.6) * flower_shape(cursor, .15, 1., 2., .1, 1.9);
+
+          vec3 color = base * flower_mask + (flower_new + flower_mid + stem);
+          color *= u_clean;
+          color = clamp(color, vec3(.0, .0, .15), vec3(1., 1., .4));
+
+          gl_FragColor = vec4(color, 1.);
+      }
+    </script>
+
+    <script type="x-shader/x-vertex" id="vertexShader">
+      varying vec2 vUv;
+
+      void main() {
+          vUv = uv;
+          gl_Position = vec4(position, 1.);
+      }
+    </script>
+    <!-- partial -->
+    <script type="module">
+      import * as THREE from "https://cdn.skypack.dev/three@0.139.1/build/three.module";
+
+      const canvasEl = document.querySelector("#canvas");
+
+      const pointer = {
+        x: 0.5,
+        y: 0.6,
+        moved: false,
+        speed: 0,
+        vanishMode: false,
+        drawingAllowed: true,
+      };
+      window.setTimeout(() => {
+        pointer.x = 0.7;
+        pointer.y = 0.5;
+        pointer.moved = true;
+      }, 100);
+
+      let basicMaterial, shaderMaterial;
+
+      let renderer = new THREE.WebGLRenderer({
+        canvas: canvasEl,
+        alpha: true,
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      let sceneShader = new THREE.Scene();
+      let sceneBasic = new THREE.Scene();
+      let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 10);
+      let clock = new THREE.Clock();
+
+      let renderTargets = [
+        new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight),
+        new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight),
+      ];
+
+      createPlane();
+      updateSize();
+      window.addEventListener("resize", updateSize);
+
+      render();
+
+      window.addEventListener("mousemove", (e) => {
+        if (pointer.drawingAllowed) {
+          pointer.moved = true;
+          const dx = 12 * (e.pageX / window.innerWidth - pointer.x);
+          const dy = 12 * (e.pageY / window.innerHeight - pointer.y);
+          pointer.x = e.pageX / window.innerWidth;
+          pointer.y = e.pageY / window.innerHeight;
+          pointer.speed = Math.min(2, Math.pow(dx, 2) + Math.pow(dy, 2));
+        }
+      });
+      window.addEventListener("click", (e) => {
+        pointer.x = e.pageX / window.innerWidth;
+        pointer.y = e.pageY / window.innerHeight;
+        pointer.drawingAllowed = !pointer.drawingAllowed;
+        if (pointer.drawingAllowed) {
+          pointer.moved = true;
+        }
+      });
+      window.addEventListener("keyup", (e) => {
+        if (e.key === " " || e.code === "Space" || e.keyCode === 32) {
+          pointer.vanishMode = !pointer.vanishMode;
+          if (pointer.vanishMode) {
+            pointer.drawingAllowed = true;
+          }
+        }
+      });
+
+      window.addEventListener("touchstart", (e) => {
+        pointer.x = e.targetTouches[0].pageX / window.innerWidth;
+        pointer.y = e.targetTouches[0].pageY / window.innerHeight;
+        pointer.drawingAllowed = !pointer.drawingAllowed;
+        if (pointer.drawingAllowed) {
+          pointer.moved = true;
+        }
+      });
+      window.addEventListener("touchmove", (e) => {
+        pointer.moved = true;
+        const dx =
+          5 * (e.targetTouches[0].pageX / window.innerWidth - pointer.x);
+        const dy =
+          5 * (e.targetTouches[0].pageY / window.innerHeight - pointer.y);
+        pointer.x = e.targetTouches[0].pageX / window.innerWidth;
+        pointer.y = e.targetTouches[0].pageY / window.innerHeight;
+        pointer.speed = Math.min(2, Math.pow(dx, 2) + Math.pow(dy, 2));
+      });
+
+      function createPlane() {
+        shaderMaterial = new THREE.ShaderMaterial({
+          uniforms: {
+            u_stop_time: { type: "f", value: 0 },
+            u_point: {
+              type: "v2",
+              value: new THREE.Vector2(pointer.x, pointer.y),
+            },
+            u_moving: { type: "f", value: 0 },
+            u_speed: { type: "f", value: 0 },
+            u_stop_randomizer: {
+              type: "v2",
+              value: new THREE.Vector2(Math.random(), Math.random()),
+            },
+            u_clean: { type: "f", value: 1 },
+            u_ratio: {
+              type: "f",
+              value: window.innerWidth / window.innerHeight,
+            },
+            u_texture: { type: "t", value: null },
+          },
+          vertexShader: document.getElementById("vertexShader").textContent,
+          fragmentShader: document.getElementById("fragmentShader").textContent,
+        });
+        basicMaterial = new THREE.MeshBasicMaterial();
+
+        const planeGeometry = new THREE.PlaneGeometry(2, 2);
+        const planeBasic = new THREE.Mesh(planeGeometry, basicMaterial);
+        const planeShader = new THREE.Mesh(planeGeometry, shaderMaterial);
+        sceneBasic.add(planeBasic);
+        sceneShader.add(planeShader);
+      }
+
+      function render() {
+        shaderMaterial.uniforms.u_clean.value = pointer.vanishMode ? 0.93 : 1;
+        shaderMaterial.uniforms.u_point.value = new THREE.Vector2(
+          pointer.x,
+          1 - pointer.y,
+        );
+        shaderMaterial.uniforms.u_texture.value = renderTargets[0].texture;
+        shaderMaterial.uniforms.u_ratio.value =
+          window.innerWidth / window.innerHeight;
+        if (pointer.moved) {
+          shaderMaterial.uniforms.u_moving.value = 1;
+          shaderMaterial.uniforms.u_stop_randomizer.value = new THREE.Vector2(
+            Math.random(),
+            Math.random(),
+          );
+          shaderMaterial.uniforms.u_stop_time.value = 0;
+          pointer.moved = false;
+        } else {
+          shaderMaterial.uniforms.u_moving.value = 0;
+        }
+        shaderMaterial.uniforms.u_stop_time.value += clock.getDelta();
+        shaderMaterial.uniforms.u_speed.value = pointer.speed;
+
+        renderer.setRenderTarget(renderTargets[1]);
+        renderer.render(sceneShader, camera);
+
+        basicMaterial.map = renderTargets[1].texture;
+
+        renderer.setRenderTarget(null);
+        renderer.render(sceneBasic, camera);
+
+        let tmp = renderTargets[0];
+        renderTargets[0] = renderTargets[1];
+        renderTargets[1] = tmp;
+
+        requestAnimationFrame(render);
+      }
+
+      function updateSize() {
+        shaderMaterial.uniforms.u_ratio.value =
+          window.innerWidth / window.innerHeight;
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      const screenshotBtn = document.querySelector("#screenshot");
+      screenshotBtn.addEventListener("click", () => {
+        renderer.render(sceneBasic, camera);
+        canvasEl.toBlob((blob) => {
+          saveBlob(blob, "flowers-for-you.png");
+        });
+        const saveBlob = (function () {
+          const a = document.createElement("a");
+          document.body.appendChild(a);
+          a.style.display = "none";
+          return function saveData(blob, fileName) {
+            a.href = window.URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+          };
+        })();
+      });
+    </script>
+  </body>
+</html>
