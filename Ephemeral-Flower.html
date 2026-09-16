@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pen</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.185.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.185.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script>
+      const noise3d = `
+//
+vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+
+float snoise(vec3 v){ 
+  const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
+  const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
+
+// First corner
+  vec3 i  = floor(v + dot(v, C.yyy) );
+  vec3 x0 =   v - i + dot(i, C.xxx) ;
+
+// Other corners
+  vec3 g = step(x0.yzx, x0.xyz);
+  vec3 l = 1.0 - g;
+  vec3 i1 = min( g.xyz, l.zxy );
+  vec3 i2 = max( g.xyz, l.zxy );
+
+  //  x0 = x0 - 0. + 0.0 * C 
+  vec3 x1 = x0 - i1 + 1.0 * C.xxx;
+  vec3 x2 = x0 - i2 + 2.0 * C.xxx;
+  vec3 x3 = x0 - 1. + 3.0 * C.xxx;
+
+// Permutations
+  i = mod(i, 289.0 ); 
+  vec4 p = permute( permute( permute( 
+             i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+           + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) 
+           + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
+
+// Gradients
+// ( N*N points uniformly over a square, mapped onto an octahedron.)
+  float n_ = 1.0/7.0; // N=7
+  vec3  ns = n_ * D.wyz - D.xzx;
+
+  vec4 j = p - 49.0 * floor(p * ns.z *ns.z);  //  mod(p,N*N)
+
+  vec4 x_ = floor(j * ns.z);
+  vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)
+
+  vec4 x = x_ *ns.x + ns.yyyy;
+  vec4 y = y_ *ns.x + ns.yyyy;
+  vec4 h = 1.0 - abs(x) - abs(y);
+
+  vec4 b0 = vec4( x.xy, y.xy );
+  vec4 b1 = vec4( x.zw, y.zw );
+
+  vec4 s0 = floor(b0)*2.0 + 1.0;
+  vec4 s1 = floor(b1)*2.0 + 1.0;
+  vec4 sh = -step(h, vec4(0.0));
+
+  vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+  vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+
+  vec3 p0 = vec3(a0.xy,h.x);
+  vec3 p1 = vec3(a0.zw,h.y);
+  vec3 p2 = vec3(a1.xy,h.z);
+  vec3 p3 = vec3(a1.zw,h.w);
+
+//Normalise gradients
+  vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+  p0 *= norm.x;
+  p1 *= norm.y;
+  p2 *= norm.z;
+  p3 *= norm.w;
+
+// Mix final noise value
+  vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+  m = m * m;
+  return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), 
+                                dot(p2,x2), dot(p3,x3) ) );
+}
+`;
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
+
+      import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+
+      console.clear();
+
+      console.log(THREE.MathUtils.DEG2RAD);
+
+      const gu = {
+        time: { value: 0 },
+        timeDelta: { value: 0 },
+      };
+
+      const baseColor = new THREE.Color("#01eeff");
+
+      class PointFlower extends THREE.Points {
+        constructor(amount = 50000) {
+          const petalAmount = 51;
+          const basePetal = mergeGeometries([
+            new THREE.RingGeometry(1, 0.75, 64, 4),
+            new THREE.RingGeometry(0.5, 0.3, 64, 4),
+            new THREE.PlaneGeometry(0.2, 2, 1, 20),
+          ])
+            .translate(0, 1, 0)
+            .scale(0.5, 1, 1);
+          const petalGeometry = (w, h, flatRatio) => {
+            const g = basePetal.clone();
+            const pos = g.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+              const xVal = pos.getX(i);
+              const zVal =
+                (1 -
+                  Math.sqrt(
+                    1 - THREE.MathUtils.clamp(xVal / 0.5, -1, 1) ** 2,
+                  )) *
+                0.25;
+              const yVal = pos.getY(i);
+              const curve = Math.pow(THREE.MathUtils.smoothstep(yVal, 0, 2), 3);
+              const z = zVal + curve * flatRatio;
+              pos.setZ(i, z);
+            }
+            return g.scale(w, h, 1);
+          };
+
+          const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+          const baseGeometry = mergeGeometries(
+            Array.from({ length: petalAmount }, (_, petalIdx) => {
+              const ratio = petalIdx / petalAmount;
+              const inclination =
+                (0.1 + 0.5 * THREE.MathUtils.smootherstep(ratio, 0, 1)) *
+                Math.PI;
+              const w = ratio * 0.25 + 0.75;
+              const h = ratio * 0.25 + 0.75;
+              const flattening = 0.1 + 0.9 * ratio;
+              return petalGeometry(w, h, flattening)
+                .rotateX(-inclination)
+                .rotateY(goldenAngle * petalIdx);
+            }),
+          );
+
+          const mss = new MeshSurfaceSampler(
+            new THREE.Mesh(baseGeometry),
+          ).build();
+
+          const g = new THREE.BufferGeometry()
+            .setFromPoints(
+              Array.from({ length: amount }, () => {
+                const v = new THREE.Vector3();
+                mss.sample(v);
+                return v;
+              }),
+            )
+            .setAttribute(
+              "phase",
+              new THREE.Float32BufferAttribute(
+                Array.from({ length: amount }, () => {
+                  return [Math.random(), Math.random()];
+                }).flat(),
+                2,
+              ),
+            );
+
+          const m = new THREE.PointsMaterial({
+            color: "#0088ff",
+            map: (() => {
+              const c = document.createElement("canvas");
+              c.width = c.height = 256;
+              const half = c.width * 0.5;
+              const ctx = c.getContext("2d");
+              const grd = ctx.createRadialGradient(
+                half,
+                half,
+                half * 0.5,
+                half,
+                half,
+                half,
+              );
+              grd.addColorStop(0, "rgba(255, 255, 255, 0.75");
+              grd.addColorStop(1, "rgba(255, 255, 255, 0");
+              ctx.fillStyle = grd;
+              ctx.fillRect(0, 0, c.width, c.height);
+
+              const tex = new THREE.CanvasTexture(c);
+              tex.colorSpace = "srgb";
+              tex.anisotropy = 16;
+              return tex;
+            })(),
+            size: 0.15,
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.CustomBlending,
+            blendSrc: THREE.SrcAlphaFactor,
+            blendDst: THREE.OneFactor,
+            onBeforeCompile: (shader) => {
+              shader.uniforms.time = gu.time;
+              shader.vertexShader = `
+                uniform float time;
+                attribute vec2 phase;
+                ${shader.vertexShader}
+              `
+                .replace(
+                  `#include <begin_vertex>`,
+                  `#include <begin_vertex>
+                
+                  float shift = fract(time * 0.1 + phase.y);
+                  float shiftSize = sin((1. - (shift - 0.5) * 2.) * PI);
+                  transformed.y += shift * 0.75;
+                `,
+                )
+                .replace(
+                  `gl_PointSize = size;`,
+                  `
+                float sizePhase = sin((time * 0.25 + phase.x) * PI2) * 1. + 0.;
+                gl_PointSize = size * sizePhase * shiftSize;`,
+                );
+            },
+          });
+
+          super(g, m);
+
+          this.add(
+            new THREE.Mesh(
+              baseGeometry,
+              new THREE.MeshBasicMaterial({
+                wireframe: true,
+                color: "#fef",
+                transparent: true,
+                opacity: 0.05,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+              }),
+            ),
+          );
+          this.children[0].position.y = 0.01;
+        }
+      }
+
+      class PointField extends THREE.Points {
+        constructor(amount = 25000) {
+          const g = new THREE.BufferGeometry()
+            .setFromPoints(
+              Array.from({ length: amount }, () => {
+                const r = (1 - Math.sqrt(1 - Math.random() ** 0.75)) * 10;
+                const a = Math.random() * Math.PI * 2;
+                return new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r);
+              }),
+            )
+            .setAttribute(
+              "phaseBlink",
+              new THREE.Float32BufferAttribute(
+                Array.from({ length: amount }, () => {
+                  return Math.random();
+                }),
+                1,
+              ),
+            );
+
+          const m = new THREE.PointsMaterial({
+            color: baseColor.clone().multiplyScalar(0.1),
+            size: 0.25,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            depthWrite: false,
+            map: (() => {
+              const c = document.createElement("canvas");
+              c.width = c.height = 256;
+              const half = c.width * 0.5;
+              const ctx = c.getContext("2d");
+              const grd = ctx.createRadialGradient(
+                half,
+                half,
+                half * 0.01,
+                half,
+                half,
+                half,
+              );
+              grd.addColorStop(0, "rgba(255, 255, 255, 1");
+              grd.addColorStop(1, "rgba(255, 255, 255, 0");
+              ctx.fillStyle = grd;
+              ctx.fillRect(0, 0, c.width, c.height);
+
+              const tex = new THREE.CanvasTexture(c);
+              tex.colorSpace = "srgb";
+              tex.anisotropy = 16;
+              return tex;
+            })(),
+            onBeforeCompile: (shader) => {
+              shader.uniforms.time = gu.time;
+              shader.vertexShader = `
+                uniform float time;
+                attribute float phaseBlink;
+
+                ${noise3d}
+                
+                ${shader.vertexShader}
+              `
+                .replace(
+                  `#include <color_vertex>`,
+                  `
+                float noiseVal = snoise(vec3(position.xz * 0.25, time * 0.1));
+                #include <color_vertex>`,
+                )
+                .replace(
+                  `#include <begin_vertex>`,
+                  `#include <begin_vertex>
+                  float calmVal = smoothstep(0., 2.5, length(position.xz));
+                  transformed.y = noiseVal * 0.5 * calmVal;
+                `,
+                )
+                .replace(
+                  `gl_PointSize = size;`,
+                  `
+                float sizePhase = sin((time * 0.25 + phaseBlink) * PI2) * 0.5 + 0.5;
+                gl_PointSize = size * sizePhase;`,
+                );
+            },
+          });
+
+          super(g, m);
+        }
+      }
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        innerWidth / innerHeight,
+        1,
+        100,
+      );
+      camera.position.set(0, 0.3, 1).setLength(5);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(devicePixelRatio);
+      renderer.setSize(innerWidth, innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      addEventListener("resize", () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+      });
+
+      const camShift = new THREE.Vector3(0, 0.5, 0);
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.minPolarAngle = Math.PI * 0.1;
+      controls.maxPolarAngle = Math.PI * 0.45;
+      controls.target.add(camShift);
+      controls.object.position.add(camShift);
+
+      const pointField = new PointField();
+      scene.add(pointField);
+      const pointFlower = new PointFlower();
+      scene.add(pointFlower);
+
+      const clock = new THREE.Timer();
+      clock.connect(document);
+      let t = 0;
+
+      renderer.setAnimationLoop(() => {
+        clock.update();
+        const dt = clock.getDelta();
+        t += dt;
+        gu.time.value = t;
+        gu.timeDelta.value = dt;
+        controls.update();
+        renderer.render(scene, camera);
+      });
+    </script>
+  </body>
+</html>
