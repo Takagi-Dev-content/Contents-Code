@@ -1,0 +1,1098 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <script type="importmap">
+      {
+        "imports": {
+          "clsx": "https://esm.sh/clsx@^2.1.1",
+          "clsx/": "https://esm.sh/clsx@^2.1.1/",
+          "react": "https://esm.sh/react@^19.3.1",
+          "react-dom": "https://esm.sh/react-dom@^19.3.1",
+          "react-dom/": "https://esm.sh/react-dom@^19.3.1/",
+          "react/": "https://esm.sh/react@^19.3.1/"
+        }
+      }
+    </script>
+
+    <meta charset="UTF-8" />
+    <title>Toggle Switch With Legs</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <style>
+      * {
+        border: 0;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --hue: 223;
+        --gray50: hsl(var(--hue) 10% 95%);
+        --gray500: hsl(var(--hue) 10% 50%);
+        --gray950: hsl(var(--hue) 10% 5%);
+        --primary400: hsl(var(--hue) 90% 60%);
+        --primary500: hsl(var(--hue) 90% 50%);
+        --trans-dur: 0.3s;
+        color-scheme: light dark;
+        font-size: clamp(3rem, 2.4545rem + 2.7273vw, 9rem);
+      }
+
+      body,
+      input {
+        color: light-dark(var(--gray950), var(--gray50));
+        font: 1em/1.5 sans-serif;
+      }
+
+      body {
+        background-color: light-dark(var(--gray50), var(--gray950));
+        display: grid;
+        place-items: center;
+        height: 100vh;
+        transition:
+          background-color var(--trans-dur),
+          color var(--trans-dur);
+      }
+
+      svg {
+        display: block;
+      }
+
+      .switch {
+        --dur: 2.5s;
+        display: flex;
+        position: relative;
+      }
+      .switch__sr {
+        overflow: hidden;
+        position: absolute;
+        width: 1px;
+        height: 1px;
+      }
+      .switch__dirt,
+      .switch__handle {
+        position: absolute;
+      }
+      .switch__dirt {
+        inset: auto auto 0.0625em 0.8125em;
+        width: 1.375em;
+        height: 1.375em;
+      }
+      .switch__dirt-move,
+      .switch__dirt-particle {
+        animation-duration: calc(var(--dur) * 0.1);
+        animation-timing-function: linear;
+      }
+      .switch__dirt-particle {
+        fill: var(--gray500);
+      }
+      .switch__handle {
+        margin: 0.0625em;
+        width: 1.375em;
+        height: 2.0625em;
+        overflow: visible;
+        inset: auto auto 0 0;
+      }
+      .switch__handle,
+      .switch__handle-body,
+      .switch__handle-face,
+      .switch__handle-head,
+      .switch__handle-right-leg-upper,
+      .switch__handle-right-leg-lower,
+      .switch__handle-left-leg-upper,
+      .switch__handle-left-leg-lower,
+      .switch__handle-legs,
+      .switch__handle-right-foot,
+      .switch__handle-left-foot {
+        animation-duration: var(--dur);
+        animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+        animation-fill-mode: forwards;
+      }
+      .switch__handle-body {
+        transform-origin: 12px 20px;
+      }
+      .switch__handle-face {
+        fill: light-dark(var(--gray50), var(--gray950));
+      }
+      .switch__handle-head {
+        fill: light-dark(var(--primary500), var(--primary400));
+        transition: fill var(--trans-dur);
+      }
+      .switch,
+      .switch__input {
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .switch__input {
+        border-radius: 0.75em;
+        box-shadow: 0 0 0 max(1px, 0.0625rem) var(--gray500) inset;
+        display: block;
+        position: relative;
+        width: 3em;
+        height: 1.5em;
+        -webkit-appearance: none;
+        appearance: none;
+        transition:
+          background-color var(--trans-dur),
+          box-shadow var(--trans-dur),
+          color var(--trans-dur);
+      }
+      .switch__input:checked ~ .switch__handle {
+        transform: translateX(1.5em);
+      }
+      .switch__input:checked ~ .switch__handle .switch__handle-head {
+        fill: currentColor;
+      }
+      .switch__input:checked ~ .switch__handle .switch__handle-face {
+        fill: var(--gray50);
+      }
+      .switch__input--animated ~ .switch__dirt .switch__dirt-particle {
+        animation-name: off-dirt-jump;
+      }
+      .switch__input--animated ~ .switch__dirt .switch__dirt-move {
+        animation-name: off-dirt-move;
+      }
+      .switch__input--animated ~ .switch__dirt .switch__dirt-move--1,
+      .switch__input--animated
+        ~ .switch__dirt
+        .switch__dirt-move--1
+        .switch__dirt-particle {
+        animation-delay: calc(var(--dur) * 0.5);
+      }
+      .switch__input--animated ~ .switch__dirt .switch__dirt-move--2,
+      .switch__input--animated
+        ~ .switch__dirt
+        .switch__dirt-move--2
+        .switch__dirt-particle {
+        animation-delay: calc(var(--dur) * 0.48);
+      }
+      .switch__input--animated ~ .switch__dirt .switch__dirt-move--3,
+      .switch__input--animated
+        ~ .switch__dirt
+        .switch__dirt-move--3
+        .switch__dirt-particle {
+        animation-delay: calc(var(--dur) * 0.46);
+      }
+      .switch__input--animated ~ .switch__dirt .switch__dirt-move--4,
+      .switch__input--animated
+        ~ .switch__dirt
+        .switch__dirt-move--4
+        .switch__dirt-particle {
+        animation-delay: calc(var(--dur) * 0.44);
+      }
+      .switch__input--animated ~ .switch__handle {
+        animation-name: off-handle-move-left;
+      }
+      .switch__input--animated ~ .switch__handle .switch__handle-body {
+        animation-name: off-handle-body;
+      }
+      .switch__input--animated ~ .switch__handle .switch__handle-face {
+        animation-name: off-handle-face;
+      }
+      .switch__input--animated ~ .switch__handle .switch__handle-head {
+        animation-name: off-handle-head;
+      }
+      .switch__input--animated
+        ~ .switch__handle
+        .switch__handle-right-leg-upper {
+        animation-name: off-handle-right-leg-upper;
+      }
+      .switch__input--animated
+        ~ .switch__handle
+        .switch__handle-right-leg-lower {
+        animation-name: off-handle-right-leg-lower;
+      }
+      .switch__input--animated
+        ~ .switch__handle
+        .switch__handle-left-leg-upper {
+        animation-name: off-handle-left-leg-upper;
+      }
+      .switch__input--animated
+        ~ .switch__handle
+        .switch__handle-left-leg-lower {
+        animation-name: off-handle-left-leg-lower;
+      }
+      .switch__input--animated ~ .switch__handle .switch__handle-legs {
+        animation-name: off-handle-legs;
+      }
+      .switch__input--animated ~ .switch__handle .switch__handle-right-foot {
+        animation-name: off-handle-right-foot;
+      }
+      .switch__input--animated ~ .switch__handle .switch__handle-left-foot {
+        animation-name: off-handle-left-foot;
+      }
+      .switch__input--animated:checked ~ .switch__dirt .switch__dirt-particle {
+        animation-name: on-dirt-jump;
+      }
+      .switch__input--animated:checked ~ .switch__dirt .switch__dirt-move {
+        animation-name: on-dirt-move;
+      }
+      .switch__input--animated:checked ~ .switch__dirt .switch__dirt-move--1,
+      .switch__input--animated:checked
+        ~ .switch__dirt
+        .switch__dirt-move--1
+        .switch__dirt-particle {
+        animation-delay: calc(var(--dur) * 0.44);
+      }
+      .switch__input--animated:checked ~ .switch__dirt .switch__dirt-move--2,
+      .switch__input--animated:checked
+        ~ .switch__dirt
+        .switch__dirt-move--2
+        .switch__dirt-particle {
+        animation-delay: calc(var(--dur) * 0.46);
+      }
+      .switch__input--animated:checked ~ .switch__dirt .switch__dirt-move--3,
+      .switch__input--animated:checked
+        ~ .switch__dirt
+        .switch__dirt-move--3
+        .switch__dirt-particle {
+        animation-delay: calc(var(--dur) * 0.48);
+      }
+      .switch__input--animated:checked ~ .switch__dirt .switch__dirt-move--4,
+      .switch__input--animated:checked
+        ~ .switch__dirt
+        .switch__dirt-move--4
+        .switch__dirt-particle {
+        animation-delay: calc(var(--dur) * 0.5);
+      }
+      .switch__input--animated:checked ~ .switch__handle {
+        animation-name: on-handle-move-right;
+      }
+      .switch__input--animated:checked ~ .switch__handle .switch__handle-body {
+        animation-name: on-handle-body;
+      }
+      .switch__input--animated:checked ~ .switch__handle .switch__handle-face {
+        animation-name: on-handle-face;
+      }
+      .switch__input--animated:checked ~ .switch__handle .switch__handle-head {
+        animation-name: on-handle-head;
+      }
+      .switch__input--animated:checked
+        ~ .switch__handle
+        .switch__handle-right-leg-upper {
+        animation-name: on-handle-right-leg-upper;
+      }
+      .switch__input--animated:checked
+        ~ .switch__handle
+        .switch__handle-right-leg-lower {
+        animation-name: on-handle-right-leg-lower;
+      }
+      .switch__input--animated:checked
+        ~ .switch__handle
+        .switch__handle-left-leg-upper {
+        animation-name: on-handle-left-leg-upper;
+      }
+      .switch__input--animated:checked
+        ~ .switch__handle
+        .switch__handle-left-leg-lower {
+        animation-name: on-handle-left-leg-lower;
+      }
+      .switch__input--animated:checked ~ .switch__handle .switch__handle-legs {
+        animation-name: on-handle-legs;
+      }
+      .switch__input--animated:checked
+        ~ .switch__handle
+        .switch__handle-right-foot {
+        animation-name: on-handle-right-foot;
+      }
+      .switch__input--animated:checked
+        ~ .switch__handle
+        .switch__handle-left-foot {
+        animation-name: on-handle-left-foot;
+      }
+
+      @keyframes on-dirt-jump {
+        0%,
+        100% {
+          transform: translate(0, 6px);
+        }
+        50% {
+          transform: translate(0, 3px);
+        }
+      }
+      @keyframes on-dirt-move {
+        0% {
+          transform: translate(0, 0);
+        }
+        100% {
+          transform: translate(-11px, 0);
+        }
+      }
+      @keyframes off-dirt-jump {
+        0%,
+        100% {
+          transform: translate(0, 6px);
+        }
+        50% {
+          transform: translate(0, 3px);
+        }
+      }
+      @keyframes off-dirt-move {
+        0% {
+          transform: translate(-9px, 0);
+        }
+        100% {
+          transform: translate(2px, 0);
+        }
+      }
+      @keyframes on-handle-body {
+        0% {
+          transform: translate(0, 12px) rotate(0);
+        }
+        11% {
+          transform: translate(0, 0) rotate(0);
+        }
+        22% {
+          transform: translate(0, 2px) rotate(0);
+        }
+        33% {
+          transform: translate(0, 1px) rotate(0);
+        }
+        42%,
+        50% {
+          animation-timing-function: linear;
+          transform: translate(0, 1px) rotate(-7.5deg);
+        }
+        56% {
+          animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+          transform: translate(0, 1px) rotate(7.5deg);
+        }
+        63% {
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+          transform: translate(0, 1px) rotate(0);
+        }
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: translate(0, 0) rotate(0);
+        }
+        88% {
+          animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+          transform: translate(0, 12px) rotate(0);
+        }
+        91% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: translate(0, 8px) rotate(0);
+        }
+        94% {
+          animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+          transform: translate(0, 12px) rotate(0);
+        }
+        97% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: translate(0, 11.5px) rotate(0);
+        }
+        100% {
+          transform: translate(0, 12px) rotate(0);
+        }
+      }
+      @keyframes on-handle-face {
+        0% {
+          transform: translate(24px, 24px) rotate(20deg);
+        }
+        11% {
+          transform: translate(16px, 12px) rotate(0);
+        }
+        22% {
+          transform: translate(16px, 13px) rotate(0);
+        }
+        33%,
+        50% {
+          animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+          transform: translate(16px, 12px) rotate(0);
+        }
+        56% {
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+          transform: translate(17px, 12.5px) rotate(0);
+        }
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: translate(12px, 12px) rotate(0);
+        }
+        85%,
+        100% {
+          transform: translate(12px, 24px) rotate(0);
+        }
+      }
+      @keyframes on-handle-head {
+        0%,
+        75% {
+          fill: light-dark(var(--primary500), var(--primary400));
+        }
+        100% {
+          fill: currentColor;
+        }
+      }
+      @keyframes on-handle-legs {
+        0% {
+          transform: translate(0, 1px);
+        }
+        11% {
+          transform: translate(0, -1px);
+        }
+        22%,
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: translate(0, 0);
+        }
+        88%,
+        100% {
+          transform: translate(0, 1px);
+        }
+      }
+      @keyframes on-handle-right-leg-upper {
+        0% {
+          transform: rotate(-180deg);
+        }
+        11% {
+          transform: rotate(0);
+        }
+        22% {
+          transform: rotate(-40deg);
+        }
+        33% {
+          transform: rotate(-30deg);
+        }
+        42%,
+        63% {
+          transform: rotate(0);
+        }
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: rotate(30deg);
+        }
+        88%,
+        100% {
+          transform: rotate(180deg);
+        }
+      }
+      @keyframes on-handle-right-leg-lower {
+        0% {
+          transform: rotate(90deg);
+        }
+        11% {
+          transform: rotate(0);
+        }
+        22% {
+          transform: rotate(20deg);
+        }
+        33% {
+          transform: rotate(15deg);
+        }
+        42% {
+          transform: translate(3px, 0) rotate(-15deg);
+        }
+        56%,
+        63% {
+          transform: rotate(0);
+        }
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: rotate(-15deg);
+        }
+        88%,
+        100% {
+          transform: rotate(-90deg);
+        }
+      }
+      @keyframes on-handle-right-foot {
+        0% {
+          transform: scale(1, 1);
+        }
+        11% {
+          transform: scale(1, 1) rotate(7.5deg);
+        }
+        22%,
+        33% {
+          transform: scale(1, 1);
+        }
+        42% {
+          transform: translate(3px, 0) scale(1, 1) rotate(-15deg);
+        }
+        56% {
+          transform: translate(0, 0) scale(1, 1);
+        }
+        63%,
+        100% {
+          transform: translate(0, 0) scale(-1, 1);
+        }
+      }
+      @keyframes on-handle-left-leg-upper {
+        0% {
+          transform: rotate(-180deg);
+        }
+        11% {
+          transform: rotate(0);
+        }
+        22% {
+          transform: rotate(-40deg);
+        }
+        33% {
+          transform: rotate(-30deg);
+        }
+        42%,
+        63% {
+          transform: rotate(0);
+        }
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: rotate(-30deg);
+        }
+        88%,
+        100% {
+          transform: rotate(-180deg);
+        }
+      }
+      @keyframes on-handle-left-leg-lower {
+        0% {
+          transform: rotate(90deg);
+        }
+        11% {
+          transform: rotate(0);
+        }
+        22% {
+          transform: rotate(20deg);
+        }
+        33% {
+          transform: rotate(15deg);
+        }
+        42% {
+          transform: translate(3px, 0) rotate(-15deg);
+        }
+        56%,
+        63% {
+          transform: rotate(0);
+        }
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: rotate(15deg);
+        }
+        88%,
+        100% {
+          transform: rotate(90deg);
+        }
+      }
+      @keyframes on-handle-left-foot {
+        0% {
+          transform: scale(1, 1);
+        }
+        11% {
+          transform: scale(1, 1) rotate(7.5deg);
+        }
+        22%,
+        33% {
+          transform: scale(1, 1);
+        }
+        42% {
+          transform: translate(3px, 0) scale(1, 1) rotate(-15deg);
+        }
+        56%,
+        100% {
+          transform: translate(0, 0) scale(1, 1);
+        }
+      }
+      @keyframes on-handle-move-right {
+        0%,
+        33% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: translateX(0);
+        }
+        50%,
+        100% {
+          transform: translateX(1.5em);
+        }
+      }
+      @keyframes off-handle-body {
+        0% {
+          transform: translate(0, 12px) rotate(0);
+        }
+        11% {
+          transform: translate(0, 0) rotate(0);
+        }
+        22% {
+          transform: translate(0, 2px) rotate(0);
+        }
+        33% {
+          transform: translate(0, 1px) rotate(0);
+        }
+        42%,
+        50% {
+          animation-timing-function: linear;
+          transform: translate(0, 1px) rotate(7.5deg);
+        }
+        56% {
+          animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+          transform: translate(0, 1px) rotate(-7.5deg);
+        }
+        63% {
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+          transform: translate(0, 1px) rotate(0);
+        }
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: translate(0, 0) rotate(0);
+        }
+        88% {
+          animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+          transform: translate(0, 12px) rotate(0);
+        }
+        91% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: translate(0, 8px) rotate(0);
+        }
+        94% {
+          animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+          transform: translate(0, 12px) rotate(0);
+        }
+        97% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: translate(0, 11.5px) rotate(0);
+        }
+        100% {
+          transform: translate(0, 12px) rotate(0);
+        }
+      }
+      @keyframes off-handle-face {
+        0% {
+          transform: translate(-6px, 24px) rotate(-20deg);
+        }
+        11% {
+          transform: translate(8px, 12px) rotate(0);
+        }
+        22% {
+          transform: translate(8px, 13px) rotate(0);
+        }
+        33%,
+        50% {
+          animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+          transform: translate(8px, 12px) rotate(0);
+        }
+        56% {
+          animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+          transform: translate(7px, 12.5px) rotate(0);
+        }
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: translate(12px, 12px) rotate(0);
+        }
+        85%,
+        100% {
+          transform: translate(12px, 24px) rotate(0);
+        }
+      }
+      @keyframes off-handle-head {
+        0%,
+        75% {
+          fill: currentColor;
+        }
+        100% {
+          fill: light-dark(var(--primary500), var(--primary400));
+        }
+      }
+      @keyframes off-handle-legs {
+        0% {
+          transform: translate(0, 1px);
+        }
+        11% {
+          transform: translate(0, -1px);
+        }
+        22%,
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: translate(0, 0);
+        }
+        88%,
+        100% {
+          transform: translate(0, 1px);
+        }
+      }
+      @keyframes off-handle-right-leg-upper {
+        0% {
+          transform: rotate(180deg);
+        }
+        11% {
+          transform: rotate(0);
+        }
+        22% {
+          transform: rotate(40deg);
+        }
+        33% {
+          transform: rotate(30deg);
+        }
+        42%,
+        63% {
+          transform: rotate(0);
+        }
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: rotate(30deg);
+        }
+        88%,
+        100% {
+          transform: rotate(180deg);
+        }
+      }
+      @keyframes off-handle-right-leg-lower {
+        0% {
+          transform: rotate(-90deg);
+        }
+        11% {
+          transform: rotate(0);
+        }
+        22% {
+          transform: rotate(-20deg);
+        }
+        33% {
+          transform: rotate(-15deg);
+        }
+        42% {
+          transform: translate(-3px, 0) rotate(15deg);
+        }
+        56%,
+        63% {
+          transform: rotate(0);
+        }
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: rotate(-15deg);
+        }
+        88%,
+        100% {
+          transform: rotate(-90deg);
+        }
+      }
+      @keyframes off-handle-right-foot {
+        0% {
+          transform: scale(-1, 1);
+        }
+        11% {
+          transform: scale(-1, 1) rotate(7.5deg);
+        }
+        22%,
+        33% {
+          transform: scale(-1, 1);
+        }
+        42% {
+          transform: translate(-3px, 0) scale(-1, 1) rotate(-15deg);
+        }
+        56%,
+        100% {
+          transform: scale(-1, 1) rotate(0);
+        }
+      }
+      @keyframes off-handle-left-leg-upper {
+        0% {
+          transform: rotate(180deg);
+        }
+        11% {
+          transform: rotate(0);
+        }
+        22% {
+          transform: rotate(40deg);
+        }
+        33% {
+          transform: rotate(30deg);
+        }
+        42%,
+        63% {
+          transform: rotate(0);
+        }
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: rotate(-30deg);
+        }
+        88%,
+        100% {
+          transform: rotate(-180deg);
+        }
+      }
+      @keyframes off-handle-left-leg-lower {
+        0% {
+          transform: rotate(-90deg);
+        }
+        11% {
+          transform: rotate(0);
+        }
+        22% {
+          transform: rotate(-20deg);
+        }
+        33% {
+          transform: rotate(-15deg);
+        }
+        42% {
+          transform: translate(-3px, 0) rotate(15deg);
+        }
+        56%,
+        63% {
+          transform: rotate(0);
+        }
+        75% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: rotate(15deg);
+        }
+        88%,
+        100% {
+          transform: rotate(90deg);
+        }
+      }
+      @keyframes off-handle-left-foot {
+        0% {
+          transform: scale(-1, 1) rotate(0);
+        }
+        11% {
+          transform: scale(-1, 1) rotate(7.5deg);
+        }
+        22%,
+        33% {
+          transform: scale(-1, 1) rotate(0);
+        }
+        42% {
+          transform: translate(-3px, 0) scale(-1, 1) rotate(-15deg);
+        }
+        56% {
+          transform: translate(0, 0) scale(-1, 1);
+        }
+        63%,
+        100% {
+          transform: scale(1, 1) rotate(0);
+        }
+      }
+      @keyframes off-handle-move-left {
+        0%,
+        33% {
+          animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+          transform: translateX(1.5em);
+        }
+        50%,
+        100% {
+          transform: translateX(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="module">
+      import React, { StrictMode, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import clsx from "clsx";
+      createRoot(document.getElementById("root")).render(
+        React.createElement(
+          StrictMode,
+          null,
+          React.createElement(ToggleSwitchWithLegs, { label: "Dummy" }),
+        ),
+      );
+      function ToggleSwitchWithLegs({ label, checked = false }) {
+        const [isChecked, setIsChecked] = useState(checked);
+        const [hasToggled, setHasToggled] = useState(false);
+        function handleChange() {
+          setIsChecked((val) => !val);
+          setHasToggled(true);
+        }
+        return React.createElement(
+          "label",
+          { className: "switch" },
+          React.createElement("input", {
+            className: clsx(
+              "switch__input",
+              hasToggled && "switch__input--animated",
+            ),
+            type: "checkbox",
+            role: "switch",
+            checked: isChecked,
+            onChange: handleChange,
+          }),
+          React.createElement("span", { className: "switch__sr" }, label),
+          React.createElement(ToggleSwitchWithLegsDirt, null),
+          React.createElement(ToggleSwitchWithLegsHandle, null),
+        );
+      }
+      function ToggleSwitchWithLegsDirt() {
+        return React.createElement(
+          "svg",
+          {
+            className: "switch__dirt",
+            viewBox: "0 0 24 24",
+            width: "24",
+            height: "24",
+            "aria-hidden": "true",
+          },
+          React.createElement(
+            "g",
+            { transform: "translate(0,21)" },
+            React.createElement(
+              "g",
+              { transform: "translate(12,0)" },
+              React.createElement(
+                "g",
+                { className: "switch__dirt-move switch__dirt-move--1" },
+                React.createElement("circle", {
+                  className: "switch__dirt-particle",
+                  r: "3",
+                  transform: "translate(0,6)",
+                }),
+              ),
+            ),
+            React.createElement(
+              "g",
+              { transform: "translate(15,0)" },
+              React.createElement(
+                "g",
+                { className: "switch__dirt-move switch__dirt-move--2" },
+                React.createElement("circle", {
+                  className: "switch__dirt-particle",
+                  r: "3",
+                  transform: "translate(0,6)",
+                }),
+              ),
+            ),
+            React.createElement(
+              "g",
+              { transform: "translate(18,0)" },
+              React.createElement(
+                "g",
+                { className: "switch__dirt-move switch__dirt-move--3" },
+                React.createElement("circle", {
+                  className: "switch__dirt-particle",
+                  r: "3",
+                  transform: "translate(0,6)",
+                }),
+              ),
+            ),
+            React.createElement(
+              "g",
+              { transform: "translate(21,0)" },
+              React.createElement(
+                "g",
+                { className: "switch__dirt-move switch__dirt-move--4" },
+                React.createElement("circle", {
+                  className: "switch__dirt-particle",
+                  r: "3",
+                  transform: "translate(0,6)",
+                }),
+              ),
+            ),
+          ),
+        );
+      }
+      export default function ToggleSwitchWithLegsHandle() {
+        return React.createElement(
+          "svg",
+          {
+            className: "switch__handle",
+            viewBox: "0 0 24 36",
+            width: "24",
+            height: "36",
+            "aria-hidden": "true",
+          },
+          React.createElement(
+            "clipPath",
+            { id: "switch-handle-head" },
+            React.createElement("circle", { r: "12", cx: "12", cy: "12" }),
+          ),
+          React.createElement(
+            "clipPath",
+            { id: "switch-handle-legs" },
+            React.createElement("rect", { y: "18", width: "24", height: "18" }),
+          ),
+          React.createElement(
+            "g",
+            { clipPath: "url(#switch-handle-legs)" },
+            React.createElement(
+              "g",
+              {
+                className: "switch__handle-legs",
+                transform: "translate(0, 13)",
+              },
+              React.createElement(
+                "g",
+                {
+                  stroke: "currentcolor",
+                  strokeLinecap: "round",
+                  strokeWidth: "1",
+                  transform: "translate(9,35.5)",
+                },
+                React.createElement(
+                  "g",
+                  null,
+                  React.createElement(
+                    "g",
+                    { className: "switch__handle-right-foot" },
+                    React.createElement("polyline", { points: "0 0, 3 0" }),
+                  ),
+                  React.createElement(
+                    "g",
+                    { className: "switch__handle-right-leg-lower" },
+                    React.createElement("polyline", { points: "0 0, 0 -6" }),
+                    React.createElement(
+                      "g",
+                      { transform: "translate(0,-6)" },
+                      React.createElement(
+                        "g",
+                        { className: "switch__handle-right-leg-upper" },
+                        React.createElement("polyline", {
+                          points: "0 0, 0 -6",
+                        }),
+                      ),
+                    ),
+                  ),
+                ),
+                React.createElement(
+                  "g",
+                  { transform: "translate(6,0)" },
+                  React.createElement(
+                    "g",
+                    { className: "switch__handle-left-foot" },
+                    React.createElement("polyline", { points: "0 0, 3 0" }),
+                  ),
+                  React.createElement(
+                    "g",
+                    { className: "switch__handle-left-leg-lower" },
+                    React.createElement("polyline", { points: "0 0, 0 -6" }),
+                    React.createElement(
+                      "g",
+                      { transform: "translate(0,-6)" },
+                      React.createElement(
+                        "g",
+                        { className: "switch__handle-left-leg-upper" },
+                        React.createElement("polyline", {
+                          points: "0 0, 0 -6",
+                        }),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          React.createElement(
+            "g",
+            { className: "switch__handle-body", transform: "translate(0, 12)" },
+            React.createElement(
+              "g",
+              { clipPath: "url(#switch-handle-head)" },
+              React.createElement("circle", {
+                className: "switch__handle-head",
+                r: "12",
+                cx: "12",
+                cy: "12",
+              }),
+              React.createElement(
+                "g",
+                { className: "switch__handle-face" },
+                React.createElement("circle", { r: "1", cx: "-5", cy: "1" }),
+                React.createElement("circle", { r: "1", cx: "5", cy: "1" }),
+                React.createElement("path", {
+                  d: "M -2 2.5 H 2 A 2 2 0 0 1 -2 2.5",
+                }),
+              ),
+            ),
+          ),
+        );
+      }
+    </script>
+  </body>
+</html>
