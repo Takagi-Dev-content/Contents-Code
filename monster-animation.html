@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monster Animation</title>
+    <style>
+      body {
+        background-color: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+
+      svg {
+        width: 300px;
+        height: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 300 300"
+    >
+      <defs>
+        <mask
+          id="MASK"
+          maskunits="userSpaceOnUse"
+          maskcontentunits="userSpaceOnUse"
+        >
+          <image
+            xlink:href="https://media.giphy.com/media/3o85xyj0M45c9MkXhS/giphy.gif"
+            height="100%"
+            width="100%"
+          />
+        </mask>
+      </defs>
+
+      <image
+        mask="url(#MASK)"
+        x="0"
+        y="-20%"
+        class="space"
+        xlink:href="https://s3-us-west-2.amazonaws.com/s.cdpn.io/756881/space.jpg"
+        height="198%"
+        width="200%"
+      />
+    </svg>
+  </body>
+</html>
