@@ -1,0 +1,3232 @@
+<!doctype html>
+<html>
+  <head>
+    <script type="importmap">
+      {
+        "imports": {
+          "gsap": "https://cdn.jsdelivr.net/npm/gsap@3.13.0/index.js",
+          "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <!-- Noble Gas Choir. codepen.io/mielalabs -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #030305;
+        overflow: hidden;
+      }
+      #c {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+        cursor: default;
+      }
+      #snd {
+        position: fixed;
+        right: 14px;
+        bottom: 14px;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        border: 1px solid rgba(220, 220, 240, 0.2);
+        background: rgba(10, 10, 16, 0.4);
+        color: rgba(236, 236, 248, 0.85);
+        cursor: pointer;
+        opacity: 0.72;
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+        transition:
+          opacity 0.2s,
+          background 0.2s;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #snd:hover,
+      #snd:focus-visible {
+        opacity: 1;
+        background: rgba(24, 24, 36, 0.58);
+      }
+      #snd:focus-visible {
+        outline: 2px solid rgba(200, 200, 255, 0.7);
+        outline-offset: 2px;
+      }
+      #snd svg {
+        width: 18px;
+        height: 18px;
+      }
+      #snd .on {
+        display: none;
+      }
+      #snd[aria-pressed="true"] .on {
+        display: inline;
+      }
+      #snd[aria-pressed="true"] .off {
+        display: none;
+      }
+    </style>
+    <canvas id="c"></canvas>
+    <button id="snd" type="button" aria-pressed="false" aria-label="Sound (M)">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z" />
+        <g class="off"><path d="M16 9.5l5 5M21 9.5l-5 5" /></g>
+        <g class="on">
+          <path d="M15.5 9a4.2 4.2 0 0 1 0 6" />
+          <path d="M18 6.5a7.8 7.8 0 0 1 0 11" />
+        </g>
+      </svg>
+    </button>
+
+    <script type="module">
+      // ===== 00_imports.js =====
+      import * as THREE from "three";
+      import gsap from "gsap";
+
+      // ===== 10_config.js =====
+      // Noble Gas Choir
+      // Five spectrum tubes (He, Ne, Ar, Kr, Xe) on a dark shelf. Each glows in the color its real
+      // emission lines make on the eye (NIST line lists through the CIE 1931 observer), the lightning
+      // inside grows by dielectric breakdown, and each gas sings: its light frequencies shifted down
+      // exactly 40 octaves, every line a partial of a vocal chord.
+
+      const QUERY = new URLSearchParams(location.search);
+      const TEST_MODE = false; // test build only: the headless harness drives every frame
+      const STRICT_GPU = false; // test build only: undefined shader math returns NaN
+      const FORCE_ANIMATE = QUERY.has("animate"); // run the loop even on a software renderer
+      const LOOP_SEC = 60.0;
+      const START_AT = 0.9; // the loop opens in the dark, the first tube strikes a second later
+
+      // Quality tiers. The scene is cheap; tiers change the lightning atlas, bloom depth and the pixel budget.
+      const TIERS = {
+        desktop: {
+          name: "desktop",
+          atlasW: 128,
+          atlasH: 1024,
+          glow: 3,
+          bloom: 5,
+          scaleMax: 1.0,
+          scaleMin: 0.6,
+          dprMax: 2.0,
+          budget: 8.3e6,
+        },
+        laptop: {
+          name: "laptop",
+          atlasW: 96,
+          atlasH: 768,
+          glow: 3,
+          bloom: 5,
+          scaleMax: 1.0,
+          scaleMin: 0.55,
+          dprMax: 1.75,
+          budget: 3.7e6,
+        },
+        mobile: {
+          name: "mobile",
+          atlasW: 64,
+          atlasH: 512,
+          glow: 2,
+          bloom: 4,
+          scaleMax: 1.0,
+          scaleMin: 0.5,
+          dprMax: 1.5,
+          budget: 2.1e6,
+        },
+      };
+      const TIER_ORDER = ["desktop", "laptop", "mobile"];
+
+      // ===== 15_util.js =====
+      // ---------- small math helpers ----------
+      const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const smooth01 = (a, b, x) => {
+        const t = clamp((x - a) / (b - a), 0, 1);
+        return t * t * (3 - 2 * t);
+      };
+      const TAU = Math.PI * 2;
+      const wrapAngle = (a) => a - TAU * Math.floor((a + Math.PI) / TAU);
+      const angleLerp = (a, b, t) => a + wrapAngle(b - a) * t;
+
+      // Deterministic PRNG so the loop, the sim forcing and the offline audio test agree.
+      function mulberry32(seed) {
+        let a = seed >>> 0;
+        return () => {
+          a = (a + 0x6d2b79f5) >>> 0;
+          let t = a;
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      // Integer hash to [0,1), used for per-step and per-bucket randomness.
+      function hashUnit(n) {
+        let x = (n | 0) ^ 0x9e3779b9;
+        x = Math.imul(x ^ (x >>> 16), 0x85ebca6b);
+        x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35);
+        x ^= x >>> 16;
+        return (x >>> 0) / 4294967296;
+      }
+      // GLSL float literal (GLSL ES needs the decimal point).
+      const glf = (x) => (+x).toFixed(6);
+
+      // ===== 20_spec.js =====
+      // ---------- what is in the tubes ----------
+      // Emission lines of the neutral atoms, [wavelength nm, relative intensity] on one scale per gas.
+      // Visible lines: NIST Atomic Spectra Database intensities (the NIST handbook of basic atomic
+      // spectroscopic data agrees on the line list). Near-infrared lines: the same handbook, put on the
+      // visible scale through the lines both tables share. Only the visible ones color the glow; all of
+      // them sing. Xe 450-470 nm (6s-7p) added by hand, they are what makes a xenon tube blue.
+      const LINES = {
+        He: [
+          [396.47, 12],
+          [402.62, 30],
+          [402.64, 3],
+          [412.08, 7],
+          [412.1, 1],
+          [414.38, 2],
+          [438.79, 6],
+          [443.75, 2],
+          [447.15, 121],
+          [447.17, 15],
+          [471.31, 18],
+          [471.34, 2],
+          [492.19, 12],
+          [501.57, 61],
+          [504.77, 6],
+          [587.56, 303],
+          [587.6, 61],
+          [667.81, 61],
+          [686.75, 2],
+          [706.52, 121],
+          [706.57, 18],
+          [728.13, 30],
+          [946.36, 6],
+          [1031.12, 6],
+          [1083.03, 1000],
+        ],
+        Ne: [
+          [453.77, 12],
+          [454.04, 12],
+          [470.44, 19],
+          [470.89, 15],
+          [471.01, 12],
+          [471.21, 12],
+          [471.54, 19],
+          [475.27, 12],
+          [478.89, 15],
+          [479.02, 12],
+          [482.73, 12],
+          [488.49, 12],
+          [500.52, 5],
+          [503.77, 12],
+          [514.49, 12],
+          [533.08, 31],
+          [534.11, 25],
+          [534.33, 10],
+          [540.06, 75],
+          [556.28, 6],
+          [565.67, 12],
+          [571.92, 6],
+          [574.83, 15],
+          [576.44, 100],
+          [580.44, 15],
+          [582.02, 50],
+          [585.25, 625],
+          [587.28, 125],
+          [588.19, 125],
+          [590.25, 75],
+          [590.64, 75],
+          [594.48, 125],
+          [596.55, 125],
+          [597.46, 125],
+          [597.55, 150],
+          [598.79, 100],
+          [603.0, 125],
+          [607.43, 125],
+          [609.62, 100],
+          [612.85, 75],
+          [614.31, 125],
+          [616.36, 150],
+          [618.21, 312],
+          [621.73, 188],
+          [626.65, 188],
+          [630.48, 75],
+          [633.44, 125],
+          [638.3, 150],
+          [640.23, 250],
+          [650.65, 188],
+          [653.29, 75],
+          [659.89, 188],
+          [665.21, 88],
+          [667.83, 112],
+          [671.7, 25],
+          [692.95, 125],
+          [702.4, 112],
+          [703.24, 125],
+          [705.13, 62],
+          [705.91, 100],
+          [724.52, 1000],
+          [747.24, 38],
+          [748.89, 375],
+          [753.58, 375],
+          [754.4, 162],
+          [794.32, 100],
+          [808.25, 75],
+          [811.86, 50],
+          [813.64, 212],
+          [825.94, 38],
+          [826.61, 88],
+          [830.03, 375],
+          [836.58, 62],
+          [837.76, 1000],
+          [841.84, 312],
+          [846.34, 50],
+          [849.54, 875],
+          [857.13, 38],
+          [859.13, 500],
+          [863.46, 438],
+          [864.7, 75],
+          [865.44, 750],
+          [865.55, 100],
+          [867.95, 162],
+          [868.19, 188],
+          [877.17, 125],
+          [878.06, 750],
+          [878.38, 500],
+          [885.39, 375],
+          [886.58, 188],
+          [891.95, 75],
+          [914.87, 150],
+          [920.18, 112],
+          [922.01, 75],
+          [930.09, 100],
+          [932.65, 88],
+          [942.54, 62],
+          [948.67, 62],
+          [953.42, 75],
+          [966.54, 225],
+          [1056.24, 100],
+          [1079.8, 75],
+          [1084.45, 112],
+        ],
+        Ar: [
+          [394.9, 1],
+          [404.44, 1],
+          [415.86, 11],
+          [416.42, 1],
+          [418.19, 1],
+          [419.07, 3],
+          [419.1, 1],
+          [419.83, 6],
+          [420.07, 11],
+          [425.12, 1],
+          [425.94, 6],
+          [426.63, 3],
+          [427.22, 4],
+          [430.01, 3],
+          [433.36, 3],
+          [433.53, 1],
+          [434.52, 1],
+          [451.07, 3],
+          [452.23, 1],
+          [518.77, 1],
+          [549.59, 1],
+          [555.87, 1],
+          [560.67, 1],
+          [565.07, 1],
+          [588.86, 1],
+          [591.21, 1],
+          [603.21, 2],
+          [604.32, 1],
+          [605.94, 1],
+          [638.47, 1],
+          [641.63, 2],
+          [667.73, 3],
+          [675.28, 4],
+          [687.13, 4],
+          [693.77, 1],
+          [696.54, 300],
+          [703.03, 4],
+          [706.72, 300],
+          [706.87, 3],
+          [710.75, 1],
+          [712.58, 1],
+          [714.7, 30],
+          [720.7, 2],
+          [727.29, 60],
+          [727.29, 60],
+          [731.17, 1],
+          [731.6, 1],
+          [735.33, 2],
+          [737.21, 6],
+          [738.4, 300],
+          [738.4, 300],
+          [739.3, 1],
+          [743.54, 1],
+          [750.39, 600],
+          [750.39, 600],
+          [751.46, 400],
+          [751.47, 400],
+          [763.51, 700],
+          [763.51, 700],
+          [772.38, 400],
+          [772.38, 400],
+          [772.42, 300],
+          [772.42, 300],
+          [794.82, 600],
+          [800.62, 600],
+          [801.48, 700],
+          [810.37, 600],
+          [811.53, 1000],
+          [826.45, 300],
+          [840.82, 400],
+          [842.46, 600],
+          [852.14, 400],
+          [866.79, 130],
+          [912.3, 1000],
+          [922.45, 400],
+          [935.42, 50],
+          [965.78, 700],
+          [978.45, 130],
+        ],
+        Kr: [
+          [427.4, 150],
+          [428.3, 15],
+          [431.86, 70],
+          [431.96, 150],
+          [435.14, 15],
+          [436.26, 80],
+          [437.61, 130],
+          [440.0, 30],
+          [442.52, 15],
+          [445.39, 100],
+          [446.37, 130],
+          [450.24, 100],
+          [556.22, 80],
+          [557.03, 300],
+          [558.04, 13],
+          [564.96, 15],
+          [583.29, 15],
+          [587.09, 500],
+          [599.39, 10],
+          [605.61, 10],
+          [642.1, 15],
+          [645.63, 30],
+          [669.92, 10],
+          [690.47, 15],
+          [722.41, 15],
+          [722.41, 15],
+          [728.73, 13],
+          [728.73, 13],
+          [742.55, 10],
+          [742.55, 10],
+          [748.69, 15],
+          [748.69, 15],
+          [758.74, 150],
+          [758.74, 150],
+          [760.15, 300],
+          [760.15, 300],
+          [768.52, 150],
+          [768.52, 150],
+          [769.45, 200],
+          [769.45, 200],
+          [774.68, 25],
+          [774.68, 25],
+          [785.48, 130],
+          [791.34, 30],
+          [792.86, 30],
+          [798.24, 15],
+          [805.95, 250],
+          [810.44, 700],
+          [811.29, 1000],
+          [819.01, 500],
+          [826.32, 500],
+          [828.1, 250],
+          [829.81, 800],
+          [850.89, 500],
+          [877.67, 1000],
+          [892.87, 300],
+          [975.18, 300],
+          [985.63, 80],
+        ],
+        Xe: [
+          [450.1, 50],
+          [452.47, 30],
+          [458.27, 30],
+          [462.43, 100],
+          [467.12, 200],
+          [469.7, 40],
+          [473.42, 60],
+          [479.26, 15],
+          [480.7, 50],
+          [482.97, 40],
+          [484.33, 30],
+          [491.65, 50],
+          [492.32, 50],
+          [502.83, 20],
+          [539.28, 10],
+          [556.66, 10],
+          [569.58, 10],
+          [582.39, 30],
+          [582.48, 15],
+          [587.5, 10],
+          [589.5, 10],
+          [593.42, 10],
+          [617.83, 15],
+          [617.97, 12],
+          [618.24, 30],
+          [619.83, 10],
+          [628.6, 10],
+          [631.81, 50],
+          [646.97, 30],
+          [647.28, 15],
+          [648.78, 12],
+          [649.87, 10],
+          [650.42, 20],
+          [653.32, 10],
+          [659.56, 10],
+          [666.89, 15],
+          [672.8, 20],
+          [682.73, 20],
+          [687.21, 10],
+          [688.22, 30],
+          [692.55, 10],
+          [697.62, 10],
+          [711.96, 50],
+          [738.6, 10],
+          [738.6, 10],
+          [739.38, 15],
+          [739.38, 15],
+          [758.47, 20],
+          [758.47, 20],
+          [764.2, 50],
+          [764.2, 50],
+          [764.39, 10],
+          [764.39, 10],
+          [788.74, 30],
+          [796.73, 50],
+          [805.73, 20],
+          [820.63, 70],
+          [823.16, 1000],
+          [826.65, 50],
+          [828.01, 700],
+          [834.68, 200],
+          [840.92, 200],
+          [873.94, 30],
+          [881.94, 500],
+          [895.23, 100],
+          [904.55, 40],
+          [916.26, 50],
+          [979.97, 200],
+          [992.32, 300],
+        ],
+      };
+
+      // Five tubes, left to right. seed: lightning; pan: where the voice sits in the stereo field.
+      const GASES = [
+        { sym: "He", seed: 11, pan: -0.8 },
+        { sym: "Ne", seed: 23, pan: -0.4 },
+        { sym: "Ar", seed: 37, pan: 0.0 },
+        { sym: "Kr", seed: 41, pan: 0.4 },
+        { sym: "Xe", seed: 59, pan: 0.8 },
+      ];
+      const OCTAVES = 40; // light to sound: f = c / lambda / 2^40
+      const C_LIGHT = 299792458;
+
+      // Geometry (world units; the glass is 1 unit tall). y up, the shelf top is y = 0, camera on +z.
+      const TUBE = {
+        n: 5,
+        spacing: 0.3,
+        rOut: 0.052,
+        rIn: 0.04,
+        glassY0: 0.07,
+        glassY1: 1.07,
+        capR: 0.057,
+        capH: 0.07,
+        pinLen: 0.055,
+        pinR: 0.006,
+        // lightning lattice: cells across the bore and along the discharge gap (between the pin tips)
+        gridW: 20,
+        gridH: 200,
+      };
+      const SHELF = {
+        z0: -0.3,
+        z1: 0.22,
+        top: 0.0,
+        thick: 0.045,
+        wallZ: -0.62,
+        wallW: 2.8,
+      };
+      const CAM = {
+        fov: (34 * Math.PI) / 180,
+        lookY: 0.56,
+        dist: 2.62,
+        pitch: (-5 * Math.PI) / 180,
+        margin: 0.09,
+      };
+
+      // ===== 22_color.js =====
+      // ---------- from spectral lines to a color and to a chord ----------
+      // CIE 1931 2-degree color matching functions, the multi-lobe fit of Wyman, Sloan and Shirley (2013).
+      function cieLobe(l, mu, s1, s2) {
+        const s = l < mu ? s1 : s2,
+          t = (l - mu) / s;
+        return Math.exp(-0.5 * t * t);
+      }
+      function cieXYZ(l) {
+        return [
+          1.056 * cieLobe(l, 599.8, 37.9, 31.0) +
+            0.362 * cieLobe(l, 442.0, 16.0, 26.7) -
+            0.065 * cieLobe(l, 501.1, 20.4, 26.2),
+          0.821 * cieLobe(l, 568.8, 46.9, 40.5) +
+            0.286 * cieLobe(l, 530.9, 16.3, 31.1),
+          1.217 * cieLobe(l, 437.0, 11.8, 36.0) +
+            0.681 * cieLobe(l, 459.0, 26.0, 13.8),
+        ];
+      }
+      // Integrate the lines against the observer, convert XYZ to linear sRGB (D65). Pure lines sit outside
+      // the sRGB gamut, so the mix is pulled toward white of the same luminance until nothing is negative.
+      function gasColor(lines) {
+        let X = 0,
+          Y = 0,
+          Z = 0;
+        for (const [l, I] of lines) {
+          if (l < 380 || l > 780) continue;
+          const c = cieXYZ(l);
+          X += I * c[0];
+          Y += I * c[1];
+          Z += I * c[2];
+        }
+        let r = 3.2406 * X - 1.5372 * Y - 0.4986 * Z;
+        let g = -0.9689 * X + 1.8758 * Y + 0.0415 * Z;
+        let b = 0.0557 * X - 0.204 * Y + 1.057 * Z;
+        const L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        const m = Math.min(r, g, b);
+        if (m < 0) {
+          const k = -m / (L - m);
+          r += k * (L - r);
+          g += k * (L - g);
+          b += k * (L - b);
+        }
+        const mx = Math.max(r, g, b, 1e-9);
+        return {
+          rgb: [r / mx, g / mx, b / mx],
+          xy: [X / (X + Y + Z), Y / (X + Y + Z)],
+        };
+      }
+      const lineHz = (nm) => C_LIGHT / (nm * 1e-9) / Math.pow(2, OCTAVES);
+
+      // The chord of a gas: its strongest lines overall plus its strongest visible ones, so every voice
+      // has the deep notes of the infrared it radiates most and the high notes of the light we see.
+      function gasChord(lines, nAll = 10, nVis = 6) {
+        const byI = lines.slice().sort((a, b) => b[1] - a[1]);
+        const pick = new Map();
+        for (const l of byI.slice(0, nAll)) pick.set(l[0], l[1]);
+        let k = 0;
+        for (const l of byI) {
+          if (k >= nVis) break;
+          if (l[0] > 690 || pick.has(l[0])) continue;
+          pick.set(l[0], l[1]);
+          k++;
+        }
+        const mx = Math.max(...pick.values());
+        const parts = [...pick].map(([nm, I]) => ({
+          nm,
+          hz: lineHz(nm),
+          amp: Math.pow(I / mx, 0.4),
+        }));
+        const sum = parts.reduce((s, p) => s + p.amp, 0);
+        for (const p of parts) p.amp /= sum;
+        return parts.sort((a, b) => a.hz - b.hz);
+      }
+
+      const GAS_COLOR = GASES.map((g) => gasColor(LINES[g.sym]));
+      const GAS_CHORD = GASES.map((g) => gasChord(LINES[g.sym]));
+
+      // ===== 25_score.js =====
+      // ---------- the score: when each tube strikes, how the camera breathes, what the choir does ----------
+      const BEATS = {
+        entries: [2.0, 4.5, 7.0, 9.5, 12.0],
+        tutti: 30.0,
+        hero: 30.9,
+        lastOff: 58.8,
+      };
+
+      class Score {
+        constructor() {
+          this.problems = [];
+          this.cycles = GASES.map((g, i) => this._schedule(i));
+          this._bakeTimeline();
+          this._buildEvents();
+        }
+
+        // One tube's strikes for the whole loop: entry, free texture, build-up, the tutti, waves, fade.
+        // A cycle grows from tg, connects (flash) at tc and goes dark at tx. Seeds make every bolt repeatable.
+        _schedule(i) {
+          const rng = mulberry32(1000 + 77 * i);
+          const U = (a, b) => a + (b - a) * rng();
+          const out = [];
+          let k = 0;
+          const push = (tg, tc, tx, kind) => {
+            out.push({ tg, tc, tx, kind, seed: (i + 1) * 1000 + k++ });
+            return tx;
+          };
+          // entry: a slow leader, a long first glow
+          let last = push(
+            BEATS.entries[i] - 1.4,
+            BEATS.entries[i],
+            BEATS.entries[i] + 3.2,
+            "entry",
+          );
+          // free texture until the build-up
+          while (true) {
+            const gap = U(0.7, 2.4),
+              grow = U(0.45, 1.0),
+              lit = U(1.1, 2.6);
+            const tg = last + gap,
+              tc = tg + grow;
+            if (tc > 26.3) break;
+            last = push(tg, tc, tc + lit, "free");
+          }
+          // build-up: quicker strikes, then everyone grows together into the tutti
+          const tuttiG = 28.95 + 0.05 * i,
+            tuttiC = BEATS.tutti + 0.06 * (i - 2);
+          while (true) {
+            const gap = U(0.25, 0.7),
+              grow = U(0.3, 0.5),
+              lit = U(0.6, 1.1);
+            const tg = last + gap,
+              tc = tg + grow;
+            if (tc + lit > tuttiG - 0.15) break;
+            last = push(tg, tc, tc + lit, "build");
+          }
+          last = push(tuttiG, tuttiC, tuttiC + 4.2, "tutti");
+          // waves: left to right, each one a little sparser
+          for (const [tw, lit] of [
+            [35.4, 1.7],
+            [39.6, 1.5],
+            [43.9, 1.3],
+            [48.1, 1.1],
+          ]) {
+            const tc = tw + 0.33 * i + U(-0.04, 0.04);
+            last = push(
+              tc - U(0.45, 0.65),
+              tc,
+              tc + lit + U(-0.15, 0.15),
+              "wave",
+            );
+          }
+          // fade: two short strikes, then the last one; the tubes go out left to right
+          const lastOff = 56.4 + 0.6 * i;
+          for (const [tMin, litA, litB] of [
+            [50.9 + 0.5 * i, 0.8, 1.1],
+            [53.4 + 0.4 * i, 0.6, 0.9],
+          ]) {
+            const tc = Math.max(tMin, last + 0.8) + U(0, 0.3);
+            last = push(tc - 0.5, tc, tc + U(litA, litB), "fade");
+          }
+          push(
+            Math.max(lastOff - 1.9, last + 0.3),
+            lastOff - 1.2,
+            lastOff,
+            "last",
+          );
+          // no cycle may start before the previous one is out
+          for (let k = 1; k < out.length; k++)
+            if (out[k].tg < out[k - 1].tx + 0.2)
+              this.problems.push(
+                `tube ${i}: cycle ${k} (${out[k].kind}) starts at ${out[k].tg.toFixed(2)} before ${out[k - 1].tx.toFixed(2)}`,
+              );
+          return out;
+        }
+
+        // the cycle a tube is in at loop time t (the one whose glow or release still shows), else null
+        cycleAt(i, t) {
+          const cs = this.cycles[i];
+          for (let k = cs.length - 1; k >= 0; k--) {
+            const c = cs[k];
+            if (t >= c.tg && t < c.tx + 1.5) return c;
+          }
+          return null;
+        }
+
+        // Slow channels, baked from a GSAP timeline at 120 Hz. Every channel closes on itself.
+        _bakeTimeline() {
+          const s = { expo: 0.9, bed: 0, vowel: 0.15, zoom: 1.0, sway: 0 };
+          const tl = gsap.timeline({ paused: true });
+          tl.to(s, { expo: 1.0, duration: 12, ease: "sine.inOut" }, 2)
+            .to(s, { bed: 1, duration: 8, ease: "sine.inOut" }, 13)
+            .to(s, { vowel: 0.45, duration: 10, ease: "sine.inOut" }, 16)
+            .to(s, { zoom: 0.94, duration: 4, ease: "sine.inOut" }, 26)
+            .to(
+              s,
+              { vowel: 1.0, expo: 1.08, duration: 1.2, ease: "power2.out" },
+              29.9,
+            )
+            .to(s, { zoom: 1.0, duration: 6, ease: "sine.inOut" }, 31)
+            .to(
+              s,
+              { vowel: 0.5, expo: 1.0, duration: 4, ease: "sine.inOut" },
+              33,
+            )
+            .to(s, { bed: 0.6, duration: 8, ease: "sine.inOut" }, 40)
+            .to(s, { bed: 0, vowel: 0.15, duration: 7, ease: "sine.inOut" }, 50)
+            .to(s, { expo: 0.9, duration: 4, ease: "sine.inOut" }, 55.5)
+            .to(s, { sway: 0, duration: 0.01 }, LOOP_SEC - 0.02);
+          const n = (this.n = Math.round(LOOP_SEC * 120) + 1),
+            keys = ["expo", "bed", "vowel", "zoom", "sway"];
+          this.ch = {};
+          for (const k of keys) this.ch[k] = new Float32Array(n);
+          for (let j = 0; j < n; j++) {
+            tl.seek((j / 120) % LOOP_SEC, false);
+            for (const k of keys) this.ch[k][j] = s[k];
+          }
+        }
+        value(name, t) {
+          const x = (((t % LOOP_SEC) + LOOP_SEC) % LOOP_SEC) * 120,
+            j = Math.min(Math.floor(x), this.n - 2),
+            f = x - j;
+          const a = this.ch[name];
+          return a[j] + (a[j + 1] - a[j]) * f;
+        }
+
+        _buildEvents() {
+          this.sounds = [];
+          this.cycles.forEach((cs, i) =>
+            cs.forEach((c) =>
+              this.sounds.push({ kind: "strike", t: c.tc, tube: i, cycle: c }),
+            ),
+          );
+          this.sounds.sort((a, b) => a.t - b.t);
+        }
+
+        // Glow of a tube's gas at loop time t, 0..1: a flash at the connection, a steady lit phase, a soft end.
+        glow(c, t) {
+          if (!c || t < c.tg) return 0;
+          if (t < c.tc) return 0.03 + (0.06 * (t - c.tg)) / (c.tc - c.tg);
+          if (t >= c.tx + 0.35) return 0;
+          const u = t - c.tc,
+            lit = c.tx - c.tc;
+          const body =
+            0.5 * Math.exp(-u / 0.12) + 0.5 * (1 - Math.exp(-u / 0.08));
+          const tail = u < lit ? 1 : Math.exp(-(u - lit) / 0.09);
+          return body * tail;
+        }
+        // The voice of a tube: it sings while lit (with a breath in), and fades after the glow.
+        voice(i, t) {
+          let v = 0;
+          for (const c of this.cycles[i]) {
+            for (const tt of [t, t + LOOP_SEC]) {
+              // the release of the loop's last strike runs into the next loop
+              if (tt < c.tg - 0.1 || tt > c.tx + 3.0) continue;
+              const u = tt - c.tc;
+              if (u < 0) {
+                v = Math.max(v, 0.12 * smooth01(c.tg, c.tc, tt));
+                continue;
+              }
+              const lit = c.tx - c.tc;
+              const on = 1 - Math.exp(-u / 0.14);
+              v = Math.max(v, u < lit ? on : on * Math.exp(-(u - lit) / 0.9));
+            }
+          }
+          return v;
+        }
+
+        // camera: a slow sway that is centered at the tutti and closes on the loop
+        camera(t) {
+          const ph = (TAU * t) / LOOP_SEC;
+          const zoom = this.value("zoom", t);
+          return {
+            x: 0.07 * Math.sin(ph) + 0.02 * Math.sin(2 * ph + 1.0),
+            y: CAM.lookY + 0.02 * Math.sin(ph + 0.6),
+            dist: CAM.dist * zoom,
+            pitch: CAM.pitch + 0.012 * Math.sin(ph + 2.0),
+            yaw: 0.05 * Math.sin(ph),
+          };
+        }
+
+        sample(t) {
+          return {
+            t,
+            expo: this.value("expo", t),
+            bed: this.value("bed", t),
+            vowel: this.value("vowel", t),
+            cam: this.camera(t),
+            tubes: GASES.map((g, i) => {
+              const c = this.cycleAt(i, t);
+              return {
+                cycle: c,
+                glow: this.glow(c, t),
+                voice: this.voice(i, t),
+              };
+            }),
+          };
+        }
+      }
+
+      // ===== 30_glsl_common.js =====
+      // ---------- GLSL shared by every pass ----------
+      // Portability rules: no pow() of a possibly negative base, smoothstep edges always increasing,
+      // atan(y,x) guarded, no normalize of a possibly zero vector, guarded divisions, NaN checks via
+      // floatBitsToUint, and textureLod everywhere (no implicit derivatives in divergent code).
+      const GLSL_COMMON = /* glsl */ `
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+//@STRICT_HELPERS
+#define PI 3.14159265
+#define TAU 6.28318531
+float sat(float x) { return clamp(x, 0.0, 1.0); }
+vec3 sat3(vec3 x) { return clamp(x, 0.0, 1.0); }
+float sqrtp(float x) { return sqrt(max(x, 0.0)); }
+float powp(float x, float y) { return pow(max(x, 0.0), y); }
+vec3 powp3(vec3 x, float y) { return pow(max(x, vec3(0.0)), vec3(y)); }
+vec3 srgb(vec3 c) { return pow(max(c, vec3(0.0)), vec3(2.2)); }  // colors are picked in sRGB, lit in linear
+float fall(float a, float b, float x) { return 1.0 - smoothstep(a, b, x); }
+vec3 nrm(vec3 v) { float l = dot(v, v); return l > 1e-24 ? v * inversesqrt(l) : vec3(0.0, 1.0, 0.0); }
+float atan2s(float y, float x) { return (abs(x) + abs(y) > 1e-20) ? atan(y, x) : 0.0; }
+bool badf(float x) { return (floatBitsToUint(x) & 0x7f800000u) == 0x7f800000u; }
+float okf(float x) { return badf(x) ? 0.0 : x; }
+vec3 ok3(vec3 v) { return vec3(okf(v.x), okf(v.y), okf(v.z)); }
+vec4 ok4(vec4 v) { return vec4(okf(v.x), okf(v.y), okf(v.z), okf(v.w)); }
+float smin(float a, float b, float k) { float h = max(k - abs(a - b), 0.0) / k; return min(a, b) - h * h * k * 0.25; }
+float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+float hash13(vec3 p3) { p3 = fract(p3 * 0.1031); p3 += dot(p3, p3.zyx + 31.32); return fract((p3.x + p3.y) * p3.z); }
+float vnoise2(vec2 p) {
+  vec2 i = floor(p); vec2 f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), u.x),
+             mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+float vnoise3(vec3 p) {
+  vec3 i = floor(p); vec3 f = fract(p); vec3 u = f * f * (3.0 - 2.0 * f);
+  float a = hash13(i), b = hash13(i + vec3(1.0, 0.0, 0.0));
+  float c = hash13(i + vec3(0.0, 1.0, 0.0)), d = hash13(i + vec3(1.0, 1.0, 0.0));
+  float e = hash13(i + vec3(0.0, 0.0, 1.0)), g = hash13(i + vec3(1.0, 0.0, 1.0));
+  float h = hash13(i + vec3(0.0, 1.0, 1.0)), k = hash13(i + vec3(1.0, 1.0, 1.0));
+  return mix(mix(mix(a, b, u.x), mix(c, d, u.x), u.y), mix(mix(e, g, u.x), mix(h, k, u.x), u.y), u.z);
+}
+`;
+
+      // Strict GPU harness: make the undefined cases explicit NaNs, the way Metal/NVIDIA/mobile do,
+      // and make isnan() useless. A correct shader renders identically either way.
+      const STRICT_HELPERS = /* glsl */ `
+float s_nan() { return uintBitsToFloat(0x7fc00000u); }
+float sPow(float x, float y) { return x < 0.0 ? s_nan() : pow(x, y); }
+vec2 sPow(vec2 x, vec2 y) { return vec2(sPow(x.x, y.x), sPow(x.y, y.y)); }
+vec3 sPow(vec3 x, vec3 y) { return vec3(sPow(x.x, y.x), sPow(x.y, y.y), sPow(x.z, y.z)); }
+vec4 sPow(vec4 x, vec4 y) { return vec4(sPow(x.x, y.x), sPow(x.y, y.y), sPow(x.z, y.z), sPow(x.w, y.w)); }
+float sSmoothstep(float a, float b, float x) { return a >= b ? s_nan() : smoothstep(a, b, x); }
+vec2 sSmoothstep(float a, float b, vec2 x) { return a >= b ? vec2(s_nan()) : smoothstep(a, b, x); }
+vec3 sSmoothstep(float a, float b, vec3 x) { return a >= b ? vec3(s_nan()) : smoothstep(a, b, x); }
+vec4 sSmoothstep(float a, float b, vec4 x) { return a >= b ? vec4(s_nan()) : smoothstep(a, b, x); }
+vec3 sSmoothstep(vec3 a, vec3 b, vec3 x) { return any(greaterThanEqual(a, b)) ? vec3(s_nan()) : smoothstep(a, b, x); }
+float sAtan(float y, float x) { return (x == 0.0 && y == 0.0) ? s_nan() : atan(y, x); }
+float sAtan(float x) { return atan(x); }
+bool sIsnan(float x) { return false; }
+bvec2 sIsnan(vec2 x) { return bvec2(false); }
+bvec3 sIsnan(vec3 x) { return bvec3(false); }
+bvec4 sIsnan(vec4 x) { return bvec4(false); }
+float sSqrt(float x) { return x < 0.0 ? s_nan() : sqrt(x); }
+vec2 sSqrt(vec2 x) { return vec2(sSqrt(x.x), sSqrt(x.y)); }
+vec3 sSqrt(vec3 x) { return vec3(sSqrt(x.x), sSqrt(x.y), sSqrt(x.z)); }
+float sInvSqrt(float x) { return x <= 0.0 ? s_nan() : inversesqrt(x); }
+float sLog(float x) { return x <= 0.0 ? s_nan() : log(x); }
+vec3 sLog(vec3 x) { return vec3(sLog(x.x), sLog(x.y), sLog(x.z)); }
+float sLog2(float x) { return x <= 0.0 ? s_nan() : log2(x); }
+float sAcos(float x) { return abs(x) > 1.0 ? s_nan() : acos(x); }
+float sAsin(float x) { return abs(x) > 1.0 ? s_nan() : asin(x); }
+vec2 sNormalize(vec2 v) { return dot(v, v) == 0.0 ? vec2(s_nan()) : normalize(v); }
+vec3 sNormalize(vec3 v) { return dot(v, v) == 0.0 ? vec3(s_nan()) : normalize(v); }
+`;
+      function prepGLSL(src) {
+        if (!STRICT_GPU) return src.replace("//@STRICT_HELPERS", "");
+        const renamed = src
+          .replace(/\bpow\s*\(/g, "sPow(")
+          .replace(/\bsmoothstep\s*\(/g, "sSmoothstep(")
+          .replace(/\batan\s*\(/g, "sAtan(")
+          .replace(/\bisnan\s*\(/g, "sIsnan(")
+          .replace(/\bsqrt\s*\(/g, "sSqrt(")
+          .replace(/\binversesqrt\s*\(/g, "sInvSqrt(")
+          .replace(/\blog\s*\(/g, "sLog(")
+          .replace(/\blog2\s*\(/g, "sLog2(")
+          .replace(/\bacos\s*\(/g, "sAcos(")
+          .replace(/\basin\s*\(/g, "sAsin(")
+          .replace(/\bnormalize\s*\(/g, "sNormalize(");
+        return renamed.replace("//@STRICT_HELPERS", STRICT_HELPERS);
+      }
+
+      // ===== 34_glsl_main.js =====
+      // ---------- the picture: five glass tubes on a shelf, lit only by what is inside them ----------
+      // Everything is analytic: vertical cylinders (glass, bore, caps), two planes (shelf, wall).
+      // A ray that hits the glass is refracted twice (air > glass > gas), reads the lightning atlas on
+      // the plane through the tube's axis that faces the camera, adds the gas glow along its chord
+      // through the bore and goes on to the wall. The glass also mirrors the neighbouring tubes.
+      function sceneGLSL() {
+        const g = glf;
+        return /* glsl */ `
+#define N_TUBES 5
+#define SPACING ${g(TUBE.spacing)}
+#define R_OUT ${g(TUBE.rOut)}
+#define R_IN ${g(TUBE.rIn)}
+#define GLASS_Y0 ${g(TUBE.glassY0)}
+#define GLASS_Y1 ${g(TUBE.glassY1)}
+#define CAP_R ${g(TUBE.capR)}
+#define CAP_H ${g(TUBE.capH)}
+#define PIN_LEN ${g(TUBE.pinLen)}
+#define PIN_R ${g(TUBE.pinR)}
+#define SHELF_Z0 ${g(SHELF.z0)}
+#define SHELF_Z1 ${g(SHELF.z1)}
+#define SHELF_TH ${g(SHELF.thick)}
+#define SHELF_W ${g(SHELF.wallW * 0.5)}
+#define WALL_Z ${g(SHELF.wallZ)}
+#define ATLAS_M 0.1
+#define ETA_GLASS 1.5
+`;
+      }
+
+      const GLSL_SCENE = /* glsl */ `
+uniform vec2 uRes;
+uniform vec3 uCamPos;
+uniform vec3 uCamR;
+uniform vec3 uCamU;
+uniform vec3 uCamF;
+uniform vec2 uTanHalf;
+uniform float uTime;
+uniform vec4 uTube[5];      // x, z, gas glow 0..1, electrode heat
+uniform vec3 uGasCol[5];    // linear rgb, max component 1
+uniform float uBins[30];    // lightning light along each tube, 6 bins from bottom to top
+uniform sampler2D uAtlas;
+uniform sampler2D uHalo1;
+uniform sampler2D uHalo2;
+uniform sampler2D uHalo3;
+uniform float uHaloK;
+uniform float uAtlasLod;
+out vec4 fragColor;
+
+// roots of a vertical cylinder (center c, radius r) along the ray: t0 entry, t1 exit
+bool cylRoots(vec3 ro, vec3 rd, vec2 c, float r, out float t0, out float t1) {
+  vec2 o = ro.xz - c, d = rd.xz;
+  float a = dot(d, d);
+  t0 = 0.0; t1 = 0.0;
+  if (a < 1e-9) return false;
+  float b = dot(o, d), cc = dot(o, o) - r * r;
+  float disc = b * b - a * cc;
+  if (disc < 0.0) return false;
+  float s = sqrt(disc);
+  t0 = (-b - s) / a; t1 = (-b + s) / a;
+  return true;
+}
+vec2 tubeXZ(int i) { return uTube[i].xy; }
+float gasGlow(int i) { return uTube[i].z; }
+vec3 gasCol(int i) { return uGasCol[i]; }
+
+// lightning brightness read from the atlas: u across the bore 0..1, v along the glass 0..1
+float boltAt(int i, float u, float v) {
+  vec2 uv = vec2((float(i) + ATLAS_M + (1.0 - 2.0 * ATLAS_M) * clamp(u, 0.0, 1.0)) / 5.0, clamp(v, 0.0, 1.0));
+  float core = textureLod(uAtlas, uv, uAtlasLod).r;
+  float h1 = textureLod(uHalo1, uv, 0.0).r, h2 = textureLod(uHalo2, uv, 0.0).r, h3 = textureLod(uHalo3, uv, 0.0).r;
+  return okf(core + 0.7 * h1 + 0.4 * h2 + uHaloK * h3);
+}
+// a wide, soft version for reflections and the walls of the bore
+float boltSoft(int i, float u, float v) {
+  vec2 uv = vec2((float(i) + ATLAS_M + (1.0 - 2.0 * ATLAS_M) * clamp(u, 0.0, 1.0)) / 5.0, clamp(v, 0.0, 1.0));
+  return okf(textureLod(uHalo2, uv, 0.0).r + uHaloK * textureLod(uHalo3, uv, 0.0).r);
+}
+
+// the color a lit tube throws: gas glow plus its lightning, per bin
+vec3 binLight(int i, int k) {
+  float b = uBins[i * 6 + k];
+  return gasCol(i) * (0.03 * gasGlow(i) + 0.006 * b);
+}
+// diffuse light from all tubes at P with normal N (point lights along each tube)
+vec3 lightsAt(vec3 P, vec3 N) {
+  vec3 sum = vec3(0.0);
+  for (int i = 0; i < N_TUBES; i++) {
+    if (gasGlow(i) <= 0.0005 && uBins[i * 6] + uBins[i * 6 + 1] + uBins[i * 6 + 2] + uBins[i * 6 + 3] + uBins[i * 6 + 4] + uBins[i * 6 + 5] <= 0.001) continue;
+    vec2 c = tubeXZ(i);
+    for (int k = 0; k < 6; k++) {
+      vec3 L = vec3(c.x, GLASS_Y0 + PIN_LEN + (float(k) + 0.5) / 6.0 * (1.0 - 2.0 * PIN_LEN), c.y) - P;
+      float d2 = dot(L, L);
+      float nl = dot(N, L) * inversesqrt(max(d2, 1e-6));
+      if (nl <= 0.0) continue;
+      sum += binLight(i, k) * nl / (d2 * 6.0 + 0.03);
+    }
+  }
+  return sum;
+}
+// the glow of tube j seen along direction R from P: a soft column (used for reflections)
+vec3 tubeStreak(int j, vec3 P, vec3 R) {
+  vec2 c = tubeXZ(j);
+  float t0, t1;
+  if (!cylRoots(P, R, c, R_OUT * 1.6, t0, t1) || t1 < 0.0) return vec3(0.0);
+  float tm = max(0.5 * (t0 + t1), 0.0);
+  vec3 Q = P + R * tm;
+  float v = (Q.y - GLASS_Y0) / (GLASS_Y1 - GLASS_Y0);
+  if (v < -0.1 || v > 1.1) return vec3(0.0);
+  float inside = fall(0.5, 1.0, length(Q.xz - c) / (R_OUT * 1.6));
+  float b = boltSoft(j, 0.5, v);
+  float ends = fall(0.0, 0.08, abs(v - 0.5) - 0.42);
+  return gasCol(j) * (0.9 * gasGlow(j) + 0.35 * b) * inside * ends;
+}
+// tube j mirrored in a glossy surface: the glass hit along R from P, its glow and its lightning
+vec3 tubeMirror(int j, vec3 P, vec3 R) {
+  vec2 c = tubeXZ(j);
+  float t0, t1;
+  if (!cylRoots(P, R, c, R_OUT, t0, t1) || t0 < 0.0) return vec3(0.0);
+  vec3 Q = P + R * t0;
+  if (Q.y < 0.0 || Q.y > GLASS_Y1 + CAP_H) return vec3(0.0);
+  float v = (Q.y - GLASS_Y0) / (GLASS_Y1 - GLASS_Y0);
+  if (v < 0.0 || v > 1.0) return vec3(0.004); // the caps, dark
+  vec3 np = nrm(vec3(P.x - c.x, 0.0, P.z - c.y));
+  float u = dot(Q - vec3(c.x, 0.0, c.y), vec3(-np.z, 0.0, np.x)) / R_IN;
+  float b = boltSoft(j, u * 0.5 + 0.5, v);
+  float ends = fall(0.0, 0.06, abs(v - 0.5) - 0.46);
+  float across = sqrtp(1.0 - clamp(u * u, 0.0, 1.0));
+  return gasCol(j) * (0.9 * gasGlow(j) * across + 0.7 * b) * ends;
+}
+
+// ---- materials
+vec3 wallShade(vec3 P) {
+  vec3 N = vec3(0.0, 0.0, 1.0);
+  float grain = 0.9 + 0.14 * vnoise2(P.xy * 30.0) + 0.06 * vnoise2(P.xy * 140.0);
+  vec3 albedo = vec3(0.22, 0.21, 0.20) * grain;
+  return albedo * lightsAt(P, N) + vec3(0.0022, 0.002, 0.003);
+}
+vec3 shelfShade(vec3 P, vec3 rd) {
+  vec3 N = vec3(0.0, 1.0, 0.0);
+  // dark varnished wood: grain along x
+  float g1 = vnoise2(vec2(P.x * 6.0, P.z * 70.0)), g2 = vnoise2(vec2(P.x * 30.0 + 3.0, P.z * 300.0));
+  float grain = 0.75 + 0.35 * g1 + 0.12 * g2;
+  vec3 albedo = vec3(0.16, 0.10, 0.07) * grain;
+  vec3 c = albedo * lightsAt(P, N);
+  // glossy reflection of the tubes
+  vec3 R = reflect(rd, N);
+  float cosv = max(-rd.y, 0.0);
+  float fres = 0.04 + 0.96 * powp(1.0 - cosv, 5.0);
+  float gloss = 0.55 + 0.3 * g1;
+  vec3 refl = vec3(0.0);
+  for (int j = 0; j < N_TUBES; j++) refl += tubeMirror(j, P + vec3(0.0, 0.002, 0.0), R);
+  c += refl * fres * gloss * 2.2;
+  return c + vec3(0.001, 0.0008, 0.0006);
+}
+vec3 capShade(int i, vec3 P, vec3 N, vec3 rd) {
+  vec3 base = vec3(0.028, 0.028, 0.03) * (0.8 + 0.2 * vnoise2(vec2(P.y * 200.0, atan2s(P.z - uTube[i].y, P.x - uTube[i].x) * 8.0)));
+  vec3 c = base * (0.6 + 0.6 * lightsAt(P, N));
+  vec3 R = reflect(rd, N);
+  for (int j = 0; j < N_TUBES; j++) if (j != i) c += tubeStreak(j, P, R) * 0.5;
+  // own light leaking at the glass joint
+  float dj = min(abs(P.y - CAP_H), abs(P.y - GLASS_Y1));
+  c += gasCol(i) * gasGlow(i) * 0.25 * fall(0.0, 0.03, dj);
+  // a dim room light so the metal reads as metal
+  c += vec3(0.06) * powp(max(dot(R, nrm(vec3(0.3, 0.8, 0.55))), 0.0), 30.0);
+  return c;
+}
+
+// background seen from P along rd (wall or shelf), for rays that passed through glass
+vec3 backgroundFrom(vec3 P, vec3 rd) {
+  float tw = rd.z < -1e-6 ? (WALL_Z - P.z) / rd.z : 1e9;
+  float ts = rd.y < -1e-6 ? (0.0 - P.y) / rd.y : 1e9;
+  if (ts < tw) {
+    vec3 S = P + rd * ts;
+    if (S.z > SHELF_Z0 && S.z < SHELF_Z1 && abs(S.x) < SHELF_W) return shelfShade(S, rd);
+  }
+  if (tw < 1e8) return wallShade(P + rd * tw);
+  return vec3(0.0);
+}
+
+// what the glass reflects: the wall behind, the shelf below, the other tubes, a faint room light
+vec3 envReflect(int i, vec3 P, vec3 R) {
+  vec3 c = backgroundFrom(P, R) * 0.9;
+  for (int j = 0; j < N_TUBES; j++) if (j != i) c += tubeStreak(j, P, R) * 0.8;
+  // a soft window light from the upper left, so the glass has its sheen even when dark
+  float hl = max(dot(R, nrm(vec3(-0.55, 0.6, 0.6))), 0.0);
+  c += vec3(0.16, 0.17, 0.2) * (powp(hl, 28.0) + 0.25 * powp(hl, 5.0));
+  return c;
+}
+
+// inside the glass of tube i: entered at P1 with refracted direction T1
+vec3 glassShade(int i, vec3 P1, vec3 N1, vec3 rd) {
+  vec2 c = tubeXZ(i);
+  vec3 col = gasCol(i);
+  float glow = gasGlow(i);
+  float cosv = max(dot(-rd, N1), 0.0);
+  float F = 0.04 + 0.96 * powp(1.0 - cosv, 5.0);
+  vec3 R = reflect(rd, N1);
+  vec3 outc = F * envReflect(i, P1, R);
+  vec3 T1 = refract(rd, N1, 1.0 / ETA_GLASS);
+  if (dot(T1, T1) < 0.5) return outc; // cannot happen from air, kept for safety
+  // through the wall to the bore
+  float t0, t1;
+  vec3 inner = vec3(0.0);
+  if (cylRoots(P1, T1, c, R_IN, t0, t1) && t0 > 0.0) {
+    vec3 P2 = P1 + T1 * t0;
+    vec3 N2 = nrm(vec3(P2.x - c.x, 0.0, P2.z - c.y)); // outward, faces the incoming ray
+    vec3 T2 = refract(T1, N2, ETA_GLASS);
+    float wallLen = t0;
+    vec3 tint = vec3(0.92, 0.97, 0.95);
+    vec3 absorb = powp3(tint, wallLen / 0.012);
+    if (dot(T2, T2) < 0.5) {
+      // total internal reflection: light trapped in the wall, the bright edge of thick glass
+      inner = col * (0.35 * glow + 0.08 * boltSoft(i, 0.5, (P2.y - GLASS_Y0) / (GLASS_Y1 - GLASS_Y0))) + envReflect(i, P2, reflect(T1, N2)) * 0.4;
+      return outc + (1.0 - F) * inner * absorb;
+    }
+    // across the bore
+    float s0, s1;
+    cylRoots(P2, T2, c, R_IN, s0, s1);
+    float chord = max(s1, 0.0);
+    vec3 P3 = P2 + T2 * chord;
+    // the lightning lives on the plane through the axis that faces the camera
+    vec3 np = nrm(vec3(uCamPos.x - c.x, 0.0, uCamPos.z - c.y));
+    vec3 tg = vec3(-np.z, 0.0, np.x);
+    float denom = dot(T2, np);
+    float bolt = 0.0, pin = 0.0;
+    vec3 pinCol = vec3(0.0);
+    if (abs(denom) > 1e-5) {
+      float tp = dot(vec3(c.x, 0.0, c.y) - P2, np) / denom;
+      if (tp >= 0.0 && tp <= chord) {
+        vec3 Q = P2 + T2 * tp;
+        float u = dot(Q - vec3(c.x, 0.0, c.y), tg) / R_IN;
+        float v = (Q.y - GLASS_Y0) / (GLASS_Y1 - GLASS_Y0);
+        bolt = boltAt(i, u * 0.5 + 0.5, v);
+        // the electrode pins
+        float endD = min(v, 1.0 - v);
+        if (abs(u) * R_IN < PIN_R && endD < PIN_LEN) {
+          pin = 1.0;
+          float tip = fall(0.0, 0.012, PIN_LEN - endD);
+          pinCol = vec3(0.02) + col * uTube[i].w * (0.8 * tip + 0.08);
+        }
+      }
+    }
+    // gas glow along the chord, the walls of the bore lit by the channel
+    float vmid = (0.5 * (P2.y + P3.y) - GLASS_Y0) / (GLASS_Y1 - GLASS_Y0);
+    float ends = fall(0.0, 0.06, abs(vmid - 0.5) - 0.46);
+    float column = glow * chord / (2.0 * R_IN) * ends;
+    float wallLit = 0.12 * boltSoft(i, 0.5, (P2.y - GLASS_Y0) / (GLASS_Y1 - GLASS_Y0)) * ends;
+    vec3 boltCol = mix(col, vec3(1.0), sat(bolt * 0.25)) * bolt * 1.4;
+    vec3 gas = col * (column * 0.45 + wallLit) + boltCol * (1.0 - pin) + pinCol * pin;
+    // on to whatever is behind the tube
+    vec3 behind = pin > 0.5 ? vec3(0.0) : backgroundFrom(P3 + T2 * 0.02, T2) * 0.9;
+    inner = (gas + behind) * absorb;
+  } else {
+    // grazing the wall only
+    inner = col * 0.2 * glow + backgroundFrom(P1 + T1 * 0.05, T1) * 0.8;
+  }
+  return outc + (1.0 - F) * inner;
+}
+
+// ---- scene intersection
+void main() {
+  vec2 sxy = (gl_FragCoord.xy / uRes) * 2.0 - 1.0;
+  vec3 rd = nrm(uCamF + uCamR * (sxy.x * uTanHalf.x) + uCamU * (sxy.y * uTanHalf.y));
+  vec3 ro = uCamPos;
+  float best = 1e9;
+  int mat = 0, tube = -1;
+  vec3 N = vec3(0.0);
+  // tubes
+  for (int i = 0; i < N_TUBES; i++) {
+    vec2 c = tubeXZ(i);
+    float t0, t1;
+    if (!cylRoots(ro, rd, c, CAP_R, t0, t1) || t1 < 0.0) continue;
+    if (t0 > best) continue;
+    float y0 = ro.y + rd.y * t0;
+    // cap sides
+    if (t0 > 0.0 && ((y0 >= 0.0 && y0 <= CAP_H) || (y0 >= GLASS_Y1 && y0 <= GLASS_Y1 + CAP_H))) {
+      vec3 P = ro + rd * t0;
+      best = t0; mat = 2; tube = i; N = nrm(vec3(P.x - c.x, 0.0, P.z - c.y));
+      continue;
+    }
+    // ring faces of the caps
+    if (abs(rd.y) > 1e-6) {
+      float tr = (CAP_H - ro.y) / rd.y;
+      if (ro.y > CAP_H && tr > 0.0 && tr < best) {
+        vec3 P = ro + rd * tr; float r = length(P.xz - c);
+        if (r >= R_OUT && r <= CAP_R) { best = tr; mat = 2; tube = i; N = vec3(0.0, 1.0, 0.0); }
+      }
+      tr = (GLASS_Y1 - ro.y) / rd.y;
+      if (ro.y < GLASS_Y1 && tr > 0.0 && tr < best) {
+        vec3 P = ro + rd * tr; float r = length(P.xz - c);
+        if (r >= R_OUT && r <= CAP_R) { best = tr; mat = 2; tube = i; N = vec3(0.0, -1.0, 0.0); }
+      }
+    }
+    // glass
+    float g0, g1;
+    if (cylRoots(ro, rd, c, R_OUT, g0, g1) && g0 > 0.0 && g0 < best) {
+      float yg = ro.y + rd.y * g0;
+      if (yg >= GLASS_Y0 && yg <= GLASS_Y1) {
+        vec3 P = ro + rd * g0;
+        best = g0; mat = 1; tube = i; N = nrm(vec3(P.x - c.x, 0.0, P.z - c.y));
+      }
+    }
+  }
+  // shelf top and front
+  if (rd.y < -1e-6) {
+    float ts = (0.0 - ro.y) / rd.y;
+    if (ts > 0.0 && ts < best) {
+      vec3 S = ro + rd * ts;
+      if (S.z > SHELF_Z0 && S.z < SHELF_Z1 && abs(S.x) < SHELF_W) { best = ts; mat = 3; }
+    }
+  }
+  if (rd.z < -1e-6) {
+    float tf = (SHELF_Z1 - ro.z) / rd.z;
+    if (tf > 0.0 && tf < best) {
+      vec3 S = ro + rd * tf;
+      if (S.y < 0.0 && S.y > -SHELF_TH && abs(S.x) < SHELF_W) { best = tf; mat = 4; }
+    }
+    float tw = (WALL_Z - ro.z) / rd.z;
+    if (tw > 0.0 && tw < best) { best = tw; mat = 5; }
+  }
+  vec3 P = ro + rd * best;
+  vec3 c = vec3(0.0);
+  if (mat == 1) c = glassShade(tube, P, N, rd);
+  else if (mat == 2) c = capShade(tube, P, N, rd);
+  else if (mat == 3) c = shelfShade(P, rd);
+  else if (mat == 4) { // shelf front: dark wood, a little light from above
+    float grain = 0.8 + 0.3 * vnoise2(vec2(P.x * 8.0, P.y * 90.0));
+    c = vec3(0.14, 0.09, 0.06) * grain * (lightsAt(P, vec3(0.0, 0.0, 1.0)) * 0.7 + 0.015);
+  }
+  else if (mat == 5) c = wallShade(P);
+  fragColor = vec4(ok3(c), 1.0);
+}
+`;
+      const FS_MAIN = GLSL_SCENE;
+
+      // ===== 36_glsl_passes.js =====
+      // ---------- supporting passes: lightning atlas, glow blur, bloom, final ----------
+      const VS_QUAD = /* glsl */ `
+in vec3 position;
+void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }
+`;
+
+      // Lightning segments as instanced quads into the atlas (one column per tube). Additive.
+      const VS_BOLT = /* glsl */ `
+in vec3 position;
+in vec4 iSeg;   // ax, ay, bx, by (atlas uv)
+in vec2 iPar;   // width (atlas u units), intensity
+uniform vec2 uAtlasRes;
+out vec2 vP;    // pixel position
+flat out vec4 vSeg;
+flat out vec2 vPar;
+void main() {
+  vec2 a = iSeg.xy * uAtlasRes, b = iSeg.zw * uAtlasRes;
+  float w = iPar.x * uAtlasRes.x;
+  float pad = max(w * 3.0, 2.5);
+  vec2 d = b - a;
+  float l = length(d);
+  vec2 t = l > 1e-6 ? d / l : vec2(0.0, 1.0);
+  vec2 n = vec2(-t.y, t.x);
+  // position.x in [-1,1] along, position.y in [-1,1] across
+  vec2 p = mix(a, b, position.x * 0.5 + 0.5) + t * position.x * pad + n * position.y * pad;
+  vP = p;
+  vSeg = vec4(a, b);
+  vPar = vec2(w, iPar.y);
+  gl_Position = vec4(p / uAtlasRes * 2.0 - 1.0, 0.0, 1.0);
+}
+`;
+      const FS_BOLT = /* glsl */ `
+in vec2 vP;
+flat in vec4 vSeg;
+flat in vec2 vPar;
+out vec4 fragColor;
+void main() {
+  vec2 a = vSeg.xy, b = vSeg.zw, p = vP;
+  vec2 ab = b - a;
+  float h = clamp(dot(p - a, ab) / max(dot(ab, ab), 1e-6), 0.0, 1.0);
+  float d = length(p - a - ab * h);
+  float w = max(vPar.x, 0.6);
+  float core = exp(-d * d / (w * w));
+  float skirt = 0.18 * exp(-d / (w * 2.5 + 1.0));
+  fragColor = vec4(vec3(vPar.y * (core + skirt)), 1.0);
+}
+`;
+
+      // 9-tap Gaussian, one direction
+      const FS_BLUR = /* glsl */ `
+uniform sampler2D uSrc;
+uniform vec2 uDir;      // texel step
+uniform vec2 uDstTexel;
+out vec4 fragColor;
+void main() {
+  vec2 uv = gl_FragCoord.xy * uDstTexel;
+  float w[5] = float[5](0.2270, 0.1945, 0.1216, 0.0540, 0.0162);
+  vec3 c = textureLod(uSrc, uv, 0.0).rgb * w[0];
+  for (int k = 1; k < 5; k++) {
+    c += textureLod(uSrc, uv + uDir * float(k), 0.0).rgb * w[k];
+    c += textureLod(uSrc, uv - uDir * float(k), 0.0).rgb * w[k];
+  }
+  fragColor = vec4(ok3(c), 1.0);
+}
+`;
+
+      const FS_DOWN = /* glsl */ `
+uniform sampler2D uSrc;
+uniform vec2 uSrcTexel;
+uniform vec2 uDstTexel;
+uniform float uPrefilter;
+out vec4 fragColor;
+void main() {
+  vec2 uv = gl_FragCoord.xy * uDstTexel;
+  vec2 o = uSrcTexel;
+  vec3 c = textureLod(uSrc, uv, 0.0).rgb * 4.0;
+  c += textureLod(uSrc, uv + vec2(-o.x, -o.y), 0.0).rgb + textureLod(uSrc, uv + vec2(o.x, -o.y), 0.0).rgb;
+  c += textureLod(uSrc, uv + vec2(-o.x, o.y), 0.0).rgb + textureLod(uSrc, uv + vec2(o.x, o.y), 0.0).rgb;
+  c = ok3(c / 8.0);
+  if (uPrefilter > 0.5) { float l = max(c.r, max(c.g, c.b)); c *= smoothstep(0.6, 2.4, l); }
+  fragColor = vec4(c, 1.0);
+}
+`;
+      const FS_UP = /* glsl */ `
+uniform sampler2D uLow;
+uniform sampler2D uCur;
+uniform vec2 uLowTexel;
+uniform vec2 uDstTexel;
+out vec4 fragColor;
+void main() {
+  vec2 uv = gl_FragCoord.xy * uDstTexel;
+  vec2 o = uLowTexel;
+  vec3 s = textureLod(uLow, uv + vec2(-o.x * 2.0, 0.0), 0.0).rgb + textureLod(uLow, uv + vec2(o.x * 2.0, 0.0), 0.0).rgb +
+           textureLod(uLow, uv + vec2(0.0, -o.y * 2.0), 0.0).rgb + textureLod(uLow, uv + vec2(0.0, o.y * 2.0), 0.0).rgb;
+  s += (textureLod(uLow, uv + vec2(-o.x, -o.y), 0.0).rgb + textureLod(uLow, uv + vec2(o.x, -o.y), 0.0).rgb +
+        textureLod(uLow, uv + vec2(-o.x, o.y), 0.0).rgb + textureLod(uLow, uv + vec2(o.x, o.y), 0.0).rgb) * 2.0;
+  fragColor = vec4(ok3(textureLod(uCur, uv, 0.0).rgb + s / 12.0), 1.0);
+}
+`;
+      // Tone mapping, bloom, vignette and dither. Output is display-ready sRGB.
+      const FS_FINAL = /* glsl */ `
+uniform sampler2D uHdr;
+uniform sampler2D uBloom;
+uniform vec2 uOutRes;
+uniform float uBloomK;
+uniform float uExposure;
+uniform float uGrain;
+out vec4 fragColor;
+vec3 aces(vec3 x) { return sat3((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14)); }
+void main() {
+  vec2 uv = gl_FragCoord.xy / uOutRes;
+  vec3 c = ok3(textureLod(uHdr, uv, 0.0).rgb) + ok3(textureLod(uBloom, uv, 0.0).rgb) * uBloomK;
+  vec2 q = (uv - 0.5) * vec2(uOutRes.x / uOutRes.y, 1.0);
+  float asp = max(uOutRes.x / uOutRes.y, 1.0);
+  c *= uExposure * (1.0 - 0.45 * dot(q, q) / (0.25 * asp * asp + 0.25));
+  c = aces(max(c, vec3(0.0)));
+  c = powp3(c, 1.0 / 2.2);
+  c += (hash12(gl_FragCoord.xy + uGrain * 61.0) - 0.5) * (2.0 / 255.0);
+  fragColor = vec4(sat3(c), 1.0);
+}
+`;
+
+      // ===== 40_gpu.js =====
+      // ---------- GPU pipeline: lightning atlas, main picture, bloom, final ----------
+      // Everything that is blended or linearly filtered is half float (8 bit on the rare GPU without
+      // float render targets, which only gets the still image).
+      let RT_TYPE = THREE.HalfFloatType;
+      function makeRT(w, h, opt = {}) {
+        const lin = opt.linear !== false;
+        return new THREE.WebGLRenderTarget(w, h, {
+          type: opt.type || RT_TYPE,
+          format: THREE.RGBAFormat,
+          minFilter: lin ? THREE.LinearFilter : THREE.NearestFilter,
+          magFilter: lin ? THREE.LinearFilter : THREE.NearestFilter,
+          wrapS: THREE.ClampToEdgeWrapping,
+          wrapT: THREE.ClampToEdgeWrapping,
+          depthBuffer: false,
+          stencilBuffer: false,
+          generateMipmaps: false,
+        });
+      }
+      const MAX_SEG = 8000;
+
+      class ChoirGPU {
+        constructor(canvas) {
+          this.canvas = canvas;
+          this.renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: false,
+            alpha: false,
+            depth: false,
+            stencil: false,
+            powerPreference: "high-performance",
+            preserveDrawingBuffer: TEST_MODE,
+          });
+          this.renderer.setPixelRatio(1);
+          this.renderer.autoClear = false;
+          this.gl = this.renderer.getContext();
+          const dbg = this.gl.getExtension("WEBGL_debug_renderer_info");
+          this.rendererName = String(
+            dbg
+              ? this.gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)
+              : this.gl.getParameter(this.gl.RENDERER),
+          );
+          this.software =
+            /swiftshader|llvmpipe|softpipe|software|basic render/i.test(
+              this.rendererName,
+            );
+          this.floatRT =
+            this.renderer.extensions.has("EXT_color_buffer_float") ||
+            this.renderer.extensions.has("EXT_color_buffer_half_float");
+          if (!this.floatRT) RT_TYPE = THREE.UnsignedByteType;
+          this.quadScene = new THREE.Scene();
+          this.quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+          this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
+          this.quad.frustumCulled = false;
+          this.quadScene.add(this.quad);
+          // instanced quads for the lightning segments
+          const g = new THREE.InstancedBufferGeometry();
+          const q = new THREE.PlaneGeometry(2, 2);
+          g.setAttribute("position", q.getAttribute("position"));
+          g.setIndex(q.getIndex());
+          this.segA = new THREE.InstancedBufferAttribute(
+            new Float32Array(MAX_SEG * 4),
+            4,
+          ).setUsage(THREE.DynamicDrawUsage);
+          this.segB = new THREE.InstancedBufferAttribute(
+            new Float32Array(MAX_SEG * 2),
+            2,
+          ).setUsage(THREE.DynamicDrawUsage);
+          g.setAttribute("iSeg", this.segA);
+          g.setAttribute("iPar", this.segB);
+          g.instanceCount = 0;
+          this.boltGeo = g;
+          this.boltScene = new THREE.Scene();
+          this.boltMesh = new THREE.Mesh(g, null);
+          this.boltMesh.frustumCulled = false;
+          this.boltScene.add(this.boltMesh);
+          this.size = { pw: 0, ph: 0, scale: 1, mw: 0, mh: 0 };
+          this.frame = 0;
+        }
+
+        _mat(vs, fs, uniforms, extra = {}) {
+          return new THREE.RawShaderMaterial({
+            glslVersion: THREE.GLSL3,
+            vertexShader: prepGLSL(vs),
+            fragmentShader: prepGLSL(fs),
+            uniforms,
+            depthTest: false,
+            depthWrite: false,
+            ...extra,
+          });
+        }
+
+        setTier(tier) {
+          this.dispose();
+          this.tier = tier;
+          const vs = GLSL_COMMON + VS_QUAD;
+          const AW = tier.atlasW * TUBE.n,
+            AH = tier.atlasH;
+          this.atlas = makeRT(AW, AH);
+          this.atlas.texture.generateMipmaps = true; // so a small main buffer still sees smooth bolts
+          this.atlas.texture.minFilter = THREE.LinearMipmapLinearFilter;
+          this.halo = [];
+          this.haloTmp = [];
+          let w = AW,
+            h = AH;
+          for (let i = 0; i < tier.glow; i++) {
+            w = Math.max(2, Math.floor(w / 2));
+            h = Math.max(2, Math.floor(h / 2));
+            this.halo.push(makeRT(w, h));
+            this.haloTmp.push(makeRT(w, h));
+          }
+          this.mBolt = this._mat(
+            GLSL_COMMON + VS_BOLT,
+            GLSL_COMMON + FS_BOLT,
+            { uAtlasRes: { value: new THREE.Vector2(AW, AH) } },
+            {
+              blending: THREE.CustomBlending,
+              blendSrc: THREE.OneFactor,
+              blendDst: THREE.OneFactor,
+              blendEquation: THREE.AddEquation,
+              transparent: true,
+            },
+          );
+          this.boltMesh.material = this.mBolt;
+          this.mBlur = this._mat(vs, GLSL_COMMON + FS_BLUR, {
+            uSrc: { value: null },
+            uDir: { value: new THREE.Vector2() },
+            uDstTexel: { value: new THREE.Vector2() },
+          });
+          this.mDown = this._mat(vs, GLSL_COMMON + FS_DOWN, {
+            uSrc: { value: null },
+            uSrcTexel: { value: new THREE.Vector2() },
+            uDstTexel: { value: new THREE.Vector2() },
+            uPrefilter: { value: 0 },
+          });
+          this.mUp = this._mat(vs, GLSL_COMMON + FS_UP, {
+            uLow: { value: null },
+            uCur: { value: null },
+            uLowTexel: { value: new THREE.Vector2() },
+            uDstTexel: { value: new THREE.Vector2() },
+          });
+          const last = this.halo[this.halo.length - 1];
+          this.mainU = {
+            uRes: { value: new THREE.Vector2(1, 1) },
+            uCamPos: { value: new THREE.Vector3() },
+            uCamR: { value: new THREE.Vector3(1, 0, 0) },
+            uCamU: { value: new THREE.Vector3(0, 1, 0) },
+            uCamF: { value: new THREE.Vector3(0, 0, -1) },
+            uTanHalf: { value: new THREE.Vector2(0.5, 0.3) },
+            uTime: { value: 0 },
+            uTube: {
+              value: Array.from(
+                { length: 5 },
+                (_, i) => new THREE.Vector4((i - 2) * TUBE.spacing, 0, 0, 0),
+              ),
+            },
+            uGasCol: {
+              value: GAS_COLOR.map((c) => new THREE.Vector3(...c.rgb)),
+            },
+            uBins: { value: new Float32Array(30) },
+            uAtlas: { value: this.atlas.texture },
+            uHalo1: { value: this.halo[0].texture },
+            uHalo2: { value: (this.halo[1] || last).texture },
+            uHalo3: { value: (this.halo[2] || last).texture },
+            uHaloK: { value: this.halo[2] ? 0.3 : 0.0 },
+            uAtlasLod: { value: 0 },
+          };
+          this.mMain = this._mat(
+            vs,
+            GLSL_COMMON + sceneGLSL() + FS_MAIN,
+            this.mainU,
+          );
+          // test-only negative control: a deliberate pow() of a negative base the strict harness must catch
+          const finalFS =
+            TEST_MODE && QUERY.has("nanprobe")
+              ? FS_FINAL.replace(
+                  "c = aces(",
+                  "c *= pow(-0.5 + 0.0 * c.r, 2.0) * 4.0;\n  c = aces(",
+                )
+              : FS_FINAL;
+          this.mFinal = this._mat(vs, GLSL_COMMON + finalFS, {
+            uHdr: { value: null },
+            uBloom: { value: null },
+            uOutRes: { value: new THREE.Vector2(1, 1) },
+            uBloomK: { value: 0.22 },
+            uExposure: { value: 1.0 },
+            uGrain: { value: 0 },
+          });
+          if (this.size.pw > 0) this._allocMain(true);
+        }
+
+        dispose() {
+          for (const k of ["atlas", "hdr"])
+            if (this[k]) {
+              this[k].dispose();
+              this[k] = null;
+            }
+          for (const k of ["halo", "haloTmp", "down", "up"]) {
+            if (this[k]) for (const r of this[k]) r.dispose();
+            this[k] = null;
+          }
+          for (const k of ["mBolt", "mBlur", "mDown", "mUp", "mMain", "mFinal"])
+            if (this[k]) {
+              this[k].dispose();
+              this[k] = null;
+            }
+        }
+
+        _programs() {
+          return [this.mBlur, this.mDown, this.mUp, this.mMain, this.mFinal];
+        }
+        compileAll() {
+          for (const m of this._programs()) {
+            this.quad.material = m;
+            this.renderer.compile(this.quadScene, this.quadCam);
+          }
+          this.renderer.compile(this.boltScene, this.quadCam);
+        }
+        async compileAllAsync() {
+          for (const m of this._programs()) {
+            this.quad.material = m;
+            await this.renderer.compileAsync(this.quadScene, this.quadCam);
+          }
+          await this.renderer.compileAsync(this.boltScene, this.quadCam);
+        }
+        programErrors() {
+          const gl = this.gl,
+            errs = [];
+          for (const p of this.renderer.info.programs || []) {
+            const prog = p.program;
+            if (prog && !gl.getProgramParameter(prog, gl.LINK_STATUS))
+              errs.push(p.name + ": " + gl.getProgramInfoLog(prog));
+          }
+          return errs;
+        }
+
+        _quad(mat, rt) {
+          this.quad.material = mat;
+          this.renderer.setRenderTarget(rt);
+          this.renderer.render(this.quadScene, this.quadCam);
+        }
+        clearRT(rt) {
+          const r = this.renderer;
+          r.setRenderTarget(rt);
+          r.setClearColor(0x000000, 0);
+          r.clear(true, false, false);
+        }
+
+        resize(pw, ph, scale) {
+          const s = this.size;
+          const changed =
+            pw !== s.pw || ph !== s.ph || Math.abs(scale - s.scale) > 1e-3;
+          s.pw = pw;
+          s.ph = ph;
+          s.scale = scale;
+          this.renderer.setSize(pw, ph, false);
+          if (changed) this._allocMain(false);
+        }
+        _allocMain(force) {
+          const s = this.size;
+          const mw = Math.max(16, Math.round(s.pw * s.scale)),
+            mh = Math.max(16, Math.round(s.ph * s.scale));
+          if (!force && this.hdr && mw === s.mw && mh === s.mh) return;
+          s.mw = mw;
+          s.mh = mh;
+          if (this.hdr) this.hdr.setSize(mw, mh);
+          else this.hdr = makeRT(mw, mh);
+          if (this.down) for (const r of this.down) r.dispose();
+          if (this.up) for (const r of this.up) r.dispose();
+          this.down = [];
+          this.up = [];
+          let w = mw,
+            h = mh;
+          for (let i = 0; i < this.tier.bloom; i++) {
+            w = Math.max(2, Math.floor(w / 2));
+            h = Math.max(2, Math.floor(h / 2));
+            this.down.push(makeRT(w, h));
+            this.up.push(makeRT(w, h));
+          }
+        }
+
+        // ---- lightning atlas: draw the segments, then blur down the halo chain
+        renderBolts(list) {
+          const n = Math.min(MAX_SEG, Math.floor(list.n / 6)),
+            a = this.segA.array,
+            b = this.segB.array,
+            src = list.a;
+          for (let k = 0; k < n; k++) {
+            a[k * 4] = src[k * 6];
+            a[k * 4 + 1] = src[k * 6 + 1];
+            a[k * 4 + 2] = src[k * 6 + 2];
+            a[k * 4 + 3] = src[k * 6 + 3];
+            b[k * 2] = src[k * 6 + 4];
+            b[k * 2 + 1] = src[k * 6 + 5];
+          }
+          this.segA.needsUpdate = true;
+          this.segB.needsUpdate = true;
+          this.boltGeo.instanceCount = n;
+          this.clearRT(this.atlas);
+          if (n > 0) this.renderer.render(this.boltScene, this.quadCam);
+          let src2 = this.atlas;
+          for (let i = 0; i < this.halo.length; i++) {
+            const d = this.mDown.uniforms,
+              h = this.halo[i],
+              tmp = this.haloTmp[i];
+            d.uSrc.value = src2.texture;
+            d.uSrcTexel.value.set(1 / src2.width, 1 / src2.height);
+            d.uDstTexel.value.set(1 / h.width, 1 / h.height);
+            d.uPrefilter.value = 0;
+            this._quad(this.mDown, tmp);
+            const u = this.mBlur.uniforms;
+            u.uSrc.value = tmp.texture;
+            u.uDir.value.set(1 / h.width, 0);
+            u.uDstTexel.value.set(1 / h.width, 1 / h.height);
+            this._quad(this.mBlur, h);
+            u.uSrc.value = h.texture;
+            u.uDir.value.set(0, 1 / h.height);
+            this._quad(this.mBlur, tmp);
+            // tmp now holds the blurred level; swap so halo[i] is the result
+            this.halo[i] = tmp;
+            this.haloTmp[i] = h;
+            src2 = tmp;
+          }
+          const last = this.halo[this.halo.length - 1];
+          this.mainU.uHalo1.value = this.halo[0].texture;
+          this.mainU.uHalo2.value = (this.halo[1] || last).texture;
+          this.mainU.uHalo3.value = (this.halo[2] || last).texture;
+        }
+
+        // ---- camera: look at a point on the tubes from distance and angles, fit the row in portrait
+        view(st) {
+          const aspect = this.size.pw / Math.max(this.size.ph, 1);
+          const c = st.cam;
+          let tanY = Math.tan(CAM.fov / 2),
+            dist = c.dist;
+          const halfRow =
+            (TUBE.n - 1) * 0.5 * TUBE.spacing +
+            TUBE.capR +
+            CAM.margin +
+            Math.abs(c.x);
+          const need = halfRow / dist;
+          if (tanY * aspect < need) {
+            tanY = Math.min(0.46, need / aspect); // widen a little first
+            if (tanY * aspect < need) dist = halfRow / (tanY * aspect); // then step back
+          }
+          const cp = Math.cos(c.pitch),
+            sp = Math.sin(c.pitch),
+            cy = Math.cos(c.yaw),
+            sy = Math.sin(c.yaw);
+          // tall screens: look a little higher, so the shelf sits in the lower third rather than the middle
+          const look = [c.x, c.y + 0.45 * smooth01(1.1, 0.45, aspect), 0];
+          const pos = [
+            look[0] + dist * sy * cp,
+            look[1] - dist * sp,
+            look[2] + dist * cy * cp,
+          ];
+          let F = [look[0] - pos[0], look[1] - pos[1], look[2] - pos[2]];
+          const fl = Math.hypot(...F);
+          F = F.map((v) => v / fl);
+          let R = [-F[2], 0, F[0]];
+          const rl = Math.hypot(...R);
+          R = R.map((v) => v / rl);
+          const U = [
+            R[1] * F[2] - R[2] * F[1],
+            R[2] * F[0] - R[0] * F[2],
+            R[0] * F[1] - R[1] * F[0],
+          ];
+          return { pos, R, U, F, tanX: tanY * aspect, tanY, dist, aspect };
+        }
+        // world point to NDC (for the framing test)
+        project(v, p) {
+          const d = [p[0] - v.pos[0], p[1] - v.pos[1], p[2] - v.pos[2]];
+          const z = d[0] * v.F[0] + d[1] * v.F[1] + d[2] * v.F[2];
+          const x = d[0] * v.R[0] + d[1] * v.R[1] + d[2] * v.R[2],
+            y = d[0] * v.U[0] + d[1] * v.U[1] + d[2] * v.U[2];
+          return [x / (z * v.tanX), y / (z * v.tanY), z];
+        }
+
+        setScene(st, bins) {
+          const M = this.mainU,
+            v = this.view(st);
+          M.uCamPos.value.fromArray(v.pos);
+          M.uCamR.value.fromArray(v.R);
+          M.uCamU.value.fromArray(v.U);
+          M.uCamF.value.fromArray(v.F);
+          M.uTanHalf.value.set(v.tanX, v.tanY);
+          M.uTime.value = st.t;
+          st.tubes.forEach((u, i) =>
+            M.uTube.value[i].set(
+              (i - 2) * TUBE.spacing,
+              0,
+              u.glow,
+              u.hot ?? u.glow,
+            ),
+          );
+          M.uBins.value.set(bins);
+          // atlas texels per screen pixel across a bore: pick the mip level that matches
+          const boreScreenPx = (TUBE.rIn / (v.tanX * v.dist)) * this.size.mw;
+          M.uAtlasLod.value = Math.max(
+            0,
+            Math.log2((0.8 * this.tier.atlasW) / Math.max(boreScreenPx, 1)),
+          );
+          this.mFinal.uniforms.uExposure.value = st.expo;
+          return v;
+        }
+
+        renderMain(band) {
+          const rt = this.hdr;
+          this.mainU.uRes.value.set(this.size.mw, this.size.mh);
+          if (band) {
+            rt.scissor.set(0, band[0], this.size.mw, band[1] - band[0]);
+            rt.scissorTest = true;
+          }
+          this._quad(this.mMain, rt);
+          rt.scissorTest = false;
+        }
+
+        post(grain) {
+          const n = this.down.length;
+          let src = this.hdr;
+          for (let i = 0; i < n; i++) {
+            const d = this.mDown.uniforms;
+            d.uSrc.value = src.texture;
+            d.uSrcTexel.value.set(1 / src.width, 1 / src.height);
+            d.uDstTexel.value.set(
+              1 / this.down[i].width,
+              1 / this.down[i].height,
+            );
+            d.uPrefilter.value = i === 0 ? 1 : 0;
+            this._quad(this.mDown, this.down[i]);
+            src = this.down[i];
+          }
+          let low = this.down[n - 1];
+          for (let i = n - 2; i >= 0; i--) {
+            const u = this.mUp.uniforms;
+            u.uLow.value = low.texture;
+            u.uCur.value = this.down[i].texture;
+            u.uLowTexel.value.set(1 / low.width, 1 / low.height);
+            u.uDstTexel.value.set(1 / this.up[i].width, 1 / this.up[i].height);
+            this._quad(this.mUp, this.up[i]);
+            low = this.up[i];
+          }
+          const f = this.mFinal.uniforms;
+          f.uHdr.value = this.hdr.texture;
+          f.uBloom.value = low.texture;
+          f.uOutRes.value.set(this.size.pw, this.size.ph);
+          f.uGrain.value = grain;
+          this._quad(this.mFinal, null);
+          this.frame++;
+        }
+
+        // ---- test helpers: NaN or Inf anywhere in the HDR picture
+        countBadPixels() {
+          const { mw, mh } = this.size;
+          if (RT_TYPE !== THREE.HalfFloatType) return 0;
+          const buf = new Uint16Array(mw * mh * 4);
+          this.renderer.readRenderTargetPixels(this.hdr, 0, 0, mw, mh, buf);
+          let bad = 0;
+          for (let i = 0; i < buf.length; i += 4) {
+            if (
+              (buf[i] & 0x7c00) === 0x7c00 ||
+              (buf[i + 1] & 0x7c00) === 0x7c00 ||
+              (buf[i + 2] & 0x7c00) === 0x7c00
+            )
+              bad++;
+          }
+          return bad;
+        }
+      }
+
+      // ===== 45_bolts.js =====
+      // ---------- lightning: the dielectric breakdown model ----------
+      // Niemeyer, Pietronero and Wiesmann (1984): the discharge is a tree held at potential 0, the far
+      // electrode at 1, Laplace's equation in between. Every step one free cell next to the tree joins it,
+      // with probability proportional to (local potential)^eta. The field is solved on the tube's lattice
+      // by successive over-relaxation and kept warm between steps. Reaching the other electrode is the
+      // return stroke: the path back to the root becomes the channel, the side branches go dark.
+      const BOLT = {
+        eta: 1.8,
+        etaTouch: 2.6,
+        omega: 1.8,
+        sweeps: 3,
+        window: 24,
+        initSweeps: 700,
+        maxSteps: 5000,
+        stepsPerSec: 1500, // live growth speed toward a finger
+        coreW: 0.21,
+        leaderW: 0.12,
+        tipLen: 26, // widths in cells, how many newest nodes glow as the leader tip
+      };
+
+      class Lattice {
+        constructor(W, H) {
+          this.W = W;
+          this.H = H;
+          this.phi = new Float32Array(W * H);
+          this.fixed = new Uint8Array(W * H); // 0 free, 1 tree (0 V), 2 electrode (1 V)
+          this.nodes = []; // {x, y, p: parent index, k: hops off the main channel}
+          this.cand = []; // candidate cells, as indices
+          this.inCand = new Uint8Array(W * H);
+          this.map = new Int32Array(W * H); // cell -> node index
+          this.wts = new Float32Array(W * H);
+        }
+        reset(seed, target) {
+          const { W, H } = this;
+          this.rng = mulberry32(seed);
+          this.phi.fill(0.5);
+          this.fixed.fill(0);
+          this.inCand.fill(0);
+          this.map.fill(-1);
+          this.nodes.length = 0;
+          this.cand.length = 0;
+          this.done = false;
+          this.connect = -1;
+          this.steps = 0;
+          this.target = target; // {x, y, r}: cells within r of it count as the far electrode
+          const cx = (W - 1) / 2;
+          for (let x = 0; x < W; x++)
+            for (let y = 0; y < H; y++) {
+              const dx = x - target.x,
+                dy = y - target.y;
+              if (dx * dx + dy * dy <= target.r * target.r) {
+                this.fixed[y * W + x] = 2;
+                this.phi[y * W + x] = 1;
+              }
+            }
+          // root: the cathode pin tip
+          this._add(Math.round(cx), 0, -1);
+          this.relax(BOLT.initSweeps);
+        }
+        _add(x, y, p) {
+          const { W } = this,
+            i = y * W + x;
+          this.fixed[i] = 1;
+          this.phi[i] = 0;
+          this.map[i] = this.nodes.length;
+          this.nodes.push({ x, y, p, k: 0 });
+          if (this.inCand[i]) {
+            this.inCand[i] = 0;
+            const j = this.cand.indexOf(i);
+            if (j >= 0) {
+              this.cand[j] = this.cand[this.cand.length - 1];
+              this.cand.pop();
+            }
+          }
+          for (let dy = -1; dy <= 1; dy++)
+            for (let dx = -1; dx <= 1; dx++) {
+              const nx = x + dx,
+                ny = y + dy;
+              if (nx < 0 || nx >= W || ny < 0 || ny >= this.H) continue;
+              const n = ny * W + nx;
+              if (this.fixed[n] === 0 && !this.inCand[n]) {
+                this.inCand[n] = 1;
+                this.cand.push(n);
+              }
+            }
+        }
+        // red-black SOR, Neumann at the glass and the open ends, Dirichlet on the tree and the electrode.
+        // Rows [ya, yb) only: after one new cell the field only moves nearby.
+        relax(sweeps, ya = 0, yb = this.H) {
+          const { W, H, phi, fixed } = this,
+            w = BOLT.omega;
+          for (let s = 0; s < sweeps; s++) {
+            for (let parity = 0; parity < 2; parity++) {
+              for (let y = ya; y < yb; y++) {
+                const yd = y > 0 ? y - 1 : y + 1,
+                  yu = y < H - 1 ? y + 1 : y - 1;
+                for (let x = (y + parity) & 1; x < W; x += 2) {
+                  const i = y * W + x;
+                  if (fixed[i]) continue;
+                  const xl = x > 0 ? x - 1 : x + 1,
+                    xr = x < W - 1 ? x + 1 : x - 1;
+                  const avg =
+                    0.25 *
+                    (phi[y * W + xl] +
+                      phi[y * W + xr] +
+                      phi[yd * W + x] +
+                      phi[yu * W + x]);
+                  phi[i] += w * (avg - phi[i]);
+                }
+              }
+            }
+          }
+        }
+        // one growth step; true when the tree has just reached the far electrode
+        step(eta) {
+          if (this.done || this.cand.length === 0) {
+            this.done = true;
+            return false;
+          }
+          const { W, phi, cand } = this;
+          let sum = 0;
+          const wts = this.wts;
+          for (let j = 0; j < cand.length; j++) {
+            const v = Math.max(phi[cand[j]], 0);
+            const p = Math.pow(v, eta);
+            wts[j] = p;
+            sum += p;
+          }
+          let r = this.rng() * sum,
+            j = 0;
+          if (sum <= 0) j = Math.floor(this.rng() * cand.length);
+          else {
+            for (; j < cand.length - 1; j++) {
+              r -= wts[j];
+              if (r <= 0) break;
+            }
+          }
+          const i = cand[j],
+            x = i % W,
+            y = (i - x) / W;
+          // parent: the tree neighbor with the lowest index (the oldest), a straight-ish channel
+          let p = -1,
+            best = 1e9;
+          for (let dy = -1; dy <= 1; dy++)
+            for (let dx = -1; dx <= 1; dx++) {
+              const nx = x + dx,
+                ny = y + dy;
+              if (
+                nx < 0 ||
+                nx >= W ||
+                ny < 0 ||
+                ny >= this.H ||
+                this.fixed[ny * W + nx] !== 1
+              )
+                continue;
+              const idx = this.map[ny * W + nx];
+              if (idx >= 0 && idx < best) {
+                best = idx;
+                p = idx;
+              }
+            }
+          this._add(x, y, p);
+          this.steps++;
+          // touching the far electrode?
+          const n = this.nodes.length - 1;
+          for (let dy = -1; dy <= 1 && !this.done; dy++)
+            for (let dx = -1; dx <= 1; dx++) {
+              const nx = x + dx,
+                ny = y + dy;
+              if (nx < 0 || nx >= W || ny < 0 || ny >= this.H) continue;
+              if (this.fixed[ny * W + nx] === 2) {
+                this.done = true;
+                this.connect = n;
+                break;
+              }
+            }
+          if (!this.done && this.steps >= BOLT.maxSteps) {
+            this.done = true;
+            this.connect = this._highest();
+          }
+          if (this.done) this._markMain();
+          else
+            this.relax(
+              BOLT.sweeps,
+              Math.max(0, y - BOLT.window),
+              Math.min(this.H, y + BOLT.window),
+            );
+          return this.done;
+        }
+        _highest() {
+          let b = 0;
+          for (let k = 1; k < this.nodes.length; k++)
+            if (this.nodes[k].y > this.nodes[b].y) b = k;
+          return b;
+        }
+        // hops from the main channel for every node (0 on the channel)
+        _markMain() {
+          const N = this.nodes;
+          for (const n of N) n.k = 1e9;
+          for (let k = this.connect; k >= 0; k = N[k].p) N[k].k = 0;
+          for (let k = 1; k < N.length; k++)
+            if (N[k].k > 0) N[k].k = N[N[k].p].k + 1;
+        }
+      }
+      // One tube: the scheduled bolts (grown whole, then revealed in time) and the live bolt to a finger.
+      class Tube {
+        constructor(i, score) {
+          this.i = i;
+          this.score = score;
+          this.lat = new Lattice(TUBE.gridW, TUBE.gridH); // scheduled bolts
+          this.liveLat = new Lattice(TUBE.gridW, TUBE.gridH); // the bolt toward the pointer
+          this.trees = new Map(); // cycle seed -> snapshot
+          this.job = null; // a scheduled tree being grown a few steps per frame
+          this.live = null;
+          this.bins = new Float32Array(6);
+          this.topTarget = {
+            x: (TUBE.gridW - 1) / 2,
+            y: TUBE.gridH - 1,
+            r: 1.2,
+          };
+        }
+        _store(seed, snap) {
+          if (this.trees.size > 6)
+            this.trees.delete(this.trees.keys().next().value);
+          this.trees.set(seed, snap);
+          return snap;
+        }
+        // the whole tree of a scheduled cycle (cached); grown here and now if it is not ready
+        tree(c) {
+          const t = this.trees.get(c.seed);
+          if (t) return t;
+          const lat = this.lat;
+          if (!this.job || this.job.seed !== c.seed) {
+            lat.reset(c.seed, this.topTarget);
+            this.job = { seed: c.seed };
+          }
+          while (!lat.step(BOLT.eta)) {
+            /* grow until the return stroke */
+          }
+          this.job = null;
+          return this._store(c.seed, this._snapshot(lat, c.seed));
+        }
+        // The next scheduled bolt that still needs growing (soonest first), looking a few seconds ahead.
+        pending(t) {
+          const cs = this.score.cycles[this.i];
+          let best = null;
+          for (const c of cs) {
+            for (const off of [0, LOOP_SEC]) {
+              const tg = c.tg + off;
+              if (
+                tg > t - 0.5 &&
+                tg < t + 6.0 &&
+                !this.trees.has(c.seed) &&
+                (!best || tg < best.tg)
+              )
+                best = { c, tg };
+            }
+          }
+          return best ? best.c : null;
+        }
+        // Grow a scheduled bolt in the background, a little per frame, so no frame stalls.
+        grow(c, budgetMs) {
+          const until = performance.now() + budgetMs,
+            lat = this.lat;
+          if (!this.job || this.job.seed !== c.seed) {
+            lat.reset(c.seed, this.topTarget);
+            this.job = { seed: c.seed };
+          }
+          while (performance.now() < until) {
+            if (lat.step(BOLT.eta)) {
+              this._store(c.seed, this._snapshot(lat, c.seed));
+              this.job = null;
+              return true;
+            }
+          }
+          return false;
+        }
+        _snapshot(lat, seed) {
+          const n = lat.nodes.length,
+            nodes = new Float32Array(n * 2),
+            parent = new Int32Array(n),
+            off = new Int32Array(n),
+            jit = new Float32Array(n * 2);
+          lat.nodes.forEach((o, k) => {
+            nodes[2 * k] = o.x;
+            nodes[2 * k + 1] = o.y;
+            parent[k] = o.p;
+            off[k] = Math.min(o.k, 1000);
+            jit[2 * k] = (hashUnit(seed * 7919 + k * 2) - 0.5) * 0.7;
+            jit[2 * k + 1] = (hashUnit(seed * 7919 + k * 2 + 1) - 0.5) * 0.7;
+          });
+          // the main channel, root to far electrode, as a smoothed polyline (a filament, not a staircase)
+          const path = [];
+          for (let k = lat.connect; k >= 0; k = lat.nodes[k].p) path.push(k);
+          path.reverse();
+          const m = path.length,
+            sm = new Float32Array(m * 2);
+          for (let q = 0; q < m; q++) {
+            let sx = 0,
+              sy = 0,
+              sw = 0;
+            for (let d = -3; d <= 3; d++) {
+              const j = q + d;
+              if (j < 0 || j >= m) continue;
+              const w = 4 - Math.abs(d),
+                k = path[j];
+              sx += w * (nodes[2 * k] + jit[2 * k]);
+              sy += w * (nodes[2 * k + 1] + jit[2 * k + 1]);
+              sw += w;
+            }
+            sm[2 * q] = sx / sw;
+            sm[2 * q + 1] = sy / sw;
+          }
+          return { n, nodes, parent, off, jit, connect: lat.connect, path, sm };
+        }
+
+        // ---- live bolt toward the pointer (cell coordinates inside the bore)
+        touch(cx, cy, now) {
+          const L = this.live;
+          const tgt = {
+            x: clamp(Math.round(cx), 0, TUBE.gridW - 1),
+            y: clamp(Math.round(cy), 2, TUBE.gridH - 1),
+            r: 1.3,
+          };
+          const moved =
+            L &&
+            Math.abs(tgt.x - L.target.x) + Math.abs(tgt.y - L.target.y) > 5;
+          if (!L || (L.done && (now - L.doneAt > 0.6 || moved))) {
+            // a new strike to the finger
+            const seed = 1e6 + Math.floor(now * 1000) + this.i;
+            this.liveLat.reset(seed, tgt);
+            this.live = {
+              target: tgt,
+              done: false,
+              doneAt: 0,
+              start: now,
+              snap: null,
+              last: now,
+              seed,
+              strikes: L ? L.strikes + 1 : 0,
+              struck: false,
+            };
+          }
+          this.live.until = now + 0.25; // the finger is here; the bolt stays while it keeps being touched
+        }
+        _stepLive(now) {
+          const L = this.live,
+            lat = this.liveLat;
+          if (!L) return;
+          if (!L.done) {
+            const n = Math.min(
+              80,
+              Math.floor((now - L.last) * BOLT.stepsPerSec),
+            );
+            for (let k = 0; k < n && !L.done; k++)
+              if (lat.step(BOLT.etaTouch)) {
+                L.done = true;
+                L.doneAt = now;
+              }
+            if (n > 0) L.last = now;
+            L.snap = this._snapshot(lat, L.seed);
+          }
+          if (now > L.until + 0.5) this.live = null; // the finger left: let it fade
+        }
+
+        // ---- segments for the atlas at loop time t
+        // out: Float32Array builder (ax, ay, bx, by, width, intensity), in atlas uv. Returns the glow 0..1.
+        emit(t, now, out, pointer) {
+          const i = this.i,
+            st = this.score,
+            c = st.cycleAt(i, t);
+          this.bins.fill(0);
+          let glow = st.glow(c, t);
+          if (pointer) this.touch(pointer.cx, pointer.cy, now);
+          this._stepLive(now);
+          const L = this.live;
+          if (L && L.snap) {
+            // the live bolt replaces the scheduled one while it lasts
+            const since = L.done ? now - L.doneAt : -1,
+              fade = now > L.until ? Math.exp(-(now - L.until) / 0.18) : 1;
+            this._emitTree(L.snap, L.snap.n, since, t, out, fade, true);
+            glow = Math.max(
+              glow,
+              (L.done ? 0.55 + 0.5 * Math.exp(-since / 0.1) : 0.08) * fade,
+            );
+            return glow;
+          }
+          if (!c || t >= c.tx + 0.3) return glow;
+          const T = this.tree(c);
+          if (t < c.tc) {
+            const p = clamp((t - c.tg) / (c.tc - c.tg), 0, 1);
+            const nRev = Math.max(2, Math.round(T.n * Math.pow(p, 1.6)));
+            this._emitTree(T, nRev, -1, t, out, 1, false);
+          } else {
+            this._emitTree(
+              T,
+              T.n,
+              t - c.tc,
+              t,
+              out,
+              t < c.tx ? 1 : Math.exp(-(t - c.tx) / 0.09),
+              false,
+            );
+          }
+          return glow;
+        }
+        // since < 0: still growing (leader); else seconds since the return stroke
+        _emitTree(T, nRev, since, t, out, fade, live) {
+          const W = TUBE.gridW,
+            H = TUBE.gridH,
+            i = this.i;
+          const u0 = (i + 0.1) / TUBE.n,
+            du = 0.8 / TUBE.n / W,
+            v0 = TUBE.pinLen,
+            dv = (1 - 2 * TUBE.pinLen) / H;
+          const flash = since >= 0 ? Math.exp(-since / 0.09) : 0;
+          const wob = since >= 0 ? Math.min(1, since / 0.6) : 0;
+          const flick =
+            since >= 0 ? 0.8 + 0.4 * hashUnit(Math.floor(t * 47) + i * 131) : 1;
+          const ph = t * 7.0 + i;
+          const wobAt = (y) =>
+            wob *
+            0.45 *
+            Math.sin(ph + y * 0.21) *
+            (0.3 + 0.7 * Math.sin(y * 0.05 + ph * 0.3) ** 2);
+          if (since >= 0) {
+            // the channel: smoothed path, writhing a little as it heats
+            const I = (0.9 + 1.7 * flash) * flick * fade,
+              w = BOLT.coreW * (1 + 0.6 * flash),
+              sm = T.sm,
+              m = T.path.length;
+            for (let q = 1; q < m; q++) {
+              const ay = sm[2 * q - 1] + 0.5,
+                by = sm[2 * q + 1] + 0.5;
+              const ax = sm[2 * q - 2] + 0.5 + wobAt(ay),
+                bx = sm[2 * q] + 0.5 + wobAt(by);
+              out.push(
+                u0 + ax * du,
+                v0 + ay * dv,
+                u0 + bx * du,
+                v0 + by * dv,
+                w * du,
+                I,
+              );
+              this.bins[Math.min(5, Math.floor(((by - 0.5) / H) * 6))] += I;
+            }
+          }
+          for (let k = 1; k < nRev; k++) {
+            const p = T.parent[k];
+            if (p < 0) continue;
+            let I, w;
+            if (since < 0) {
+              const age = nRev - k;
+              I =
+                age < BOLT.tipLen
+                  ? 0.35 + 1.1 * (1 - age / BOLT.tipLen)
+                  : 0.3 - 0.12 * Math.min(1, age / 300);
+              w = BOLT.leaderW;
+            } else {
+              if (T.off[k] === 0) continue; // drawn above
+              I = 0.9 * flash * Math.exp(-T.off[k] / 10);
+              if (I < 0.01) continue;
+              w = BOLT.leaderW;
+            }
+            I *= fade;
+            const yk = T.nodes[2 * k + 1],
+              yp = T.nodes[2 * p + 1];
+            const wx = wobAt(yk);
+            const ax = T.nodes[2 * p] + 0.5 + T.jit[2 * p] + wx,
+              ay = yp + 0.5 + T.jit[2 * p + 1];
+            const bx = T.nodes[2 * k] + 0.5 + T.jit[2 * k] + wx,
+              by = yk + 0.5 + T.jit[2 * k + 1];
+            out.push(
+              u0 + ax * du,
+              v0 + ay * dv,
+              u0 + bx * du,
+              v0 + by * dv,
+              w * du,
+              I,
+            );
+            this.bins[Math.min(5, Math.floor((yk / H) * 6))] += I;
+          }
+          // hot spots on the electrodes while a channel carries current
+          if (since >= 0) {
+            const I = (0.8 + 1.2 * flash) * flick * fade,
+              cx = (W / 2) * du + u0;
+            out.push(cx, v0 - 0.004, cx, v0 + 0.004, 0.9 * du, I);
+            if (!live)
+              out.push(
+                cx,
+                1 - v0 - 0.004,
+                cx,
+                1 - v0 + 0.004,
+                0.7 * du,
+                I * 0.6,
+              );
+          }
+        }
+      }
+
+      // a growable float list for the instance buffer
+      class FloatList {
+        constructor(n) {
+          this.a = new Float32Array(n);
+          this.n = 0;
+        }
+        push(ax, ay, bx, by, w, I) {
+          if (this.n + 6 > this.a.length) {
+            const b = new Float32Array(this.a.length * 2);
+            b.set(this.a);
+            this.a = b;
+          }
+          const a = this.a,
+            n = this.n;
+          a[n] = ax;
+          a[n + 1] = ay;
+          a[n + 2] = bx;
+          a[n + 3] = by;
+          a[n + 4] = w;
+          a[n + 5] = I;
+          this.n = n + 6;
+        }
+        clear() {
+          this.n = 0;
+        }
+      }
+
+      // ===== 50_audio.js =====
+      // ---------- sound: the choir of spectral lines ----------
+      // Every voice is a gas. Each of its strongest emission lines becomes one singer: an oscillator at
+      // the line's frequency divided by 2^40 (forty octaves below the light), with the overtones of a
+      // sung vowel, through a formant filter bank so the chord reads as a choir. A tube sings while
+      // it carries current; the return stroke adds a crackle. Beds and events are scheduled from the
+      // score, and the same code renders the offline test.
+      function softClipCurve() {
+        const n = 4096,
+          c = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+          const x = (i / (n - 1)) * 2 - 1,
+            a = Math.abs(x);
+          c[i] =
+            a < 0.85
+              ? x
+              : Math.sign(x) * (0.85 + 0.13 * Math.tanh((a - 0.85) / 0.13));
+        }
+        return c;
+      }
+      // vowel formants (Hz): oo -> ah, three formants each
+      const VOWEL_OO = [330, 700, 2530],
+        VOWEL_AH = [700, 1220, 2600];
+      const FORMANT_GAIN = [1.0, 0.55, 0.22];
+
+      class SoundEngine {
+        constructor(score) {
+          this.score = score;
+          this.ctx = null;
+          this.on = false;
+          this.timer = 0;
+          this.origin = 0;
+          this.cursor = 0;
+        }
+
+        _noise(ctx, seconds, seed) {
+          const n = Math.floor(ctx.sampleRate * seconds);
+          const buf = ctx.createBuffer(2, n, ctx.sampleRate);
+          const rng = mulberry32(seed);
+          for (let ch = 0; ch < 2; ch++) {
+            const d = buf.getChannelData(ch);
+            for (let i = 0; i < n; i++) d[i] = rng() * 2 - 1;
+            const fade = Math.floor(ctx.sampleRate * 0.05);
+            for (let i = 0; i < fade; i++) {
+              const k = i / fade;
+              d[i] = d[i] * k + d[n - fade + i] * (1 - k);
+            }
+          }
+          return buf;
+        }
+        // a stone room: decaying stereo noise with a little early density
+        _impulse(ctx, seconds) {
+          const n = Math.floor(ctx.sampleRate * seconds);
+          const buf = ctx.createBuffer(2, n, ctx.sampleRate);
+          const rng = mulberry32(77);
+          for (let ch = 0; ch < 2; ch++) {
+            const d = buf.getChannelData(ch);
+            for (let i = 0; i < n; i++) {
+              const t = i / ctx.sampleRate;
+              d[i] =
+                (rng() * 2 - 1) *
+                Math.exp(-t / (seconds * 0.27)) *
+                (1 - Math.exp(-t / 0.012)) *
+                (0.7 + 0.3 * Math.exp(-t / 0.08));
+            }
+          }
+          return buf;
+        }
+
+        build(ctx, dest, offline, only = null) {
+          this.ctx = ctx;
+          this.only = only; // test: index of a single gas to render alone
+          this.white = this._noise(ctx, 4.0, 11);
+          const N = (this.N = {});
+          N.bus = ctx.createGain();
+          N.comp = ctx.createDynamicsCompressor();
+          N.comp.threshold.value = -18;
+          N.comp.knee.value = 12;
+          N.comp.ratio.value = 3;
+          N.comp.attack.value = 0.01;
+          N.comp.release.value = 0.4;
+          N.master = ctx.createGain();
+          N.master.gain.value = offline ? 0.9 : 0.0;
+          N.safety = ctx.createWaveShaper();
+          N.safety.curve = softClipCurve();
+          N.bus
+            .connect(N.comp)
+            .connect(N.master)
+            .connect(N.safety)
+            .connect(dest);
+          N.verbIn = ctx.createGain();
+          N.verbIn.gain.value = 0.34;
+          N.verb = ctx.createConvolver();
+          N.verb.buffer = this._impulse(ctx, 4.5);
+          N.verbIn.connect(N.verb).connect(N.bus);
+          N.lp = ctx.createBiquadFilter();
+          N.lp.type = "lowpass";
+          N.lp.frequency.value = 5200;
+          N.lp.Q.value = 0.5;
+          N.lp.connect(N.bus);
+          N.lp.connect(N.verbIn);
+          // one singer's overtones: a sung tone, bright but not buzzy
+          const H = [
+            0, 1, 0.62, 0.42, 0.3, 0.22, 0.16, 0.11, 0.08, 0.055, 0.04, 0.03,
+          ];
+          N.wave = ctx.createPeriodicWave(
+            new Float32Array(H.length),
+            new Float32Array(H),
+            { disableNormalization: false },
+          );
+          N.voices = GASES.map((g, i) =>
+            only === null || only === i ? this._voice(ctx, i) : null,
+          );
+        }
+        _voice(ctx, i) {
+          const N = this.N,
+            chord = GAS_CHORD[i];
+          const v = {
+            osc: [],
+            gain: ctx.createGain(),
+            touch: ctx.createGain(),
+            mix: ctx.createGain(),
+            form: [],
+            pan: ctx.createStereoPanner(),
+          };
+          v.gain.gain.value = 0; // what the score says
+          v.touch.gain.value = 0; // what the finger adds
+          v.pan.pan.value = GASES[i].pan;
+          const sum = ctx.createGain();
+          sum.gain.value = 0.9;
+          // two slow movements shared by the gas's singers: a drift and a vibrato
+          const lfo1 = ctx.createOscillator();
+          lfo1.frequency.value = 0.11 + 0.02 * i;
+          const d1 = ctx.createGain();
+          d1.gain.value = 7;
+          lfo1.connect(d1);
+          lfo1.start();
+          const lfo2 = ctx.createOscillator();
+          lfo2.frequency.value = 4.4 + 0.37 * i;
+          const d2 = ctx.createGain();
+          d2.gain.value = 2.5;
+          lfo2.connect(d2);
+          lfo2.start();
+          v.lfoDepth = [d1, d2];
+          chord.forEach((p, k) => {
+            const o = ctx.createOscillator();
+            o.setPeriodicWave(N.wave);
+            o.frequency.value = p.hz;
+            o.detune.value = (hashUnit(i * 97 + k) - 0.5) * 4; // each singer a hair off, like people
+            d1.connect(o.detune);
+            d2.connect(o.detune);
+            const g = ctx.createGain();
+            g.gain.value = p.amp;
+            o.connect(g).connect(sum);
+            o.start();
+            v.osc.push(o);
+          });
+          // formants: three band passes in parallel plus a little of the raw tone
+          for (let k = 0; k < 3; k++) {
+            const f = ctx.createBiquadFilter();
+            f.type = "bandpass";
+            f.Q.value = 6.5;
+            f.frequency.value = VOWEL_OO[k];
+            const fg = ctx.createGain();
+            fg.gain.value = FORMANT_GAIN[k] * 1.4;
+            sum.connect(f).connect(fg).connect(v.mix);
+            v.form.push(f);
+          }
+          const dry = ctx.createGain();
+          dry.gain.value = 0.3;
+          sum.connect(dry).connect(v.mix);
+          v.mix.connect(v.gain).connect(v.pan);
+          v.mix.connect(v.touch).connect(v.pan);
+          v.pan.connect(N.lp);
+          return v;
+        }
+
+        // what the voices do at loop time t
+        curves(t) {
+          const S = this.score,
+            bed = S.value("bed", t),
+            vowel = S.value("vowel", t);
+          return {
+            gain: GASES.map(
+              (g, i) => 0.11 * Math.min(1.2, S.voice(i, t) + 0.28 * bed),
+            ),
+            formants: [0, 1, 2].map((k) =>
+              lerp(VOWEL_OO[k], VOWEL_AH[k], vowel),
+            ),
+          };
+        }
+
+        // Schedule loop window [a, b) at audio time base + t.
+        scheduleWindow(a, b, base) {
+          const N = this.N,
+            step = 0.05;
+          for (let k = Math.ceil(a / step); k * step < b; k++) {
+            const tt = k * step,
+              c = this.curves(tt),
+              at = base + tt;
+            N.voices.forEach((v, i) => {
+              if (!v) return;
+              v.gain.gain.linearRampToValueAtTime(c.gain[i], at);
+              v.form.forEach((f, j) =>
+                f.frequency.linearRampToValueAtTime(c.formants[j], at),
+              );
+            });
+          }
+          this.score.sounds.forEach((e, k) => {
+            if (e.t < a || e.t >= b) return;
+            if (this.only !== null && e.tube !== this.only) return;
+            const at = base + e.t;
+            if (this.sent) {
+              if (Math.abs(at - (this.sent.get(k) ?? -1e9)) < 2) return;
+              this.sent.set(k, at);
+            }
+            this._strike(e.tube, at, e.cycle.kind === "tutti" ? 1.3 : 1.0);
+          });
+        }
+
+        _out(node, pan, verb) {
+          let n = node;
+          if (pan) {
+            const p = this.ctx.createStereoPanner();
+            p.pan.value = pan;
+            n.connect(p);
+            n = p;
+          }
+          n.connect(this.N.bus);
+          if (verb) {
+            const g = this.ctx.createGain();
+            g.gain.value = verb;
+            n.connect(g).connect(this.N.verbIn);
+          }
+        }
+        _env(g, at, peak, attack, tau) {
+          g.gain.setValueAtTime(0, at);
+          g.gain.linearRampToValueAtTime(peak, at + attack);
+          g.gain.setTargetAtTime(0, at + attack, tau);
+        }
+        _noiseShot(at, dur, filters, peak, attack, tau, pan = 0, verb = 0) {
+          const ctx = this.ctx;
+          const s = ctx.createBufferSource();
+          s.buffer = this.white;
+          let node = s;
+          for (const [type, f, q] of filters) {
+            const b = ctx.createBiquadFilter();
+            b.type = type;
+            b.frequency.value = f;
+            b.Q.value = q || 0.707;
+            node.connect(b);
+            node = b;
+          }
+          const g = ctx.createGain();
+          node.connect(g);
+          this._out(g, pan, verb);
+          this._env(g, at, peak, attack, tau);
+          s.start(at, (at * 7.31) % (this.white.duration - dur - 0.1), dur);
+          return { s, g, filt: node };
+        }
+        // the return stroke: a crack with a little body, then the channel's hiss settling
+        _strike(i, at, k = 1) {
+          const pan = GASES[i].pan * 0.9;
+          this._noiseShot(
+            at,
+            0.06,
+            [["highpass", 3200, 0.7]],
+            0.1 * k,
+            0.001,
+            0.012,
+            pan,
+            0.5,
+          );
+          this._noiseShot(
+            at,
+            0.25,
+            [["bandpass", 1400, 1.2]],
+            0.055 * k,
+            0.003,
+            0.05,
+            pan,
+            0.6,
+          );
+          this._noiseShot(
+            at + 0.01,
+            0.9,
+            [["bandpass", 5200, 2.0]],
+            0.012 * k,
+            0.05,
+            0.3,
+            pan,
+            0.4,
+          );
+        }
+
+        // ---- realtime
+        // The picture keeps its own clock and the sound follows it, so a slow or stalled audio device can
+        // never freeze the animation. Every 200 ms pump() checks that what is heard matches what is seen
+        // and re-anchors the schedule if the audio clock stalled or drifted.
+        enable(clock) {
+          this.clock = clock;
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return false;
+            let ctx;
+            try {
+              ctx = new AC();
+            } catch (err) {
+              return false;
+            }
+            this.build(ctx, ctx.destination, false);
+            this.sent = new Map();
+            this.syncs = 0;
+            ctx.addEventListener("statechange", () => {
+              if (this.on && ctx.state === "running") {
+                this._sync(true);
+                this.pump();
+              }
+            });
+          }
+          const ctx = this.ctx,
+            N = this.N;
+          this.on = true;
+          this.origin = null;
+          const now = ctx.currentTime;
+          N.master.gain.cancelScheduledValues(now);
+          N.master.gain.setValueAtTime(N.master.gain.value, now);
+          N.master.gain.linearRampToValueAtTime(0.9, now + 0.4);
+          this.wake();
+          clearInterval(this.timer);
+          this.timer = setInterval(() => this.pump(), 200);
+          this.pump();
+          return true;
+        }
+        // (re)start the audio device; browsers only allow this from a click, tap or key press
+        wake() {
+          if (this.on && this.ctx && this.ctx.state !== "running")
+            this.ctx.resume().catch(() => {});
+        }
+        disable() {
+          if (!this.ctx) return;
+          const ctx = this.ctx,
+            now = ctx.currentTime;
+          this.on = false;
+          clearInterval(this.timer);
+          this.N.master.gain.cancelScheduledValues(now);
+          this.N.master.gain.setValueAtTime(this.N.master.gain.value, now);
+          this.N.master.gain.linearRampToValueAtTime(0, now + 0.25);
+          setTimeout(() => {
+            if (!this.on) ctx.suspend();
+          }, 400);
+        }
+        // Line the schedule up with the picture: audio time = origin + loop time (+ output latency).
+        _sync(force) {
+          const ctx = this.ctx;
+          if (!ctx || ctx.state !== "running") return;
+          const V = this.clock();
+          this.latency = ctx.outputLatency || ctx.baseLatency || 0.02;
+          if (!force && this.origin !== null) {
+            let d = ctx.currentTime - this.latency - this.origin - V;
+            d -= LOOP_SEC * Math.round(d / LOOP_SEC);
+            if (Math.abs(d) < 0.15) return;
+          }
+          const now = ctx.currentTime,
+            N = this.N;
+          const params = [];
+          N.voices.forEach((v) => {
+            if (v) {
+              params.push(v.gain.gain);
+              v.form.forEach((f) => params.push(f.frequency));
+            }
+          });
+          for (const p of params) {
+            const val = p.value;
+            p.cancelScheduledValues(now);
+            p.setValueAtTime(val, now);
+          }
+          this.origin = now - this.latency - V;
+          this.cursor = V + this.latency + 0.08;
+          this.syncs++;
+        }
+        pump() {
+          if (!this.on || !this.ctx || this.ctx.state !== "running") return;
+          this._sync(false);
+          const until = this.ctx.currentTime - this.origin + 1.2;
+          let guard = 0;
+          while (this.cursor < until && guard++ < 8) {
+            const loop = Math.floor(this.cursor / LOOP_SEC);
+            const a = this.cursor - loop * LOOP_SEC;
+            const b = Math.min(LOOP_SEC, a + (until - this.cursor));
+            if (b - a < 1e-4) {
+              this.cursor = (loop + 1) * LOOP_SEC;
+              continue;
+            }
+            this.scheduleWindow(a, b, this.origin + loop * LOOP_SEC);
+            this.cursor += b - a;
+          }
+        }
+        // loop time of what is being heard right now (for tests and the drift check)
+        loopTime() {
+          const t = this.ctx.currentTime - this.latency - this.origin;
+          return ((t % LOOP_SEC) + LOOP_SEC) % LOOP_SEC;
+        }
+        // a bolt to the finger: the crack now, and that tube's voice held up while it is touched
+        zap(i, k = 1) {
+          if (!this.ctx || !this.on || this.ctx.state !== "running") return;
+          const at = this.ctx.currentTime + 0.01;
+          this._strike(i, at, 0.8 * k);
+        }
+        // the touched tube sings on top of the score for as long as the finger stays
+        hold(i, level) {
+          if (!this.ctx || !this.on || this.ctx.state !== "running") return;
+          const v = this.N.voices[i];
+          if (!v) return;
+          const now = this.ctx.currentTime,
+            g = v.touch.gain;
+          g.cancelScheduledValues(now);
+          g.setValueAtTime(g.value, now);
+          g.linearRampToValueAtTime(0.11 * level, now + 0.1);
+          g.setTargetAtTime(0, now + 0.4, 0.5);
+        }
+      }
+
+      // ===== 60_app.js =====
+      // ---------- app: clock, input, adaptive quality, still mode ----------
+      class App {
+        constructor() {
+          this.canvas = document.getElementById("c");
+          this.btn = document.getElementById("snd");
+          this.score = new Score();
+          this.gpu = new ChoirGPU(this.canvas);
+          this.sound = new SoundEngine(this.score);
+          this.tubes = GASES.map((g, i) => new Tube(i, this.score));
+          this.segs = new FloatList(6 * 4096);
+          this.bins = new Float32Array(30);
+          this.still =
+            !TEST_MODE &&
+            !FORCE_ANIMATE &&
+            (this.gpu.software || !this.gpu.floatRT);
+          const asked = TIERS[QUERY.get("tier")] ? QUERY.get("tier") : null;
+          this.tierName = asked || (this.still ? "mobile" : this._pickTier());
+          this.gpu.setTier(TIERS[this.tierName]);
+          this.clock = { base: performance.now(), offset: START_AT };
+          this.ptr = {
+            on: false,
+            tube: -1,
+            cx: 0,
+            cy: 0,
+            lastHold: 0,
+            x: 0,
+            y: 0,
+            down: false,
+          };
+          this.gov = {
+            scale: TIERS[this.tierName].scaleMax,
+            ema: 16.7,
+            slow: 0,
+            fast: 0,
+            hold: 0,
+          };
+          this.frameCount = 0;
+          this.lastNow = 0;
+          this.viewNow = null;
+          this._frame = (now) => this.frame(now);
+          this._bindInput();
+          this.applySize();
+        }
+
+        _pickTier() {
+          const ua = navigator.userAgent || "";
+          const coarse =
+            window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+          if (
+            /Android|iPhone|iPad|iPod|Mobile/i.test(ua) ||
+            (coarse && Math.min(screen.width, screen.height) < 900)
+          )
+            return "mobile";
+          if (
+            /Intel|Iris|UHD|HD Graphics|Mali|Adreno|PowerVR|Radeon\(TM\) Graphics|Vega \d/i.test(
+              this.gpu.rendererName,
+            )
+          )
+            return "laptop";
+          return "desktop";
+        }
+
+        applySize() {
+          const t = TIERS[this.tierName];
+          const dpr = TEST_MODE
+            ? 1
+            : Math.min(window.devicePixelRatio || 1, t.dprMax);
+          let pw = Math.max(2, Math.round(this.canvas.clientWidth * dpr));
+          let ph = Math.max(2, Math.round(this.canvas.clientHeight * dpr));
+          const cap = 3840 * 2160;
+          if (pw * ph > cap) {
+            const k = Math.sqrt(cap / (pw * ph));
+            pw = Math.round(pw * k);
+            ph = Math.round(ph * k);
+          }
+          let scale = TEST_MODE
+            ? this.gov.scale
+            : Math.min(this.gov.scale, Math.sqrt(t.budget / (pw * ph)));
+          if (this.still) scale = Math.min(1, Math.sqrt(900000 / (pw * ph)));
+          this.gpu.resize(pw, ph, scale);
+        }
+
+        // The animation always runs on its own clock; the sound follows it (never the other way round).
+        loopTime(now) {
+          const t = (now - this.clock.base) / 1000 + this.clock.offset;
+          return ((t % LOOP_SEC) + LOOP_SEC) % LOOP_SEC;
+        }
+        _reanchor(t) {
+          this.clock.base = performance.now();
+          this.clock.offset = t;
+        }
+
+        // screen point (CSS pixels) to a spot inside a tube: which tube, lattice cell (cx, cy)
+        toTube(px, py) {
+          const v = this.viewNow;
+          if (!v) return null;
+          const sx = (px / Math.max(window.innerWidth, 1)) * 2 - 1,
+            sy = 1 - (py / Math.max(window.innerHeight, 1)) * 2;
+          const d = [0, 1, 2].map(
+            (k) => v.F[k] + v.R[k] * sx * v.tanX + v.U[k] * sy * v.tanY,
+          );
+          const dl = Math.hypot(...d);
+          const rd = d.map((x) => x / dl),
+            ro = v.pos;
+          let best = null;
+          for (let i = 0; i < TUBE.n; i++) {
+            const cx = (i - 2) * TUBE.spacing,
+              cz = 0,
+              r = TUBE.rOut * 1.5;
+            const ox = ro[0] - cx,
+              oz = ro[2] - cz,
+              a = rd[0] * rd[0] + rd[2] * rd[2];
+            if (a < 1e-9) continue;
+            const b = ox * rd[0] + oz * rd[2],
+              c = ox * ox + oz * oz - r * r,
+              disc = b * b - a * c;
+            if (disc < 0) continue;
+            const t0 = (-b - Math.sqrt(disc)) / a;
+            if (t0 <= 0 || (best && t0 > best.t)) continue;
+            // the spot on the plane through the axis that faces the camera
+            const npx = ro[0] - cx,
+              npz = ro[2] - cz,
+              nl = Math.hypot(npx, npz),
+              nx = npx / nl,
+              nz = npz / nl;
+            const denom = rd[0] * nx + rd[2] * nz;
+            if (Math.abs(denom) < 1e-6) continue;
+            const tp = ((cx - ro[0]) * nx + (cz - ro[2]) * nz) / denom;
+            const qx = ro[0] + rd[0] * tp,
+              qy = ro[1] + rd[1] * tp,
+              qz = ro[2] + rd[2] * tp;
+            const u = ((qx - cx) * -nz + (qz - cz) * nx) / TUBE.rIn; // along the tangent, -1..1 across the bore
+            const yv =
+              (qy - TUBE.glassY0 - TUBE.pinLen) / (1 - 2 * TUBE.pinLen);
+            if (yv < -0.08 || yv > 1.08 || Math.abs(u) > 1.4) continue;
+            best = {
+              t: t0,
+              tube: i,
+              cx: clamp(u * 0.5 + 0.5, 0, 1) * (TUBE.gridW - 1),
+              cy: clamp(yv, 0.02, 0.98) * (TUBE.gridH - 1),
+            };
+          }
+          return best;
+        }
+
+        _bindInput() {
+          const c = this.canvas,
+            P = this.ptr;
+          const at = (e) => {
+            const hit = this.toTube(e.clientX, e.clientY);
+            if (hit) {
+              P.on = true;
+              P.tube = hit.tube;
+              P.cx = hit.cx;
+              P.cy = hit.cy;
+            } else P.on = false;
+            P.x = e.clientX;
+            P.y = e.clientY;
+          };
+          c.addEventListener("pointerdown", (e) => {
+            this.sound.wake();
+            if (e.pointerType === "mouse" && e.button !== 0) return;
+            P.down = true;
+            at(e);
+            try {
+              c.setPointerCapture(e.pointerId);
+            } catch (err) {
+              /* capture is optional */
+            }
+          });
+          c.addEventListener("pointermove", (e) => {
+            if (e.pointerType === "mouse" || P.down) at(e);
+          });
+          const off = () => {
+            P.down = false;
+            P.on = false;
+          };
+          c.addEventListener("pointerup", (e) => {
+            P.down = false;
+            if (e.pointerType !== "mouse") P.on = false;
+          });
+          c.addEventListener("pointercancel", off);
+          c.addEventListener("pointerleave", off);
+          c.addEventListener("contextmenu", (e) => e.preventDefault());
+          this.btn.addEventListener("click", () => this.toggleSound());
+          window.addEventListener("keydown", (e) => {
+            if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+            if (e.key === "m" || e.key === "M") this.toggleSound();
+            else this.sound.wake();
+          });
+          let pending = false;
+          window.addEventListener("resize", () => {
+            if (pending) return;
+            pending = true;
+            requestAnimationFrame(() => {
+              pending = false;
+              this.applySize();
+              if (this.still) this.renderStill();
+            });
+          });
+          c.addEventListener("webglcontextlost", (e) => {
+            e.preventDefault();
+            this.lost = true;
+          });
+          c.addEventListener("webglcontextrestored", () => {
+            this.lost = false;
+            this.gpu.setTier(TIERS[this.tierName]);
+            this.applySize();
+            if (this.still) this.renderStill();
+          });
+        }
+
+        toggleSound() {
+          if (this.sound.on) {
+            this.sound.disable();
+            this.btn.setAttribute("aria-pressed", "false");
+          } else {
+            const ok = this.sound.enable(() =>
+              this.loopTime(performance.now()),
+            );
+            this.btn.setAttribute("aria-pressed", ok ? "true" : "false");
+          }
+        }
+
+        // Scene state for one frame at loop time t (shared by the live loop, still mode and tests).
+        // now: wall clock seconds for the live bolts. pointer: null or {tube, cx, cy}.
+        prepare(t, now = t, pointer = null) {
+          const st = this.score.sample(t);
+          this.segs.clear();
+          this.tubes.forEach((tube, i) => {
+            const glow = tube.emit(
+              t,
+              now,
+              this.segs,
+              pointer && pointer.tube === i ? pointer : null,
+            );
+            st.tubes[i].glow = glow;
+            st.tubes[i].hot = glow;
+            this.bins.set(tube.bins, i * 6);
+          });
+          this.gpu.renderBolts(this.segs);
+          this.viewNow = this.gpu.setScene(st, this.bins);
+          return st;
+        }
+
+        start() {
+          if (this.still) {
+            this.renderStill();
+            return;
+          }
+          this._reanchor(START_AT); // the loop starts now, however long loading took (sound, if on, follows)
+          requestAnimationFrame(this._frame);
+        }
+
+        frame(now) {
+          requestAnimationFrame(this._frame);
+          if (this.lost) return;
+          const dtMs = this.lastNow ? Math.min(now - this.lastNow, 250) : 16.7;
+          this.lastNow = now;
+          const t = this.loopTime(now),
+            wall = now / 1000;
+          const P = this.ptr;
+          const pointer = P.on ? { tube: P.tube, cx: P.cx, cy: P.cy } : null;
+          this.prepare(t, wall, pointer);
+          // the finger: a crack when its bolt lands, and that tube keeps singing while it stays
+          this.tubes.forEach((tube, i) => {
+            const L = tube.live;
+            if (L && L.done && !L.struck) {
+              L.struck = true;
+              this.sound.zap(i, 1);
+            }
+            if (pointer && pointer.tube === i && L && now - P.lastHold > 150) {
+              P.lastHold = now;
+              this.sound.hold(i, L.done ? 1.0 : 0.3);
+            }
+          });
+          this.gpu.renderMain(null);
+          this.gpu.post((t * 13.1) % 1);
+          this._growAhead(t, 2.0);
+          this.frameCount++;
+          this._govern(dtMs);
+        }
+
+        // Grow the soonest upcoming bolt a little each frame, so no cycle ever has to grow its tree in one go.
+        _growAhead(t, budgetMs) {
+          let best = null,
+            bestT = 1e9;
+          for (const tube of this.tubes) {
+            const c = tube.pending(t);
+            if (!c) continue;
+            const tg = c.tg < t - 0.5 ? c.tg + LOOP_SEC : c.tg;
+            if (tg < bestT) {
+              bestT = tg;
+              best = { tube, c };
+            }
+          }
+          if (best) best.tube.grow(best.c, budgetMs);
+        }
+
+        // Adaptive resolution: step down fast when frames are slow, recover slowly.
+        _govern(dtMs) {
+          const g = this.gov,
+            t = TIERS[this.tierName];
+          g.ema = g.ema * 0.9 + dtMs * 0.1;
+          if (g.hold > 0) {
+            g.hold -= dtMs;
+            return;
+          }
+          if (g.ema > 24) {
+            g.slow += dtMs;
+            g.fast = 0;
+          } else if (g.ema < 17.8) {
+            g.fast += dtMs;
+            g.slow = 0;
+          } else {
+            g.slow = 0;
+            g.fast = 0;
+          }
+          if (g.slow > 400) {
+            if (g.scale > t.scaleMin + 1e-3) {
+              g.scale = Math.max(t.scaleMin, g.scale * 0.87);
+              this.applySize();
+              g.hold = 700;
+              g.slow = 0;
+            } else if (g.slow > 3000) {
+              const next = TIER_ORDER[TIER_ORDER.indexOf(this.tierName) + 1];
+              if (next) {
+                this.tierName = next;
+                this.gpu.setTier(TIERS[next]);
+                g.scale = TIERS[next].scaleMax * 0.85;
+                this.applySize();
+                g.hold = 1500;
+              }
+              g.slow = 0;
+            }
+          }
+          if (g.fast > 2500 && g.scale < t.scaleMax - 1e-3) {
+            g.scale = Math.min(t.scaleMax, g.scale * 1.06);
+            this.applySize();
+            g.hold = 1200;
+            g.fast = 0;
+          }
+        }
+
+        // Software renderer: one frame at the hero moment, drawn in bands so the page never stalls.
+        async renderStill() {
+          const token = (this.stillToken = (this.stillToken || 0) + 1);
+          const idle = () => new Promise((r) => setTimeout(r, 0));
+          const t = BEATS.hero;
+          this.prepare(t, t, null);
+          const h = this.gpu.size.mh,
+            bands = 10;
+          for (let i = bands - 1; i >= 0; i--) {
+            this.gpu.renderMain([
+              Math.floor((i * h) / bands),
+              Math.floor(((i + 1) * h) / bands),
+            ]);
+            this.gpu.post(0.37); // show the picture as it fills in, top to bottom
+            this.gpu.gl.finish();
+            await idle();
+            if (token !== this.stillToken) return;
+          }
+        }
+      }
+
+      // ===== 70_boot.js =====
+      // ---------- boot ----------
+      const app = new App();
+
+      if (!TEST_MODE) {
+        // compile in parallel where the browser supports it, then start
+        app.gpu
+          .compileAllAsync()
+          .catch(() => app.gpu.compileAll())
+          .then(() => app.start());
+      }
+    </script>
+  </body>
+</html>
