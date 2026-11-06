@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Generative Sphere</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #0a0c1a;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: system-ui, "Segoe UI", monospace;
+      }
+
+      /* Fixed container that fills the viewport and centers the canvas */
+      #sketch-parent {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0a0c1a;
+      }
+
+      /* Canvas styling: it will be sized by p5, but we ensure it's block and centered */
+      canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100vw;
+        max-height: 100vh;
+        object-fit: contain;
+        background: #0a0c1a;
+        box-shadow: 0 0 60px rgba(20, 60, 120, 0.25);
+        border-radius: 0;
+      }
+
+      /* Optional hint — hidden on small screens */
+      .hint {
+        position: fixed;
+        bottom: 16px;
+        right: 20px;
+        color: #3a4a6e;
+        font-size: 12px;
+        letter-spacing: 1px;
+        font-weight: 400;
+        opacity: 0.75;
+        user-select: none;
+        pointer-events: none;
+        background: #0a0c1a;
+        padding: 6px 14px;
+        border-radius: 40px;
+        border: 1px solid #1e2a44;
+        z-index: 10;
+      }
+
+      @media (max-width: 500px) {
+        .hint {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="sketch-parent"></div>
+    <div class="hint">⚡ ROTATING SPHERE OF CIRCLES</div>
+
+    <!-- p5.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+
+    <script>
+      // ---- Parameters from the prompt ----
+      // f=0; B=255; w=250; R=220; N=35
+      let f = 0;
+      const B = 255;
+      const w = 250;
+      const R = 220;
+      const N = 35;
+      const TAU = Math.PI * 2;
+
+      // Canvas size — will be set responsively
+      let W = 500;
+
+      function setup() {
+        // Responsive square canvas based on the smaller viewport dimension
+        const size = min(windowWidth, windowHeight);
+        const canvas = createCanvas(size, size);
+        canvas.parent("sketch-parent");
+
+        noStroke();
+        pixelDensity(1);
+        frameRate(60);
+
+        W = size; // store current canvas size
+      }
+
+      function draw() {
+        // Increment frame counter (matches original: f++||...)
+        f++;
+
+        background("#0a0c1a");
+
+        // The original uses W=2*w as canvas size, but we map to our responsive size.
+        // We'll scale the drawing coordinates so the sphere fits nicely.
+        // Original coordinate space: W = 2*w = 500, with w=250.
+        // Our canvas size is `W` (variable), so we scale by (W / (2*w)).
+        const scaleFactor = W / (2 * w);
+
+        // Since we use drawing primitives directly, we'll apply a scale transform.
+        push();
+        scale(scaleFactor);
+
+        // Now we work in the original coordinate system (0..2*w = 500)
+        // but the canvas is scaled.
+
+        // Loop variables (using let for clarity)
+        for (let m = 0, t = 0; t <= PI; m++, t += PI / N) {
+          // D = 2*m + f/R
+          const D = 2 * m + f / R;
+
+          for (let k = f, d = D - PI; d < D + PI; k++, d += TAU / N) {
+            // Color calculation: c = k * m / 6
+            const c = (k * m) / 6;
+
+            // fill((c) % B, (2*c) & B, (3*c) & B)
+            // Note: (2*c) & B uses bitwise AND with 255. Since B=255, it's effectively (2*c) & 255.
+            // Same for (3*c) & B.
+            // Also (c) % B — modulo 255.
+            const r = c % B;
+            const g = (2 * c) & B;
+            const b = (3 * c) & B;
+
+            fill(r, g, b);
+
+            // Compute s = sin(t)
+            const s = Math.sin(t);
+
+            // Circle position:
+            // x = w + R * s * cos(d)
+            // y = w + 0.7 * R * (y = s * sin(d)) + 0.7 * R * cos(t)
+            // Note: the original has a nested assignment y = s * sin(d), then uses y.
+            // So we replicate:
+            const yVal = s * Math.sin(d);
+            const xPos = w + R * s * Math.cos(d);
+            const yPos = w + 0.7 * R * yVal + 0.7 * R * Math.cos(t);
+
+            // Circle size: 5 + 4 * y
+            const circleSize = 5 + 4 * yVal;
+
+            circle(xPos, yPos, circleSize);
+          }
+        }
+
+        pop();
+      }
+
+      // ---- Responsive resizing ----
+      function windowResized() {
+        const newSize = min(windowWidth, windowHeight);
+        resizeCanvas(newSize, newSize);
+        W = newSize;
+        // The flex container re-centers automatically.
+      }
+    </script>
+  </body>
+</html>
