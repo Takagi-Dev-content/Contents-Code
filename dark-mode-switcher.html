@@ -1,0 +1,1236 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Light, Sunset and Dark</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&display=swap"
+    />
+
+    <style>
+      /* Light / dark / sunset toggle in the Lucy Bichakhchyan style.
+   A pill track with a round knob that slides between three stops.
+   Colors are registered custom properties, so the gradient, the knob
+   and the page ease between themes instead of snapping. */
+
+      @property --bg {
+        syntax: "<color>";
+        inherits: true;
+        initial-value: #1a1a1a;
+      }
+      @property --t1 {
+        syntax: "<color>";
+        inherits: true;
+        initial-value: #2d253a;
+      }
+      @property --t2 {
+        syntax: "<color>";
+        inherits: true;
+        initial-value: #574777;
+      }
+      @property --t3 {
+        syntax: "<color>";
+        inherits: true;
+        initial-value: #6a578f;
+      }
+      @property --stop {
+        syntax: "<color>";
+        inherits: true;
+        initial-value: #beadd6;
+      }
+      @property --knob {
+        syntax: "<color>";
+        inherits: true;
+        initial-value: #1a1a1a;
+      }
+      @property --glyph {
+        syntax: "<color>";
+        inherits: true;
+        initial-value: #ab8cf0;
+      }
+      @property --rim {
+        syntax: "<color>";
+        inherits: true;
+        initial-value: #574777;
+      }
+
+      :root {
+        /* Dark: deep plum track, a near-black knob with a lilac moon */
+        --bg: #1a1a1a;
+        --t1: #2d253a;
+        --t2: #574777;
+        --t3: #6a578f;
+        --stop: #beadd6;
+        --knob: #1a1a1a;
+        --glyph: #ab8cf0;
+        --rim: #574777;
+
+        --heavy: cubic-bezier(0.65, 0, 0.35, 1);
+        --settle: cubic-bezier(0.16, 1, 0.3, 1);
+        --t: 700ms;
+
+        /* Size of the switch */
+        --w: 232px;
+        --h: 88px;
+        --pad: 8px;
+        --knob-size: calc(var(--h) - var(--pad) * 2);
+        --travel: calc((var(--w) - var(--pad) * 2 - var(--knob-size)) / 2);
+
+        color-scheme: dark;
+        transition:
+          --bg var(--t) var(--heavy),
+          --t1 var(--t) var(--heavy),
+          --t2 var(--t) var(--heavy),
+          --t3 var(--t) var(--heavy),
+          --stop var(--t) var(--heavy),
+          --knob var(--t) var(--heavy),
+          --glyph var(--t) var(--heavy),
+          --rim var(--t) var(--heavy);
+      }
+
+      /* Light: soft lilac track, a white knob with a purple sun */
+      :root[data-mood="light"] {
+        --bg: #f6f6f4;
+        --t1: #eee9f6;
+        --t2: #dccff6;
+        --t3: #c4b0ee;
+        --stop: #6a578f;
+        --knob: #ffffff;
+        --glyph: #6a578f;
+        --rim: #c4b0ee;
+        color-scheme: light;
+      }
+
+      /* Sunset: plum warming into rose and amber, a deep plum knob for the glow */
+      :root[data-mood="sunset"] {
+        --bg: #2d253a;
+        --t1: #574777;
+        --t2: #b4607e;
+        --t3: #e2a06e;
+        --stop: #fff4ec;
+        --knob: #2d253a;
+        --glyph: #e2a06e;
+        --rim: #e2c184;
+        color-scheme: dark;
+      }
+
+      /* Used once on load so the saved theme appears without animating */
+      :root.is-instant,
+      :root.is-instant * {
+        transition: none !important;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        display: grid;
+        place-items: center;
+        background: var(--bg);
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+      }
+
+      .demo {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+      }
+
+      /* Sound on/off */
+      .sound {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 999px;
+        background: none;
+        color: var(--stop);
+        opacity: 0.8;
+        font:
+          500 13px/1 "Inter",
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          Arial,
+          sans-serif;
+        cursor: pointer;
+        transition: opacity 300ms ease;
+      }
+      .sound:hover {
+        opacity: 1;
+      }
+      .sound:focus-visible {
+        opacity: 1;
+        outline: 2px solid var(--glyph);
+        outline-offset: 2px;
+      }
+      .sound svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .sound__off {
+        display: none;
+      }
+      .sound[aria-pressed="false"] .sound__wave {
+        display: none;
+      }
+      .sound[aria-pressed="false"] .sound__off {
+        display: inline;
+      }
+
+      /* Track */
+      .toggle {
+        --i: 1;
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: center;
+        width: var(--w);
+        height: var(--h);
+        padding: var(--pad);
+        border-radius: 999px;
+        background: linear-gradient(
+          120deg,
+          var(--t1) 0%,
+          var(--t2) 55%,
+          var(--t3) 100%
+        );
+        box-shadow: inset 0 0 0 1px var(--rim);
+      }
+
+      /* The three stops sit on the track; the knob covers the chosen one */
+      .toggle__stop {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        height: var(--knob-size);
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: none;
+        color: var(--stop);
+        opacity: 0.75;
+        cursor: pointer;
+        transition: opacity 300ms ease;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .toggle__stop:hover {
+        opacity: 1;
+      }
+      .toggle__stop[aria-checked="true"] {
+        opacity: 0;
+      }
+      .toggle__stop:focus-visible {
+        opacity: 1;
+        outline: 2px solid var(--glyph);
+        outline-offset: 2px;
+      }
+      .toggle__stop svg {
+        width: 22px;
+        height: 22px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        transition: transform 600ms var(--settle);
+      }
+      /* Small hover hints on the icons waiting on the track */
+      .toggle__stop[data-mood="light"]:hover svg {
+        transform: rotate(45deg) scale(1.1);
+      }
+      .toggle__stop[data-mood="dark"]:hover svg {
+        transform: rotate(-18deg) scale(1.1);
+      }
+      .toggle__stop[data-mood="sunset"]:hover svg {
+        transform: translateY(-2px) scale(1.1);
+      }
+
+      /* Knob: slides with a heavy ease; the face inside squashes as it travels */
+      .toggle__knob {
+        position: absolute;
+        z-index: 2;
+        top: var(--pad);
+        left: var(--pad);
+        width: var(--knob-size);
+        height: var(--knob-size);
+        pointer-events: none;
+        transform: translateX(calc(var(--i) * var(--travel)));
+        transition: transform 640ms var(--heavy);
+      }
+      .toggle__face {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--knob);
+        color: var(--glyph);
+        box-shadow:
+          0 6px 18px rgba(0, 0, 0, 0.22),
+          inset 0 0 0 1px var(--rim);
+      }
+      /* ---------- Knob icons ---------- */
+      .glyph {
+        position: absolute;
+        width: 48px;
+        height: 48px;
+        overflow: visible;
+        opacity: 0;
+        transform: rotate(-70deg) scale(0.5);
+        transition:
+          opacity 360ms ease,
+          transform 760ms var(--settle);
+      }
+      /* Animated parts scale and turn around their own center */
+      .ray,
+      .sun-core,
+      .moon-body,
+      .star,
+      .sunset-glow,
+      .sunset-sun,
+      .sunset-ripple {
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+      :root[data-mood="light"] .glyph--sun,
+      :root[data-mood="dark"] .glyph--moon,
+      :root[data-mood="sunset"] .glyph--sunset {
+        opacity: 1;
+        transform: rotate(0deg) scale(1);
+        transition-delay: 160ms;
+      }
+
+      /* Sun: rays fan out one by one, then the ring turns slowly */
+      .ray {
+        stroke: #e2a06e;
+        stroke-width: 2.4;
+        stroke-linecap: round;
+        transform-origin: center bottom;
+      }
+      .sun-rays {
+        transform-origin: 24px 24px;
+        transform-box: view-box;
+      }
+      :root[data-mood="light"] .ray {
+        animation: ray-in 520ms var(--settle) calc(260ms + var(--n) * 55ms)
+          backwards;
+      }
+      :root[data-mood="light"] .sun-rays {
+        animation: spin 26s linear 900ms infinite;
+      }
+      :root[data-mood="light"] .sun-core {
+        animation: core-in 700ms var(--settle) 160ms backwards;
+      }
+
+      /* Moon: a lit crescent, then stars pop in and twinkle */
+      .star {
+        fill: #f6f6f4;
+        opacity: 0;
+      }
+      :root[data-mood="dark"] .star {
+        animation:
+          star-in 520ms var(--settle) calc(420ms + var(--d) * 120ms) forwards,
+          twinkle 2.6s ease-in-out calc(1100ms + var(--d) * 380ms) infinite;
+      }
+      :root[data-mood="dark"] .moon-body {
+        animation: moon-in 800ms var(--settle) 160ms backwards;
+      }
+
+      /* Sunset: the sun sinks onto the horizon while a warm glow breathes */
+      .sunset-line {
+        stroke: #e2c184;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+      }
+      .sunset-ripple {
+        stroke: #e2a06e;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        opacity: 0.75;
+      }
+      .sunset-glow {
+        opacity: 0;
+      }
+      :root[data-mood="sunset"] .sunset-glow {
+        animation:
+          glow-in 900ms var(--settle) 200ms forwards,
+          breathe 3.4s ease-in-out 1100ms infinite;
+      }
+      :root[data-mood="sunset"] .sunset-sun {
+        animation: sink 900ms var(--settle) 160ms backwards;
+      }
+      :root[data-mood="sunset"] .sunset-ripple {
+        animation:
+          ripple-in 600ms var(--settle) calc(500ms + var(--n) * 120ms) backwards,
+          shimmer 3.4s ease-in-out calc(1100ms + var(--n) * 300ms) infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes ray-in {
+        from {
+          transform: scaleY(0);
+          opacity: 0;
+        }
+      }
+      @keyframes core-in {
+        from {
+          transform: scale(0.6);
+        }
+      }
+      @keyframes moon-in {
+        from {
+          transform: rotate(-35deg) scale(0.7);
+        }
+      }
+      @keyframes star-in {
+        from {
+          opacity: 0;
+          transform: scale(0) rotate(-45deg);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) rotate(0deg);
+        }
+      }
+      @keyframes twinkle {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.35;
+          transform: scale(0.7);
+        }
+      }
+      @keyframes glow-in {
+        from {
+          opacity: 0;
+          transform: scale(0.4);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes breathe {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.7;
+          transform: scale(1.12);
+        }
+      }
+      @keyframes sink {
+        from {
+          transform: translateY(-9px);
+        }
+      }
+      @keyframes ripple-in {
+        from {
+          transform: scaleX(0);
+          opacity: 0;
+        }
+      }
+      @keyframes shimmer {
+        0%,
+        100% {
+          opacity: 0.75;
+        }
+        50% {
+          opacity: 0.35;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        :root,
+        :root * {
+          transition: none !important;
+          animation: none !important;
+        }
+        .star,
+        .sunset-glow {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo">
+      <div class="toggle" role="radiogroup" aria-label="Color theme">
+        <span class="toggle__knob" aria-hidden="true">
+          <span class="toggle__face">
+            <!-- Sun: a warm core with rays that fan out, then turn slowly -->
+            <svg class="glyph glyph--sun" data-for="light" viewBox="0 0 48 48">
+              <defs>
+                <radialGradient id="sun-core" cx="40%" cy="35%" r="70%">
+                  <stop offset="0" stop-color="#FFE9B8" />
+                  <stop offset="1" stop-color="#E2A06E" />
+                </radialGradient>
+              </defs>
+              <g class="sun-rays">
+                <g transform="rotate(0 24 24)">
+                  <line
+                    class="ray"
+                    style="--n: 0"
+                    x1="24"
+                    y1="4"
+                    x2="24"
+                    y2="9.5"
+                  />
+                </g>
+                <g transform="rotate(45 24 24)">
+                  <line
+                    class="ray"
+                    style="--n: 1"
+                    x1="24"
+                    y1="4"
+                    x2="24"
+                    y2="9.5"
+                  />
+                </g>
+                <g transform="rotate(90 24 24)">
+                  <line
+                    class="ray"
+                    style="--n: 2"
+                    x1="24"
+                    y1="4"
+                    x2="24"
+                    y2="9.5"
+                  />
+                </g>
+                <g transform="rotate(135 24 24)">
+                  <line
+                    class="ray"
+                    style="--n: 3"
+                    x1="24"
+                    y1="4"
+                    x2="24"
+                    y2="9.5"
+                  />
+                </g>
+                <g transform="rotate(180 24 24)">
+                  <line
+                    class="ray"
+                    style="--n: 4"
+                    x1="24"
+                    y1="4"
+                    x2="24"
+                    y2="9.5"
+                  />
+                </g>
+                <g transform="rotate(225 24 24)">
+                  <line
+                    class="ray"
+                    style="--n: 5"
+                    x1="24"
+                    y1="4"
+                    x2="24"
+                    y2="9.5"
+                  />
+                </g>
+                <g transform="rotate(270 24 24)">
+                  <line
+                    class="ray"
+                    style="--n: 6"
+                    x1="24"
+                    y1="4"
+                    x2="24"
+                    y2="9.5"
+                  />
+                </g>
+                <g transform="rotate(315 24 24)">
+                  <line
+                    class="ray"
+                    style="--n: 7"
+                    x1="24"
+                    y1="4"
+                    x2="24"
+                    y2="9.5"
+                  />
+                </g>
+              </g>
+              <circle
+                class="sun-core"
+                cx="24"
+                cy="24"
+                r="9.5"
+                fill="url(#sun-core)"
+              />
+            </svg>
+
+            <!-- Moon: a lit crescent with stars that appear and twinkle -->
+            <svg class="glyph glyph--moon" data-for="dark" viewBox="0 0 48 48">
+              <defs>
+                <linearGradient id="moon-fill" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#F6F6F4" />
+                  <stop offset="1" stop-color="#AB8CF0" />
+                </linearGradient>
+              </defs>
+              <g transform="translate(4 7) scale(1.5)">
+                <path
+                  class="moon-body"
+                  d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1Z"
+                  fill="url(#moon-fill)"
+                />
+              </g>
+              <path
+                class="star"
+                style="--d: 0"
+                d="M37 6.5Q37 10 40.5 10Q37 10 37 13.5Q37 10 33.5 10Q37 10 37 6.5Z"
+              />
+              <path
+                class="star"
+                style="--d: 1"
+                d="M42 19Q42 21 44 21Q42 21 42 23Q42 21 40 21Q42 21 42 19Z"
+              />
+              <path
+                class="star"
+                style="--d: 2"
+                d="M31 17.5Q31 19 32.5 19Q31 19 31 20.5Q31 19 29.5 19Q31 19 31 17.5Z"
+              />
+              <path
+                class="star"
+                style="--d: 3"
+                d="M41 31Q41 32.5 42.5 32.5Q41 32.5 41 34Q41 32.5 39.5 32.5Q41 32.5 41 31Z"
+              />
+            </svg>
+
+            <!-- Sunset: a breathing gradient glow behind a sun on the horizon -->
+            <svg
+              class="glyph glyph--sunset"
+              data-for="sunset"
+              viewBox="0 0 48 48"
+            >
+              <defs>
+                <radialGradient id="sunset-glow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0" stop-color="#F3C98A" stop-opacity="0.95" />
+                  <stop offset="0.45" stop-color="#E66A63" stop-opacity="0.5" />
+                  <stop offset="1" stop-color="#B4607E" stop-opacity="0" />
+                </radialGradient>
+                <linearGradient id="sunset-sun" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#F6D898" />
+                  <stop offset="1" stop-color="#E66A63" />
+                </linearGradient>
+                <clipPath id="sunset-sky">
+                  <rect x="0" y="0" width="48" height="30" />
+                </clipPath>
+              </defs>
+              <circle
+                class="sunset-glow"
+                cx="24"
+                cy="30"
+                r="21"
+                fill="url(#sunset-glow)"
+              />
+              <g clip-path="url(#sunset-sky)">
+                <circle
+                  class="sunset-sun"
+                  cx="24"
+                  cy="30"
+                  r="10"
+                  fill="url(#sunset-sun)"
+                />
+              </g>
+              <line class="sunset-line" x1="7" y1="30" x2="41" y2="30" />
+              <line
+                class="sunset-ripple"
+                style="--n: 0"
+                x1="14"
+                y1="35"
+                x2="34"
+                y2="35"
+              />
+              <line
+                class="sunset-ripple"
+                style="--n: 1"
+                x1="19"
+                y1="39.5"
+                x2="29"
+                y2="39.5"
+              />
+            </svg>
+          </span>
+        </span>
+
+        <button
+          type="button"
+          class="toggle__stop"
+          role="radio"
+          aria-checked="false"
+          tabindex="-1"
+          data-mood="light"
+          aria-label="Light"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" />
+            <path
+              d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="toggle__stop"
+          role="radio"
+          aria-checked="false"
+          tabindex="-1"
+          data-mood="sunset"
+          aria-label="Sunset"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 17a5 5 0 0 1 10 0" />
+            <path
+              d="M2.5 17h19M5.5 20.5h13M12 5.5V8M5.3 9.8l1.6 1.6M18.7 9.8l-1.6 1.6"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="toggle__stop"
+          role="radio"
+          aria-checked="false"
+          tabindex="-1"
+          data-mood="dark"
+          aria-label="Dark"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1Z" />
+          </svg>
+        </button>
+      </div>
+
+      <button type="button" class="sound" aria-pressed="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
+          <path
+            class="sound__wave"
+            d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"
+          />
+          <path class="sound__off" d="M16 9.5l5 5M21 9.5l-5 5" />
+        </svg>
+        <span class="sound__label">Sound on</span>
+      </button>
+    </div>
+
+    <script>
+      // Light / sunset / dark toggle. CSS eases the colors and slides the knob;
+      // this picks the theme, adds the squash, plays a small sound and
+      // remembers the choice. Sounds are made live with the Web Audio API,
+      // so there are no files to load.
+
+      // Pick one sound per theme here. The options are listed in SOUND_LIBRARY below.
+      const SOUND_CHOICE = (window.SOUND_CHOICE = {
+        light: "chime", // chime, bell, musicbox, tick
+        sunset: "hum", // swell, hum, windchime, tick
+        dark: "deepbell", // pings, deepbell, twinkle, tick
+        slide: "none", // whoosh, tick, none
+      });
+
+      (() => {
+        const root = document.documentElement;
+        const toggle = document.querySelector(".toggle");
+        const face = toggle.querySelector(".toggle__face");
+        const stops = [...toggle.querySelectorAll(".toggle__stop")];
+        const moods = stops.map((s) => s.dataset.mood);
+        const soundButton = document.querySelector(".sound");
+        const soundLabel = soundButton.querySelector(".sound__label");
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const KEY = "lucy-theme";
+        const SOUND_KEY = "lucy-theme-sound";
+
+        function read(key) {
+          try {
+            return localStorage.getItem(key);
+          } catch {
+            return null;
+          }
+        }
+        function write(key, value) {
+          try {
+            localStorage.setItem(key, value);
+          } catch {}
+        }
+
+        /* ---------- Sound building blocks ---------- */
+
+        let ctx = null;
+        let master = null;
+
+        // Browsers only allow audio after a tap, click or key press, so this runs on the first one
+        function audio() {
+          if (!ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return null;
+            ctx = new AC();
+            master = ctx.createGain();
+            master.gain.value = 0.55;
+            master.connect(ctx.destination);
+          }
+          if (ctx.state !== "running") ctx.resume();
+          return ctx;
+        }
+
+        // Phones need two extra steps before Web Audio is heard:
+        // 1. iPhones mute Web Audio when the ring switch is on silent, unless the page
+        //    asks for "playback" audio. Newer Safari has audioSession for that; older
+        //    Safari switches over when an ordinary audio element is playing, so a
+        //    silent one loops quietly in the background.
+        // 2. The audio engine must be started and play something inside the first tap.
+        let silentLoop = null;
+        let unlocked = false;
+
+        function silentWav() {
+          const samples = 800;
+          const buffer = new ArrayBuffer(44 + samples);
+          const view = new DataView(buffer);
+          function text(at, s) {
+            for (let i = 0; i < s.length; i++)
+              view.setUint8(at + i, s.charCodeAt(i));
+          }
+          text(0, "RIFF");
+          view.setUint32(4, 36 + samples, true);
+          text(8, "WAVE");
+          text(12, "fmt ");
+          view.setUint32(16, 16, true);
+          view.setUint16(20, 1, true);
+          view.setUint16(22, 1, true);
+          view.setUint32(24, 8000, true);
+          view.setUint32(28, 8000, true);
+          view.setUint16(32, 1, true);
+          view.setUint16(34, 8, true);
+          text(36, "data");
+          view.setUint32(40, samples, true);
+          for (let i = 0; i < samples; i++) view.setUint8(44 + i, 128);
+          return URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
+        }
+
+        function unlock() {
+          if (unlocked || !soundOn) return;
+          unlocked = true;
+          try {
+            if (navigator.audioSession)
+              navigator.audioSession.type = "playback";
+          } catch {}
+          if (!navigator.audioSession) {
+            silentLoop = new Audio(silentWav());
+            silentLoop.loop = true;
+            silentLoop.setAttribute("playsinline", "");
+            silentLoop.volume = 0.01;
+            const p = silentLoop.play();
+            if (p && p.catch) p.catch(() => {});
+          }
+          if (!audio()) return;
+          // A one-sample silent sound wakes the audio engine on older iPhones
+          const src = ctx.createBufferSource();
+          src.buffer = ctx.createBuffer(1, 1, 22050);
+          src.connect(ctx.destination);
+          src.start(0);
+        }
+
+        ["pointerdown", "touchend", "keydown"].forEach((type) => {
+          document.addEventListener(type, unlock, {
+            capture: true,
+            passive: true,
+          });
+        });
+
+        // Pause the silent loop when the page is hidden, so the phone can sleep
+        document.addEventListener("visibilitychange", () => {
+          if (!silentLoop) return;
+          if (document.hidden) silentLoop.pause();
+          else if (soundOn) {
+            const p = silentLoop.play();
+            if (p && p.catch) p.catch(() => {});
+          }
+        });
+
+        // One note: a quick fade in, then a fade out
+        function tone(freq, at, length, opts) {
+          opts = opts || {};
+          const t = ctx.currentTime + at;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = opts.type || "sine";
+          osc.frequency.setValueAtTime(freq, t);
+          if (opts.glide)
+            osc.frequency.exponentialRampToValueAtTime(
+              freq * opts.glide,
+              t + length,
+            );
+          gain.gain.setValueAtTime(0.0001, t);
+          gain.gain.linearRampToValueAtTime(
+            opts.level || 0.08,
+            t + (opts.attack || 0.01),
+          );
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + length);
+          osc.connect(gain);
+          gain.connect(opts.into || master);
+          osc.start(t);
+          osc.stop(t + length + 0.05);
+        }
+
+        // A bell: a few overtones that fade at different speeds
+        function bell(freq, at, length, level) {
+          [
+            [1, 1],
+            [2.01, 0.45],
+            [3.02, 0.22],
+            [4.17, 0.12],
+          ].forEach((p) => {
+            tone(freq * p[0], at, (length / p[0]) * 1.6, {
+              level: level * p[1],
+              attack: 0.005,
+            });
+          });
+        }
+
+        // Filtered noise, for breathy sounds
+        function noise(at, length, from, to, level) {
+          const t = ctx.currentTime + at;
+          const buffer = ctx.createBuffer(
+            1,
+            Math.floor(ctx.sampleRate * length),
+            ctx.sampleRate,
+          );
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+          const src = ctx.createBufferSource();
+          src.buffer = buffer;
+          const filter = ctx.createBiquadFilter();
+          filter.type = "bandpass";
+          filter.Q.value = 0.9;
+          filter.frequency.setValueAtTime(from, t);
+          filter.frequency.exponentialRampToValueAtTime(to, t + length * 0.6);
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.0001, t);
+          gain.gain.linearRampToValueAtTime(level, t + length * 0.35);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + length);
+          src.connect(filter);
+          filter.connect(gain);
+          gain.connect(master);
+          src.start(t);
+        }
+
+        // A soft lowpass that opens and closes, for warm pads
+        function warmFilter(open, length) {
+          const t = ctx.currentTime;
+          const filter = ctx.createBiquadFilter();
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(350, t);
+          filter.frequency.exponentialRampToValueAtTime(open, t + length * 0.4);
+          filter.frequency.exponentialRampToValueAtTime(500, t + length);
+          filter.connect(master);
+          return filter;
+        }
+
+        function tick(at, freq) {
+          tone(freq || 2400, at, 0.06, {
+            type: "triangle",
+            level: 0.05,
+            attack: 0.002,
+          });
+        }
+
+        /* ---------- Sound library ---------- */
+
+        // Each sound takes how far the knob moved (1 or 2 stops)
+        const SOUND_LIBRARY = {
+          light: {
+            chime: {
+              name: "Rising chime",
+              play() {
+                [1046.5, 1318.5, 1568, 2093].forEach((f, n) => {
+                  tone(f, 0.24 + n * 0.07, 0.9, { level: 0.06 });
+                  tone(f * 2, 0.24 + n * 0.07, 0.4, { level: 0.012 });
+                });
+              },
+            },
+            bell: {
+              name: "Glass bell",
+              play() {
+                bell(1318.5, 0.2, 1.8, 0.07);
+                bell(1975.5, 0.32, 1.4, 0.035);
+              },
+            },
+            musicbox: {
+              name: "Music box",
+              play() {
+                [1568, 1760, 2093, 2637, 2349.3].forEach((f, n) => {
+                  tone(f, 0.2 + n * 0.09, 0.5, {
+                    type: "triangle",
+                    level: 0.045,
+                    attack: 0.003,
+                  });
+                });
+              },
+            },
+            tick: {
+              name: "Soft tick",
+              play() {
+                tick(0.18, 2600);
+                tick(0.24, 3200);
+              },
+            },
+          },
+          sunset: {
+            swell: {
+              name: "Warm swell",
+              play() {
+                const filter = warmFilter(1800, 2.2);
+                [196, 196 * 1.006, 246.9, 293.7].forEach((f) => {
+                  tone(f, 0.15, 2.2, {
+                    type: "triangle",
+                    level: 0.05,
+                    attack: 0.45,
+                    glide: 0.97,
+                    into: filter,
+                  });
+                });
+              },
+            },
+            hum: {
+              name: "Low hum",
+              play() {
+                const filter = warmFilter(900, 2.4);
+                [130.8, 196, 261.6].forEach((f, n) => {
+                  tone(f, 0.12, 2.4, {
+                    level: 0.07 - n * 0.015,
+                    attack: 0.6,
+                    into: filter,
+                  });
+                });
+              },
+            },
+            windchime: {
+              name: "Wind chimes",
+              play() {
+                [1174.7, 1396.9, 1046.5, 1568, 1318.5].forEach((f, n) => {
+                  bell(f, 0.2 + n * 0.16 + Math.random() * 0.05, 1.2, 0.03);
+                });
+                noise(0.05, 1.2, 800, 2000, 0.015);
+              },
+            },
+            tick: {
+              name: "Soft tick",
+              play() {
+                tick(0.18, 1800);
+                tick(0.26, 1400);
+              },
+            },
+          },
+          dark: {
+            pings: {
+              name: "Night pings",
+              play() {
+                tone(220, 0.12, 1.4, { level: 0.09, attack: 0.08 });
+                tone(330, 0.16, 1.2, { level: 0.04, attack: 0.1 });
+                [1760, 2349.3, 2093, 2637].forEach((f, n) => {
+                  tone(f, 0.42 + n * 0.12, 0.5, {
+                    type: "triangle",
+                    level: 0.035,
+                  });
+                });
+              },
+            },
+            deepbell: {
+              name: "Deep bell",
+              play() {
+                bell(196, 0.16, 2.6, 0.09);
+                tone(98, 0.16, 2.2, { level: 0.04, attack: 0.05 });
+              },
+            },
+            twinkle: {
+              name: "Twinkle",
+              play() {
+                [2637, 3136, 2793.8, 3520, 2349.3, 3951].forEach(
+                  (f, n) => {
+                    tone(f, 0.38 + n * 0.09, 0.35, {
+                      level: 0.028,
+                      attack: 0.004,
+                    });
+                  },
+                );
+              },
+            },
+            tick: {
+              name: "Soft tick",
+              play() {
+                tick(0.18, 1200);
+                tick(0.26, 900);
+              },
+            },
+          },
+          slide: {
+            whoosh: {
+              name: "Whoosh",
+              play(distance) {
+                noise(0, 0.32 + 0.12 * distance, 500, 2200, 0.05);
+              },
+            },
+            tick: {
+              name: "Click",
+              play() {
+                tick(0, 1600);
+              },
+            },
+            none: { name: "None", play() {} },
+          },
+        };
+
+        function playSound(group, id, distance) {
+          if (!audio()) return;
+          const sound = SOUND_LIBRARY[group] && SOUND_LIBRARY[group][id];
+          if (sound) sound.play(distance || 1);
+        }
+
+        /* ---------- Sound on/off ---------- */
+
+        let soundOn = read(SOUND_KEY) !== "off";
+
+        function play(mood, distance) {
+          if (!soundOn || !audio()) return;
+          const go = () => {
+            playSound("slide", SOUND_CHOICE.slide, distance);
+            playSound(mood, SOUND_CHOICE[mood], distance);
+          };
+          // On phones the engine can still be waking up; wait for it so notes aren't lost
+          if (ctx.state === "running") go();
+          else ctx.resume().then(go, go);
+        }
+
+        function setSound(on) {
+          soundOn = on;
+          soundButton.setAttribute("aria-pressed", on ? "true" : "false");
+          soundLabel.textContent = on ? "Sound on" : "Sound off";
+          write(SOUND_KEY, on ? "on" : "off");
+          if (silentLoop) {
+            if (on) {
+              const p = silentLoop.play();
+              if (p && p.catch) p.catch(() => {});
+            } else silentLoop.pause();
+          }
+        }
+
+        soundButton.addEventListener("click", () => {
+          setSound(!soundOn);
+        });
+        setSound(soundOn);
+
+        // Lets a sound picker page audition the library
+        window.themeSounds = {
+          library: SOUND_LIBRARY,
+          choice: SOUND_CHOICE,
+          play: playSound,
+        };
+
+        /* ---------- Theme ---------- */
+
+        function setMood(mood, animate) {
+          const from = moods.indexOf(root.dataset.mood);
+          const i = moods.indexOf(mood);
+          if (i < 0 || i === from) return;
+          root.dataset.mood = mood;
+          toggle.style.setProperty("--i", i);
+          stops.forEach((s, n) => {
+            s.setAttribute("aria-checked", n === i ? "true" : "false");
+            s.tabIndex = n === i ? 0 : -1;
+          });
+          write(KEY, mood);
+          if (!animate) return;
+
+          play(mood, Math.abs(i - from));
+
+          // The knob stretches along its path, then settles back to a circle
+          if (face.animate && !reduced.matches) {
+            const stretch = 1 + 0.16 * Math.abs(i - from);
+            face.animate(
+              [
+                { transform: "scale(1, 1)" },
+                {
+                  transform: `scale(${stretch}, ${2 - stretch})`,
+                  offset: 0.45,
+                },
+                { transform: "scale(0.96, 1.04)", offset: 0.8 },
+                { transform: "scale(1, 1)" },
+              ],
+              { duration: 680, easing: "ease-in-out" },
+            );
+          }
+        }
+
+        stops.forEach((s) => {
+          s.addEventListener("click", () => {
+            setMood(s.dataset.mood, true);
+          });
+        });
+
+        // Arrow keys move between stops, like any radio group
+        toggle.addEventListener("keydown", (e) => {
+          const i = moods.indexOf(root.dataset.mood);
+          let next = {
+            ArrowRight: i + 1,
+            ArrowDown: i + 1,
+            ArrowLeft: i - 1,
+            ArrowUp: i - 1,
+            Home: 0,
+            End: moods.length - 1,
+          }[e.key];
+          if (next === undefined) return;
+          e.preventDefault();
+          next = (next + moods.length) % moods.length;
+          setMood(moods[next], true);
+          stops[next].focus();
+        });
+
+        // Start on the saved theme, or match the device, without animating or sound
+        let start = read(KEY);
+        if (moods.indexOf(start) < 0) {
+          start = window.matchMedia("(prefers-color-scheme: light)").matches
+            ? "light"
+            : "dark";
+        }
+        root.classList.add("is-instant");
+        setMood(start, false);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            root.classList.remove("is-instant");
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

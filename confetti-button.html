@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Confetti Button</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      @property --i {syntax: "<integer>";initial-value: 0;inherits: true}
+      @property --n {syntax: "<integer>";initial-value: 0;inherits: true}
+      @property --p {syntax: "<number>";initial-value: 0;inherits: true}
+
+      button {
+        font: bold 40px system-ui,sans-serif;
+        color: #ef476f;
+        --c: #ade8f4;
+        padding: .5em 1.2em;
+        text-transform: uppercase;
+        border: none;
+        background: none;
+        outline-offset: calc(1.2*var(--d));
+        border-radius: 2lh;
+        position: relative;
+        cursor: pointer;
+        transition: .3s;
+        animation: --p 4s linear infinite paused;
+      }
+      @keyframes --p{to{--p:1}}
+
+      button i {
+        --i: sibling-index();
+        --n: sibling-count();
+      }
+      button i:before,
+      button i:after {
+        content: "";
+        position: absolute;
+        height: 5px; /* this control the thickness */
+        aspect-ratio: 1.8;
+        --_d: min(abs(var(--i)/var(--n) - var(--p)),1 - abs(var(--i)/var(--n) - var(--p)));
+        --_p: max(0,var(--_d)/(-1*var(--r)) + 1);
+        background: color-mix(in hsl,currentColor,var(--c) calc(random(0%,100%)*var(--_p)));
+        translate:
+            random(-1*var(--_p)*var(--d),var(--_p)*var(--d))
+            random(-1*var(--_p)*var(--d),var(--_p)*var(--d));
+        offset: border-box calc(var(--i)*100%/var(--n)) auto calc(var(--a,1)*var(--_p)*random(-50deg,50deg));
+        transition: .3s;
+      }
+      button:not(:hover,:focus-visible) i:before,
+      button:not(:hover,:focus-visible) i:after {
+        background: currentColor;
+        --a 0;
+      }
+
+      button {
+        --d: 10px;
+        --r: .2;
+      }
+      button:is(:hover,:focus-visible) {
+        --d: 15px;
+        animation-play-state: running;
+      }
+      button:active {
+        --d: 20px;
+        --r: .6;
+        scale:.95;
+      }
+
+
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        gap: 30px;
+        grid-auto-flow: column;
+        place-content: center;
+        align-items: center;
+        background: #fdf0d5;
+      }
+
+      @supports not (opacity: random(0,1)) {
+        button i:before,
+        button i:after {
+          offset: border-box calc(var(--i)*100%/var(--n));
+        }
+      }
+
+      @supports (-moz-appearance: none) {
+      @property --_r {syntax: "<percentage>";initial-value: 0%;inherits: true}
+        button i:before,
+        button i:after {
+          --_r: random(0%,100%);
+          background: color-mix(in hsl,currentColor var(--_r),var(--c));
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <button>
+      button <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i>
+      <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i>
+      <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i>
+      <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i>
+      <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i>
+      <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i>
+      <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i>
+      <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i>
+      <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i> <i></i>
+      <i></i> <i></i> <i></i> <i></i> <i></i> <i></i>
+    </button>
+  </body>
+</html>
